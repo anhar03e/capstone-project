@@ -1,0 +1,242 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Dosen Pembimbing{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+body{
+    background:#f5f7fb;
+}
+
+/* HEADER */
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:22px;
+    border-radius:16px;
+    margin-bottom:20px;
+}
+
+/* CARD */
+.card-modern{
+    border:none;
+    border-radius:15px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+    background:white;
+}
+
+/* TABLE */
+.table-modern{
+    margin-bottom:0;
+}
+
+.table-modern thead{
+    background:#f8f9fa;
+}
+
+.table-modern th{
+    border:none;
+    font-weight:600;
+}
+
+.table-modern td{
+    vertical-align:middle;
+}
+
+/* AVATAR */
+.avatar{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:#2563eb;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+}
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+
+    <h4 class="mb-1">
+        Dosen Pembimbing
+    </h4>
+
+    <div>
+        Monitoring seluruh dosen pembimbing capstone
+    </div>
+
+</div>
+
+<!-- SUMMARY -->
+<div class="row mb-3">
+
+    <div class="col-md-4">
+
+        <div class="card card-modern p-3">
+
+            <small>Total Dosen Pembimbing</small>
+
+            <h3 class="mb-0 mt-2">
+                {{ dospem_list.count }}
+            </h3>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- TABLE -->
+<div class="card card-modern">
+
+    <div class="card-header bg-white">
+        <b>Daftar Dosen Pembimbing</b>
+    </div>
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table table-modern align-middle">
+
+                <thead>
+
+                    <tr>
+                        <th>No</th>
+                        <th>Nama Dosen</th>
+                        <th>Email</th>
+                        <th>Batas</th>
+                        <th>Jumlah</th>
+                        <th>Sisa</th>
+                        <th>Status</th>
+                        <th width="120">Aksi</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                {% for dospem in dospem_list %}
+
+                <tr>
+
+                    <td>{{ forloop.counter }}</td>
+
+                    <td>
+
+                        <div class="d-flex align-items-center gap-2">
+
+                            <div class="avatar">
+                                {{ dospem.dosen.user.first_name|first|upper }}
+                            </div>
+
+                            <div>
+                                <b>{{ dospem.dosen.user.get_full_name }}</b>
+                            </div>
+
+                        </div>
+
+                    </td>
+
+                    <td>
+                        {{ dospem.dosen.user.email }}
+                    </td>
+
+                    <td>
+                        {{ dospem.batas_bimbingan }}
+                    </td>
+
+                    <td>
+                        {{ dospem.jumlah_bimbingan }}
+                    </td>
+
+                    <td>
+
+                        {% if dospem.sisa_kuota > 0 %}
+
+                            <span class="badge bg-info">
+                                {{ dospem.sisa_kuota }}
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-danger">
+                                0
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        {% if dospem.status == "OPEN" %}
+
+                            <span class="badge bg-success">
+                                OPEN
+                            </span>
+
+                        {% elif dospem.status == "FULL" %}
+
+                            <span class="badge bg-danger">
+                                FULL
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-secondary">
+                                CLOSED
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <!-- AKSI -->
+                    <td>
+
+                        <a href="{% url 'capstone_system:edit_batas_dospem' dospem.id %}"
+                           class="btn btn-warning btn-sm">
+
+                            <i class="bi bi-pencil-square"></i>
+                            Edit
+
+                        </a>
+
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="8" class="text-center py-4 text-muted">
+
+                        Belum ada dosen pembimbing.
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

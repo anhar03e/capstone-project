@@ -1,0 +1,1039 @@
+{% extends "dashboard/base_dashboard.html" %}
+
+{% block title %}Cek Status{% endblock %}
+
+{% block sidebar %}
+    {% include "dashboard/sidebar_mahasiswa.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+
+body{
+    background:#f4f7fc;
+    font-family: "Segoe UI", sans-serif;
+}
+
+/* =====================================
+   PAGE HEADER
+===================================== */
+
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:#fff;
+    border-radius:18px;
+    padding:28px;
+    margin-bottom:25px;
+    box-shadow:0 12px 28px rgba(37,99,235,.18);
+}
+
+.page-header h4{
+    font-weight:700;
+    margin-bottom:6px;
+}
+
+.page-header small{
+    opacity:.9;
+    font-size:.95rem;
+}
+
+/* =====================================
+   CARD
+===================================== */
+
+.card-modern{
+    border:none;
+    border-radius:16px;
+    overflow:hidden;
+    background:#fff;
+    box-shadow:0 8px 20px rgba(0,0,0,.06);
+    transition:.3s;
+}
+
+.card-modern:hover{
+    transform:translateY(-3px);
+    box-shadow:0 12px 28px rgba(0,0,0,.08);
+}
+
+.card-modern .card-header{
+    border:none;
+    font-weight:600;
+    letter-spacing:.3px;
+}
+
+/* =====================================
+   STEP PROGRESS
+===================================== */
+
+.progress-step{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    position:relative;
+    margin-top:20px;
+}
+
+.progress-step::before{
+    content:'';
+    position:absolute;
+    top:22px;
+    left:8%;
+    right:8%;
+    height:4px;
+    background:#e5e7eb;
+    z-index:0;
+    border-radius:10px;
+}
+
+.step-item{
+    width:20%;
+    text-align:center;
+    position:relative;
+    z-index:2;
+}
+
+.step-item small{
+    display:block;
+    margin-top:10px;
+    font-size:.85rem;
+    color:#6b7280;
+}
+
+.step-circle{
+    width:46px;
+    height:46px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:auto;
+    font-weight:bold;
+    font-size:18px;
+    border:3px solid white;
+    box-shadow:0 3px 10px rgba(0,0,0,.1);
+}
+
+.step-done{
+    background:#2563eb;
+    color:#fff;
+}
+
+.step-review{
+    background:#f59e0b;
+    color:#fff;
+}
+
+.step-reject{
+    background:#ef4444;
+    color:#fff;
+}
+
+.step-wait{
+    background:#d1d5db;
+    color:#6b7280;
+}
+
+/* =====================================
+   TIMELINE
+===================================== */
+
+.timeline{
+    position:relative;
+    border-left:3px solid #2563eb;
+    margin-left:15px;
+    padding-left:22px;
+}
+
+.timeline-item{
+    position:relative;
+    margin-bottom:18px;
+}
+
+.timeline-item::before{
+    content:'';
+    width:13px;
+    height:13px;
+    border-radius:50%;
+    background:#2563eb;
+    position:absolute;
+    left:-30px;
+    top:4px;
+}
+
+/* =====================================
+   FEEDBACK HISTORY
+===================================== */
+
+.feedback-history{
+    position:relative;
+    border-left:3px solid #2563eb;
+    margin-left:15px;
+    padding-left:22px;
+}
+
+.feedback-item{
+    position:relative;
+    background:#f8fafc;
+    border:1px solid #e5e7eb;
+    border-radius:14px;
+    padding:15px;
+    margin-bottom:18px;
+    transition:.25s;
+}
+
+.feedback-item:hover{
+    transform:translateY(-2px);
+    box-shadow:0 8px 20px rgba(37,99,235,.12);
+}
+
+.feedback-item::before{
+    content:'';
+    position:absolute;
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    background:#2563eb;
+    left:-29px;
+    top:22px;
+}
+
+.feedback-title{
+    font-weight:600;
+}
+
+.feedback-date{
+    font-size:.8rem;
+    color:#6b7280;
+}
+
+.feedback-note{
+    margin-top:10px;
+    line-height:1.6;
+    white-space:pre-line;
+}
+
+.feedback-empty{
+    text-align:center;
+    color:#9ca3af;
+    padding:25px;
+}
+
+/* =====================================
+   BADGE
+===================================== */
+
+.badge{
+    font-size:.78rem;
+    padding:7px 12px;
+    border-radius:30px;
+}
+
+/* =====================================
+   ALERT
+===================================== */
+
+.alert{
+    border:none;
+    border-radius:12px;
+}
+
+/* =====================================
+   RESPONSIVE
+===================================== */
+
+@media(max-width:768px){
+
+    .page-header{
+        text-align:center;
+    }
+
+    .progress-step{
+        flex-direction:column;
+        gap:20px;
+    }
+
+    .progress-step::before{
+        display:none;
+    }
+
+    .step-item{
+        width:100%;
+    }
+
+}
+
+</style>
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+
+        <div>
+            <h4 class="mb-2 fw-bold">
+                <i class="bi bi-diagram-3-fill me-2"></i>
+                Tracking Status Capstone
+            </h4>
+
+            <p class="mb-0">
+                Pantau perkembangan proposal, proses review dosen,
+                hingga status akhir Capstone Project.
+            </p>
+        </div>
+
+        {# 🔥 HAPUS: Badge status di header #}
+
+    </div>
+
+</div>
+
+
+<!-- ================= PROGRESS ================= -->
+
+<div class="card card-modern mb-4">
+
+    <div class="card-body">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+
+            <h5 class="fw-bold mb-0">
+                Progress Capstone
+            </h5>
+
+            {% if proposal %}
+            <small class="text-muted">
+
+                Proposal dikirim
+
+                <strong>
+                    {{ proposal.waktu_pengajuan|date:"d M Y" }}
+                </strong>
+
+            </small>
+            {% endif %}
+
+        </div>
+
+        <div class="progress-step">
+
+            <!-- STEP 1: Upload Proposal -->
+            <div class="step-item">
+
+                <div class="step-circle {% if proposal %}step-done{% else %}step-wait{% endif %}">
+
+                    {% if proposal %}
+                        ✓
+                    {% else %}
+                        1
+                    {% endif %}
+
+                </div>
+
+                <small class="fw-semibold">
+                    Upload Proposal
+                </small>
+
+                <div class="text-muted small mt-1">
+
+                    {% if proposal %}
+                        ✅ Sudah Upload
+                    {% else %}
+                        ⏳ Belum Upload
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <!-- STEP 2: Review CP -->
+            <div class="step-item">
+
+                <div class="step-circle
+
+                {% if proposal and proposal.status_cp == 'DITERIMA' %}
+                    step-done
+
+                {% elif proposal and proposal.status_cp == 'REVISI' %}
+                    step-review
+
+                {% elif proposal and proposal.status_cp == 'DITOLAK' %}
+                    step-reject
+
+                {% elif proposal and proposal.status_cp == 'SEDANG_REVIEW' %}
+                    step-review
+
+                {% else %}
+                    step-wait
+                {% endif %}
+
+                ">
+
+                    {% if proposal and proposal.status_cp == 'DITERIMA' %}
+                        ✓
+
+                    {% elif proposal and proposal.status_cp == 'REVISI' %}
+                        ✎
+
+                    {% elif proposal and proposal.status_cp == 'DITOLAK' %}
+                        ✕
+
+                    {% elif proposal and proposal.status_cp == 'SEDANG_REVIEW' %}
+                        ⏳
+
+                    {% else %}
+                        2
+                    {% endif %}
+
+                </div>
+
+                <small class="fw-semibold">
+                    Review Dosen CP
+                </small>
+
+                <div class="text-muted small mt-1">
+
+                    {% if proposal %}
+                        {{ proposal.get_status_cp_display }}
+                    {% else %}
+                        ⏳ Menunggu
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <!-- STEP 3: Upload Resume -->
+            <div class="step-item">
+
+                <div class="step-circle
+
+                {% if resume %}
+                    step-done
+                {% else %}
+                    step-wait
+                {% endif %}
+
+                ">
+
+                    {% if resume %}
+                        ✓
+                    {% else %}
+                        3
+                    {% endif %}
+
+                </div>
+
+                <small class="fw-semibold">
+                    Upload Resume
+                </small>
+
+                <div class="text-muted small mt-1">
+
+                    {% if resume %}
+                        ✅ Sudah Upload
+                    {% else %}
+                        ⏳ Belum Upload
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <!-- STEP 4: Review Resume (PB) -->
+            <div class="step-item">
+
+                <div class="step-circle
+
+                {% if resume and resume.status == 'DISETUJUI' %}
+                    step-done
+
+                {% elif resume and resume.status == 'REVISI' %}
+                    step-review
+
+                {% elif resume and resume.status == 'DITOLAK' %}
+                    step-reject
+
+                {% elif resume %}
+                    step-review
+
+                {% else %}
+                    step-wait
+                {% endif %}
+
+                ">
+
+                    {% if resume and resume.status == 'DISETUJUI' %}
+                        ✓
+
+                    {% elif resume and resume.status == 'REVISI' %}
+                        ✎
+
+                    {% elif resume and resume.status == 'DITOLAK' %}
+                        ✕
+
+                    {% elif resume %}
+                        ⏳
+
+                    {% else %}
+                        4
+                    {% endif %}
+
+                </div>
+
+                <small class="fw-semibold">
+                    Review Resume (PB)
+                </small>
+
+                <div class="text-muted small mt-1">
+
+                    {% if resume %}
+                        {{ resume.get_status_display }}
+                    {% else %}
+                        ⏳ Menunggu
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <!-- STEP 5: Final -->
+            <div class="step-item">
+
+                <div class="step-circle
+
+                {% if proposal and proposal.status_cp == 'DITERIMA' and resume and resume.status == 'DISETUJUI' %}
+                    step-done
+
+                {% elif proposal and proposal.status_cp == 'REVISI' or resume and resume.status == 'REVISI' %}
+                    step-review
+
+                {% elif proposal and proposal.status_cp == 'DITOLAK' or resume and resume.status == 'DITOLAK' %}
+                    step-reject
+
+                {% elif proposal and proposal.status_cp == 'SEDANG_REVIEW' or resume %}
+                    step-review
+
+                {% else %}
+                    step-wait
+                {% endif %}
+
+                ">
+
+                    {% if proposal and proposal.status_cp == 'DITERIMA' and resume and resume.status == 'DISETUJUI' %}
+                        ✓
+
+                    {% elif proposal and proposal.status_cp == 'REVISI' or resume and resume.status == 'REVISI' %}
+                        ✎
+
+                    {% elif proposal and proposal.status_cp == 'DITOLAK' or resume and resume.status == 'DITOLAK' %}
+                        ✕
+
+                    {% elif proposal and proposal.status_cp == 'SEDANG_REVIEW' or resume %}
+                        ⏳
+
+                    {% else %}
+                        5
+                    {% endif %}
+
+                </div>
+
+                <small class="fw-semibold">
+                    Final
+                </small>
+
+                <div class="text-muted small mt-1">
+
+                    {% if proposal and proposal.status_cp == 'DITERIMA' and resume and resume.status == 'DISETUJUI' %}
+                        ✅ Selesai
+                    {% elif proposal and proposal.status_cp == 'REVISI' or resume and resume.status == 'REVISI' %}
+                        ✏️ Revisi
+                    {% elif proposal and proposal.status_cp == 'DITOLAK' or resume and resume.status == 'DITOLAK' %}
+                        ❌ Ditolak
+                    {% elif proposal and proposal.status_cp == 'SEDANG_REVIEW' or resume %}
+                        🔄 Proses
+                    {% else %}
+                        ⏳ Menunggu
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ================= DETAIL GRID ================= -->
+<div class="row g-3">
+
+    <!-- Detail Proposal (BIRU) -->
+    <div class="col-md-6">
+        <div class="card card-modern h-100">
+            <div class="card-header" style="background:#2563eb; color:#fff;">
+                <i class="bi bi-file-earmark-text"></i> Detail Proposal
+            </div>
+
+            <div class="card-body">
+
+                {% if proposal %}
+
+                    <h6 class="fw-bold">{{ proposal.judul }}</h6>
+
+                    {# 🔥 PERUBAHAN: Gunakan status_cp #}
+                    <span class="badge 
+                        {% if proposal.status_cp == 'DITERIMA' %}bg-success
+                        {% elif proposal.status_cp == 'REVISI' %}bg-warning text-dark
+                        {% elif proposal.status_cp == 'DITOLAK' %}bg-danger
+                        {% elif proposal.status_cp == 'SEDANG_REVIEW' %}bg-info text-dark
+                        {% else %}bg-secondary{% endif %} 
+                        mt-2">
+                        {{ proposal.get_status_cp_display }}
+                    </span>
+
+                    <div class="mt-3 timeline">
+                        <div class="timeline-item">
+                            <strong>Upload Proposal</strong><br>
+                            <small>{{ proposal.waktu_pengajuan|date:"d M Y H:i" }}</small>
+                        </div>
+                        {% if proposal.waktu_update %}
+                        <div class="timeline-item">
+                            <strong>Terakhir Update</strong><br>
+                            <small>{{ proposal.waktu_update|date:"d M Y H:i" }}</small>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                {% else %}
+
+                    <div class="text-muted text-center py-4">
+                        <i class="bi bi-file-earmark-x fs-1 d-block mb-3"></i>
+                        Belum upload proposal.
+                    </div>
+
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Resume (BIRU) - 🔥 PERUBAHAN: Warna header menjadi biru -->
+    <div class="col-md-6">
+        <div class="card card-modern h-100">
+
+            <div class="card-header" style="background:#2563eb; color:#fff;">
+                <i class="bi bi-file-earmark-text"></i> Detail Resume
+            </div>
+
+            <div class="card-body">
+
+                {% if resume %}
+
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i>
+                        Resume sudah diupload.
+                    </div>
+
+                    <div class="mb-2">
+                        <strong>Status:</strong>
+                        <span class="badge 
+                            {% if resume.status == 'DISETUJUI' %}bg-success
+                            {% elif resume.status == 'REVISI' %}bg-warning text-dark
+                            {% elif resume.status == 'DITOLAK' %}bg-danger
+                            {% else %}bg-secondary{% endif %}">
+                            {{ resume.get_status_display }}
+                        </span>
+                    </div>
+
+                    <a href="{{ resume.file_resume.url }}"
+                       class="btn btn-primary w-100"
+                       target="_blank">
+                        <i class="bi bi-download"></i> Download Resume
+                    </a>
+
+                {% else %}
+
+                    <div class="text-muted text-center py-4">
+                        <i class="bi bi-file-earmark-x fs-1 d-block mb-3"></i>
+                        Belum upload resume.
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- ================= STATUS FINAL ================= -->
+
+<div class="card card-modern mt-4">
+
+    <div class="card-header" style="background:#1f2937; color:#fff;">
+        <i class="bi bi-flag"></i> Status Akhir
+    </div>
+
+    <div class="card-body">
+
+        {% if proposal %}
+
+            {# 🔥 PERUBAHAN: Gunakan status_cp untuk status akhir #}
+            {% if proposal.status_cp == 'DITERIMA' and resume and resume.status == 'DISETUJUI' %}
+
+                <div class="alert alert-success mb-0">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <strong>✅ SELESAI!</strong> Proposal dan Resume telah disetujui.
+                </div>
+
+            {% elif proposal.status_cp == 'DITERIMA' %}
+
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>📋 Proposal Diterima.</strong> Silakan upload resume.
+                </div>
+
+            {% elif proposal.status_cp == 'REVISI' %}
+
+                <div class="alert alert-warning mb-0">
+                    <i class="bi bi-pencil"></i>
+                    <strong>✏️ Perlu Revisi.</strong> Silakan perbaiki sesuai catatan dosen.
+                </div>
+
+            {% elif proposal.status_cp == 'DITOLAK' %}
+
+                <div class="alert alert-danger mb-0">
+                    <i class="bi bi-x-circle"></i>
+                    <strong>❌ Ditolak.</strong> Silakan upload ulang proposal baru.
+                </div>
+
+            {% elif proposal.status_cp == 'SEDANG_REVIEW' %}
+
+                <div class="alert alert-secondary mb-0">
+                    <i class="bi bi-hourglass-split"></i>
+                    <strong>⏳ Sedang Review.</strong> Menunggu hasil review dari Dosen CP.
+                </div>
+
+            {% else %}
+
+                <div class="alert alert-secondary mb-0">
+                    <i class="bi bi-clock"></i>
+                    <strong>⏳ Menunggu Review.</strong> Proposal sedang menunggu review.
+                </div>
+
+            {% endif %}
+
+        {% else %}
+
+            <div class="alert alert-secondary mb-0">
+                <i class="bi bi-file-earmark-x"></i>
+                Belum ada proposal.
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+<!-- ================= FEEDBACK DOSEN ================= -->
+
+<div class="card card-modern mt-4">
+
+    <div class="card-header" style="background:#0ea5e9; color:#fff;">
+        <i class="bi bi-chat-left-text"></i> Feedback Dosen
+    </div>
+
+    <div class="card-body">
+
+        {% if proposal %}
+
+        <!-- ================= DOSEN CP ================= -->
+
+        <div class="mb-5">
+
+            <h5 class="fw-bold" style="color:#2563eb;">
+                <i class="bi bi-person-badge"></i> Dosen Capstone Project
+            </h5>
+
+            <p>
+
+                <strong>Status :</strong>
+
+                {% if proposal.status_cp == 'DITERIMA' %}
+                    <span class="badge bg-success">✅ Diterima</span>
+
+                {% elif proposal.status_cp == 'REVISI' %}
+                    <span class="badge bg-warning text-dark">✏️ Revisi</span>
+
+                {% elif proposal.status_cp == 'DITOLAK' %}
+                    <span class="badge bg-danger">❌ Ditolak</span>
+
+                {% elif proposal.status_cp == 'SEDANG_REVIEW' %}
+                    <span class="badge bg-info text-dark">🔄 Sedang Review</span>
+
+                {% else %}
+                    <span class="badge bg-secondary">⏳ Belum Review</span>
+                {% endif %}
+
+            </p>
+
+           {% if riwayat_cp %}
+
+                <div class="feedback-history">
+
+                    {% for item in riwayat_cp %}
+
+                    <div class="feedback-item">
+
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+
+                            <div>
+
+                                {% if item.status == 'DITERIMA' %}
+                                    <span class="badge bg-success mb-2">✅ Diterima</span>
+
+                                {% elif item.status == 'REVISI' %}
+                                    <span class="badge bg-warning text-dark mb-2">✏️ Revisi</span>
+
+                                {% elif item.status == 'DITOLAK' %}
+                                    <span class="badge bg-danger mb-2">❌ Ditolak</span>
+
+                                {% endif %}
+
+                                {% if item.dosen %}
+                                    <div class="small text-muted">
+                                        <i class="bi bi-person-circle"></i>
+                                        Direview oleh :
+                                        <strong>{{ item.dosen.user.get_full_name }}</strong>
+                                    </div>
+                                {% endif %}
+
+                            </div>
+
+                            <small class="feedback-date">
+                                {{ item.created_at|date:"d M Y H:i" }}
+                            </small>
+
+                        </div>
+
+                        <div class="feedback-note">
+                            {{ item.catatan|linebreaks }}
+                        </div>
+
+                    </div>
+
+                    {% empty %}
+
+                    <div class="feedback-empty">
+                        <i class="bi bi-chat-square-text fs-2 d-block mb-2"></i>
+                        Belum ada riwayat feedback.
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+                {% endif %}
+
+        </div>
+
+        <hr>
+
+        <!-- ================= DOSEN PEMBIMBING (BIRU) ================= -->
+
+        <div>
+
+            <h5 class="fw-bold" style="color:#2563eb;">
+                <i class="bi bi-person-badge"></i> Dosen Pembimbing
+            </h5>
+
+            <p>
+
+                <strong>Status :</strong>
+
+                {% if proposal.status_pb == 'DITERIMA' %}
+                    <span class="badge bg-success">✅ Diterima</span>
+
+                {% elif proposal.status_pb == 'REVISI' %}
+                    <span class="badge bg-warning text-dark">✏️ Revisi</span>
+
+                {% elif proposal.status_pb == 'DITOLAK' %}
+                    <span class="badge bg-danger">❌ Ditolak</span>
+
+                {% elif proposal.status_pb == 'SEDANG_REVIEW' %}
+                    <span class="badge bg-info text-dark">🔄 Sedang Review</span>
+
+                {% else %}
+                    <span class="badge bg-secondary">⏳ Belum Review</span>
+                {% endif %}
+
+            </p>
+
+            {% if riwayat_pb %}
+
+                <div class="feedback-history">
+
+                    {% for item in riwayat_pb %}
+
+                    <div class="feedback-item">
+
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+
+                            <div>
+
+                                {% if item.status == 'DITERIMA' %}
+                                    <span class="badge bg-success mb-2">✅ Diterima</span>
+
+                                {% elif item.status == 'REVISI' %}
+                                    <span class="badge bg-warning text-dark mb-2">✏️ Revisi</span>
+
+                                {% elif item.status == 'DITOLAK' %}
+                                    <span class="badge bg-danger mb-2">❌ Ditolak</span>
+                                {% endif %}
+
+                                {% if item.dosen %}
+                                    <div class="small text-muted">
+                                        <i class="bi bi-person-circle"></i>
+                                        Direview oleh :
+                                        <strong>{{ item.dosen.user.get_full_name }}</strong>
+                                    </div>
+                                {% endif %}
+
+                            </div>
+
+                            <small class="feedback-date">
+                                {{ item.created_at|date:"d M Y H:i" }}
+                            </small>
+
+                        </div>
+
+                        <div class="feedback-note">
+                            {{ item.catatan|linebreaks }}
+                        </div>
+
+                    </div>
+
+                    {% empty %}
+
+                    <div class="feedback-empty">
+                        <i class="bi bi-chat-square-text fs-2 d-block mb-2"></i>
+                        Belum ada riwayat feedback.
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+                {% endif %}
+
+        </div>
+
+        {% else %}
+
+            <div class="alert alert-secondary mb-0">
+                <i class="bi bi-file-earmark-x"></i>
+                Belum ada proposal yang diajukan.
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+<!-- ================= TIMELINE ================= -->
+
+<div class="card card-modern mt-4">
+
+    <div class="card-header" style="background:#2563eb; color:#fff;">
+        <i class="bi bi-clock-history"></i> Timeline Aktivitas
+    </div>
+
+    <div class="card-body">
+
+        {% if proposal %}
+
+            <div class="timeline">
+
+                <!-- Upload -->
+                <div class="timeline-item">
+                    <strong>📤 Proposal Diupload</strong><br>
+                    <small>
+                        {{ proposal.waktu_pengajuan|date:"d F Y H:i" }}
+                    </small>
+                </div>
+
+                <!-- Terakhir Update -->
+                {% if proposal.waktu_update %}
+                <div class="timeline-item">
+                    <strong>🔄 Proposal Diperbarui</strong><br>
+                    <small>
+                        {{ proposal.waktu_update|date:"d F Y H:i" }}
+                    </small>
+                </div>
+                {% endif %}
+
+                <!-- Review CP -->
+                {% if proposal.waktu_peninjauan %}
+                <div class="timeline-item">
+                    <strong>📋 Direview Dosen Capstone Project</strong><br>
+                    <small>
+                        {{ proposal.waktu_peninjauan|date:"d F Y H:i" }}
+                    </small>
+
+                    <br>
+
+                    {% if proposal.status_cp == "DITERIMA" %}
+                        <span class="badge bg-success mt-2">✅ Disetujui</span>
+
+                    {% elif proposal.status_cp == "REVISI" %}
+                        <span class="badge bg-warning text-dark mt-2">✏️ Revisi</span>
+
+                    {% elif proposal.status_cp == "DITOLAK" %}
+                        <span class="badge bg-danger mt-2">❌ Ditolak</span>
+
+                    {% elif proposal.status_cp == "SEDANG_REVIEW" %}
+                        <span class="badge bg-info text-dark mt-2">🔄 Sedang Review</span>
+                    {% endif %}
+                </div>
+                {% else %}
+
+                <div class="timeline-item">
+                    <strong>⏳ Review Dosen Capstone Project</strong><br>
+                    <small class="text-muted">
+                        Menunggu review
+                    </small>
+                </div>
+
+                {% endif %}
+
+                <!-- Upload Resume -->
+                {% if resume %}
+                <div class="timeline-item">
+                    <strong>📤 Resume Diupload</strong><br>
+                    <small>
+                        {{ resume.waktu_pengajuan|date:"d F Y H:i" }}
+                    </small>
+                </div>
+                {% endif %}
+
+            </div>
+
+        {% else %}
+
+            <div class="alert alert-secondary mb-0">
+                <i class="bi bi-file-earmark-x"></i>
+                Belum ada aktivitas proposal.
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

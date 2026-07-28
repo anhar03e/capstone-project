@@ -1,0 +1,22 @@
+{% extends "dashboard/base_dashboard.html" %}
+
+{% block sidebar %}
+<div class="p-3"><h5 class="fw-bold mb-3 text-success">Kaprodi Panel</h5>
+<ul class="nav flex-column">
+    <li><a class="nav-link" href="{% url 'capstone_system:kaprodi_home' %}">Dashboard</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:kaprodi_mahasiswa' %}">Data Mahasiswa</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:kaprodi_upload_mahasiswa' %}">Upload Mahasiswa</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:arsip_mahasiswa' %}">Arsip Mahasiswa</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:kaprodi_dosen' %}">Data Dosen</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:kaprodi_dospem' %}">Data Dospem</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:kaprodi_dosencp' %}">Dosen Capstone</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:kaprodi_tim' %}">Data Tim</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:kaprodi_proposal' %}">Semua Proposal</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:kaprodi_resume' %}">Resume</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:kaprodi_pengajuan' %}">Pengajuan Dospem</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:kaprodi_monitoring' %}">Monitoring</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:kaprodi_laporan' %}">Laporan</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:kaprodi_profile' %}">Profile</a></li>
+</ul>
+</div>
+{% endblock %}

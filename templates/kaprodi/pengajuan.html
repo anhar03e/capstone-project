@@ -1,0 +1,208 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Pengajuan Dosen Pembimbing{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+body{
+    background:#f5f7fb;
+}
+
+/* HEADER SIAKAD */
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:22px;
+    border-radius:16px;
+    margin-bottom:20px;
+}
+
+/* CARD */
+.card-modern{
+    border:none;
+    border-radius:15px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+    background:white;
+}
+
+/* TABLE */
+.table-modern{
+    margin-bottom:0;
+}
+
+.table-modern thead{
+    background:#f8f9fa;
+}
+
+.table-modern th{
+    border:none;
+    font-weight:600;
+}
+
+.table-modern td{
+    vertical-align:middle;
+}
+
+/* AVATAR */
+.avatar{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:#2563eb;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+}
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+
+    <h4 class="mb-1">
+        Pengajuan Dosen Pembimbing 
+    </h4>
+
+    <div>
+        Monitoring seluruh pengajuan dosen pembimbing mahasiswa
+    </div>
+
+</div>
+
+<!-- SUMMARY -->
+<div class="row mb-3">
+
+    <div class="col-md-4">
+
+        <div class="card card-modern p-3">
+
+            <small>Total Pengajuan</small>
+
+            <h3 class="mb-0 mt-2">
+                {{ pengajuan_list.count }}
+            </h3>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- TABLE -->
+<div class="card card-modern">
+
+    <div class="card-header bg-white">
+        <b>Daftar Pengajuan Dosen Pembimbing</b>
+    </div>
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table table-modern align-middle">
+
+                <thead>
+
+                    <tr>
+                        <th>No</th>
+                        <th>Mahasiswa</th>
+                        <th>NIM</th>
+                        <th>Dosen Pembimbing</th>
+                        <th>Tanggal Pengajuan</th>
+                        <th>Status</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                {% for pengajuan in pengajuan_list %}
+
+                <tr>
+
+                    <td>
+                        {{ forloop.counter }}
+                    </td>
+
+                    <td>
+                        <strong>
+                            {{ pengajuan.mahasiswa.user.get_full_name }}
+                        </strong>
+                    </td>
+
+                    <td>
+                        {{ pengajuan.mahasiswa.nim }}
+                    </td>
+
+                    <td>
+                        {{ pengajuan.dosen_pembimbing }}
+                    </td>
+
+                    <td>
+                        {{ pengajuan.tanggal_pengajuan|date:"d M Y" }}
+                    </td>
+
+                    <td>
+
+                        {% if pengajuan.status == 'DISETUJUI' %}
+
+                            <span class="badge bg-success">
+                                Disetujui
+                            </span>
+
+                        {% elif pengajuan.status == 'DITOLAK' %}
+
+                            <span class="badge bg-danger">
+                                Ditolak
+                            </span>
+
+                        {% elif pengajuan.status == 'PENDING' %}
+
+                            <span class="badge bg-warning text-dark">
+                                Pending
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-secondary">
+                                {{ pengajuan.status }}
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="6"
+                        class="text-center py-4 text-muted">
+
+                        Belum ada pengajuan dosen pembimbing.
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

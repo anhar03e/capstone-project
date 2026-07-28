@@ -1,0 +1,3318 @@
+from ast import keyword
+import email
+from urllib import request
+from django.contrib.admin import action
+from django.db.models.aggregates import Count
+from django.utils import timezone
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse, reverse_lazy
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404
+from django import forms
+from django.contrib.auth.forms import AuthenticationForm
+from datetime import datetime
+from django.contrib.messages import get_messages
+from django.contrib.sessions.models import Session
+
+from django.contrib.auth import (
+    login,
+    logout,
+    update_session_auth_hash
+)
+from django.contrib.auth.views import LoginView
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+
+from django.utils import timezone
+from django.db.models import F, Q
+from django.db import transaction
+
+from .models import (
+    Mahasiswa,
+    Dosen,
+    DosenCP,
+    DosenPembimbing,
+    Tim,
+    AnggotaTim,
+    ProposalCapstone,
+    Resume,
+    PengajuanDospem,
+    JadwalKonsultasi,
+    BookingJadwal,
+    User,
+    RiwayatFeedbackProposal,
+    RiwayatFeedbackResume,
+
+)
+
+from .forms import DosenForm, UserForm, JadwalForm , ProposalForm, ResumeForm
+
+# =========================================================
+# ROLE CHECKER HELPER
+# =========================================================
+def check_role(request, allowed_roles, redirect_to=None):
+    """
+    Cek apakah user memiliki role yang diizinkan.
+    Returns: (has_access, redirect_response)
+    """
+    if not request.user.is_authenticated:
+        messages.error(request, 'Silakan login terlebih dahulu.')
+        return False, redirect('capstone_system:login')
+    
+    if request.user.role not in allowed_roles:
+        messages.error(request, 'Anda tidak memiliki akses ke halaman ini.')
+        
+        # Redirect berdasarkan role jika tidak ditentukan
+        if not redirect_to:
+            role_redirects = {
+                'MAHASISWA': 'capstone_system:mahasiswa_home',
+                'DOSENCP': 'capstone_system:dosencp_home',
+                'DOSENPB': 'capstone_system:dosenpb_home',
+                'KAPRODI': 'capstone_system:kaprodi_home',
+            }
+            redirect_to = role_redirects.get(request.user.role, 'capstone_system:login')
+        
+        return False, redirect(redirect_to)
+    
+    return True, None
+
+# =========================================================
+# HELPER
+# =========================================================
+def get_tim_user(mahasiswa):
+    return AnggotaTim.objects.select_related('tim').filter(
+        mahasiswa=mahasiswa,
+        status_persetujuan='APPROVED'
+    ).first()
+
+
+def get_proposal_ketua(mahasiswa):
+    anggota = AnggotaTim.objects.select_related('tim').filter(
+        mahasiswa=mahasiswa,
+        status_persetujuan='APPROVED'
+    ).first()
+
+    if anggota:
+        return ProposalCapstone.objects.filter(
+            tim=anggota.tim
+        ).first()
+
+    return None
+
+# =========================================================
+# CUSTOM AUTHENTICATION FORM
+# =========================================================
+class CustomAuthenticationForm(AuthenticationForm):
+
+    def confirm_login_allowed(self, user):
+        super().confirm_login_allowed(user)
+
+        if not user.is_active:
+            raise forms.ValidationError(
+                "Akun Anda telah dinonaktifkan oleh Kaprodi.",
+                code='inactive',
+            )
+
+# =========================================================
+# LOGIN & LOGOUT
+# =========================================================
+class CustomLoginView(LoginView):
+
+    template_name = 'login.html'
+    authentication_form = CustomAuthenticationForm
+
+
+    def form_valid(self, form):
+
+        user = form.get_user()
+
+
+        # Login user
+        response = super().form_valid(form)
+
+
+        # Ambil session aktif sekarang
+        current_session = self.request.session.session_key
+
+
+        # =====================================================
+        # SINGLE SESSION LOGIN
+        # Hapus session lama jika user login di tempat lain
+        # =====================================================
+
+        if user.session_key:
+
+            if user.session_key != current_session:
+
+                Session.objects.filter(
+                    session_key=user.session_key
+                ).delete()
+
+
+
+        # Simpan session terbaru
+        user.session_key = current_session
+
+        user.save(
+            update_fields=[
+                "session_key"
+            ]
+        )
+
+
+        return response
+
+
+
+    def form_invalid(self, form):
+
+        messages.error(
+            self.request,
+            "NIM/NIP atau password yang Anda masukkan salah. Silakan coba lagi."
+        )
+
+        return super().form_invalid(form)
+
+
+
+    def get_success_url(self):
+
+        user = self.request.user
+
+
+        if not user.is_password_changed:
+
+            return reverse_lazy(
+                'capstone_system:force_change_password'
+            )
+
+
+        if user.role == 'MAHASISWA':
+
+            return reverse_lazy(
+                'capstone_system:mahasiswa_home'
+            )
+
+
+        elif user.role == 'DOSENCP':
+
+            return reverse_lazy(
+                'capstone_system:dosencp_home'
+            )
+
+
+        elif user.role == 'DOSENPB':
+
+            return reverse_lazy(
+                'capstone_system:dosenpb_home'
+            )
+
+
+        elif user.role == 'KAPRODI':
+
+            return reverse_lazy(
+                'capstone_system:kaprodi_home'
+            )
+
+
+        return reverse_lazy(
+            'capstone_system:home'
+        )
+
+
+
+@login_required
+def force_change_password(request):
+
+    user = request.user
+
+
+    # Hapus pesan lama
+    storage = get_messages(request)
+
+    for _ in storage:
+        pass
+
+
+
+    if user.is_password_changed:
+
+        return redirect(
+            'capstone_system:home'
+        )
+
+
+
+    if request.method == 'POST':
+
+
+        email = request.POST.get('email')
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+
+
+
+        if not email or not password1 or not password2:
+
+            messages.error(
+                request,
+                "Semua field wajib diisi."
+            )
+
+            return redirect(
+                'capstone_system:force_change_password'
+            )
+
+
+
+        if password1 != password2:
+
+            messages.error(
+                request,
+                "Konfirmasi password tidak sama."
+            )
+
+            return redirect(
+                'capstone_system:force_change_password'
+            )
+
+
+
+        user.email = email
+        user.set_password(password1)
+        user.is_password_changed = True
+
+        user.save()
+
+
+
+        # mempertahankan session login
+        update_session_auth_hash(
+            request,
+            user
+        )
+
+
+
+        messages.success(
+            request,
+            "Password berhasil diperbarui."
+        )
+
+
+
+        if user.role == 'MAHASISWA':
+
+            return redirect(
+                'capstone_system:mahasiswa_home'
+            )
+
+
+        elif user.role == 'DOSENCP':
+
+            return redirect(
+                'capstone_system:dosencp_home'
+            )
+
+
+        elif user.role == 'DOSENPB':
+
+            return redirect(
+                'capstone_system:dosenpb_home'
+            )
+
+
+        elif user.role == 'KAPRODI':
+
+            return redirect(
+                'capstone_system:kaprodi_home'
+            )
+
+
+        return redirect(
+            'capstone_system:home'
+        )
+
+
+
+    return render(
+        request,
+        'auth/force_change_password.html'
+    )
+
+
+
+# =========================================================
+# LOGOUT
+# =========================================================
+def logout_view(request):
+
+    if request.user.is_authenticated:
+
+
+        # Hapus session aktif user
+        request.user.session_key = None
+
+        request.user.save(
+            update_fields=[
+                "session_key"
+            ]
+        )
+
+
+        logout(request)
+
+
+
+    messages.info(
+        request,
+        "Anda berhasil logout."
+    )
+
+
+    return redirect(
+        'capstone_system:login'
+    )
+
+
+# =========================================================
+# HOME
+# =========================================================
+@login_required
+def home(request):
+    user = request.user
+
+    if user.role == 'MAHASISWA':
+        return redirect('capstone_system:mahasiswa_home')
+    elif user.role == 'DOSENCP':
+        return redirect('capstone_system:dosencp_home')
+    elif user.role == 'DOSENPB':
+        return redirect('capstone_system:dosenpb_home')
+    elif user.role == 'KAPRODI':
+        return redirect('capstone_system:kaprodi_home')
+
+    return redirect('capstone_system:login')
+
+
+# =========================================================
+# MAHASISWA HOME
+# =========================================================
+@login_required
+def mahasiswa_home(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['MAHASISWA'])
+    if not has_access:
+        return response
+    
+    mahasiswa = get_object_or_404(Mahasiswa, user=request.user)
+
+    # ================= TIM USER =================
+    anggota = get_tim_user(mahasiswa)
+    tim = anggota.tim if anggota else None
+
+    # ================= LIST TIM (OBJECT, BUKAN ID) =================
+    tim_list = Tim.objects.filter(
+        anggota__mahasiswa=mahasiswa
+    ).distinct()
+
+    # ================= DETAIL ANGGOTA TIM =================
+    anggota_tim = AnggotaTim.objects.select_related(
+        'mahasiswa__user', 'tim'
+    ).filter(
+        tim=tim
+    ) if tim else []
+
+    # ================= PROPOSAL =================
+    proposal = None
+    if anggota and anggota.role == 'ketua':
+        proposal = ProposalCapstone.objects.filter(tim=tim).first()
+
+    if proposal and not proposal.file:
+        proposal = None
+
+    # ================= RESUME =================
+    resume = Resume.objects.filter(mahasiswa=mahasiswa).first()
+    if resume and not getattr(resume, "file_resume", None):
+        resume = None
+
+    # ================= DOSPEM =================
+    pengajuan = PengajuanDospem.objects.filter(
+        mahasiswa=mahasiswa
+    ).select_related('dosen_pembimbing__dosen__user').first()
+
+    dosen_pembimbing = None
+    if pengajuan and pengajuan.dosen_pembimbing:
+        dosen_pembimbing = pengajuan.dosen_pembimbing.dosen.user.get_full_name()
+
+    # ================= LIST MAHASISWA =================
+    mahasiswa_list = Mahasiswa.objects.exclude(user=request.user)
+
+    return render(request, 'mahasiswa/home.html', {
+        'anggota': anggota,
+        'tim': tim,
+        'tim_list': tim_list,          # daftar tim user
+        'anggota_tim': anggota_tim,    # 🔥 INI YANG PENTING (detail anggota)
+        'proposal': proposal,
+        'resume': resume,
+        'pengajuan': pengajuan,
+        'dosen_pembimbing': dosen_pembimbing,
+        'mahasiswa_list': mahasiswa_list,
+        'me': mahasiswa,
+    })
+
+
+# =========================================================
+# UPLOAD PROPOSAL
+# =========================================================
+@login_required
+def upload_proposal(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['MAHASISWA'])
+    if not has_access:
+        return response
+
+    mahasiswa = get_object_or_404(
+        Mahasiswa,
+        user=request.user
+    )
+
+    anggota = get_tim_user(mahasiswa)
+
+    # =========================
+    # VALIDASI TIM
+    # =========================
+    if not anggota:
+        messages.error(
+            request,
+            "Kamu belum memiliki tim."
+        )
+        return redirect('capstone_system:mahasiswa_home')
+
+    # Hanya ketua yang dapat upload
+    if anggota.role != "ketua":
+        messages.error(
+            request,
+            "Hanya ketua tim yang dapat mengelola proposal."
+        )
+        return redirect('capstone_system:mahasiswa_home')
+
+    tim = anggota.tim
+
+    # =========================
+    # VALIDASI ANGGOTA
+    # =========================
+    anggota_belum_setuju = tim.anggota.filter(
+        status_persetujuan='PENDING'
+    ).exists()
+
+    if anggota_belum_setuju:
+        messages.error(
+            request,
+            "Masih ada anggota tim yang belum menyetujui undangan."
+        )
+        return redirect('capstone_system:mahasiswa_home')
+
+    # =========================
+    # AMBIL PROPOSAL
+    # =========================
+    proposal = ProposalCapstone.objects.filter(
+        tim=tim
+    ).first()
+
+    # edit mode harus dibuat di sini
+    edit_mode = request.GET.get("edit")
+
+    # =========================
+    # LOCK EDIT
+    # =========================
+    proposal_locked = (
+        proposal is not None and
+        proposal.status_cp in ["DITERIMA", "SEDANG_REVIEW"]
+    )
+
+    # =========================
+    # SIMPAN
+    # =========================
+    if request.method == "POST":
+
+        # Tidak boleh menyimpan jika proposal sudah dikunci
+        if proposal_locked:
+            messages.warning(
+                request,
+                "Proposal sedang direview atau telah disetujui sehingga tidak dapat diubah."
+            )
+            return redirect("capstone_system:upload_proposal")
+
+        form = ProposalForm(
+            request.POST,
+            request.FILES,
+            instance=proposal
+        )
+
+        if form.is_valid():
+
+            obj = form.save(commit=False)
+            obj.tim = tim
+
+            # Tetap gunakan file lama jika tidak upload file baru
+            if proposal and not request.FILES.get("file"):
+                obj.file = proposal.file
+
+            # Upload file baru -> reset review
+            if request.FILES.get("file"):
+                obj.status_cp = "BELUM_REVIEW"
+                obj.catatan_cp = ""
+                obj.waktu_peninjauan = None
+
+            obj.save()
+
+            messages.success(
+                request,
+                "Proposal berhasil disimpan."
+            )
+
+            return redirect(
+                "capstone_system:upload_proposal"
+            )
+
+    else:
+        form = ProposalForm(instance=proposal)
+
+    # =========================
+    # DATA ANGGOTA
+    # =========================
+    anggota_detail = [
+        {
+            "nim": anggota.mahasiswa.nim,
+            "nama": anggota.mahasiswa.user.get_full_name(),
+            "role": anggota.role,
+            "status": anggota.status_persetujuan,
+        }
+        for anggota in tim.anggota.select_related(
+            "mahasiswa__user"
+        )
+    ]
+
+    # =========================
+    # RENDER
+    # =========================
+    return render(
+    request,
+    "mahasiswa/upload_proposal.html",
+    {
+        "proposal": proposal,
+        "form": form,
+        "anggota_detail": anggota_detail,
+        "edit_mode": edit_mode,
+        "tim": tim,
+        "proposal_locked": proposal_locked,
+    },
+)
+
+
+# =========================================================
+# UPLOAD RESUME
+# =========================================================
+@login_required
+def upload_resume(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['MAHASISWA'])
+    if not has_access:
+        return response
+
+    mahasiswa = get_object_or_404(
+        Mahasiswa,
+        user=request.user
+    )
+
+    # =========================
+    # CEK PROPOSAL
+    # =========================
+    proposal = get_proposal_ketua(mahasiswa)
+
+    if not proposal or not proposal.file:
+        messages.error(
+            request,
+            "Silakan upload proposal terlebih dahulu."
+        )
+        return redirect('capstone_system:mahasiswa_home')
+    
+    # =====================================================
+    # ❌ VALIDASI CP (FIXED)
+    # =====================================================
+    if not proposal.status_cp or proposal.status_cp != 'DITERIMA':
+        messages.error(
+            request,
+            "Resume belum bisa diakses sebelum Review CP selesai (DITERIMA)."
+        )
+        return redirect('capstone_system:mahasiswa_home')
+
+    # =========================
+    # DATA
+    # =========================
+    resume = Resume.objects.filter(
+        mahasiswa=mahasiswa
+    ).first()
+
+    edit_mode = request.GET.get('edit')
+
+    dosen_list = DosenPembimbing.objects.filter(
+        status='OPEN'
+    ).select_related(
+        'dosen__user'
+    )
+
+    # =========================
+    # SIMPAN
+    # =========================
+    if request.method == 'POST':
+
+        form = ResumeForm(
+            request.POST,
+            request.FILES,
+            instance=resume
+        )
+
+        dosen_id = request.POST.get(
+            'dosen_pembimbing'
+        )
+
+        if form.is_valid():
+
+            res = form.save(commit=False)
+
+            res.status = "BELUM_REVIEW"
+            res.catatan_revisi = ""    
+
+            res.mahasiswa = mahasiswa
+            res.proposal = proposal
+
+            res.judul_proposal = proposal.judul
+            res.mitra = proposal.mitra
+
+            if resume:
+                res.status = "BELUM_REVIEW"
+                res.waktu_peninjauan = None
+                res.catatan_revisi = ""
+
+            if resume and not request.FILES.get(
+                'file_resume'
+            ):
+                res.file_resume = resume.file_resume
+
+            res.save()
+
+            proposal.status_pb = "BELUM_REVIEW"
+            proposal.catatan_pb = ""
+            proposal.save()
+
+            if dosen_id:
+
+                PengajuanDospem.objects.update_or_create(
+                    mahasiswa=mahasiswa,
+                    defaults={
+                        'resume': res,
+                        'dosen_pembimbing_id': dosen_id,
+                        'surat_permohonan_dospem': res.file_resume,
+                        'status': 'PENDING',
+                        'sudah_direview': False,
+                        'waktu_direview': None,
+                        'catatan_dosen': '',
+                    }
+                )
+
+            messages.success(
+                request,
+                "Resume berhasil disimpan."
+            )
+
+            return redirect(
+                'capstone_system:upload_resume'
+            )
+
+    else:
+
+        form = ResumeForm(
+            instance=resume
+        )
+
+    return render(
+        request,
+        'mahasiswa/upload_resume.html',
+        {
+            'form': form,
+            'resume': resume,
+            'proposal': proposal,
+            'dosen_list': dosen_list,
+            'edit_mode': edit_mode,
+        }
+    )
+
+# =========================================================
+# SEARCH MAHASISWA
+# =========================================================
+@login_required
+def search_mahasiswa(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['MAHASISWA'])
+    if not has_access:
+        return response
+
+    query = request.GET.get('q', '').strip()
+
+    if not query:
+        return JsonResponse([], safe=False)
+
+    mahasiswa_login = get_object_or_404(
+        Mahasiswa,
+        user=request.user
+    )
+
+    # Semua mahasiswa yang sudah punya tim
+    used_ids = set(
+        AnggotaTim.objects.values_list(
+            'mahasiswa_id',
+            flat=True
+        )
+    )
+
+    # Jika user sedang menjadi ketua tim,
+    # anggota timnya sendiri boleh tetap dicari
+    tim_user = AnggotaTim.objects.filter(
+        mahasiswa=mahasiswa_login,
+        role='ketua'
+    ).first()
+
+    if tim_user:
+
+        anggota_tim_sendiri = AnggotaTim.objects.filter(
+            tim=tim_user.tim
+        ).values_list(
+            'mahasiswa_id',
+            flat=True
+        )
+
+        for m_id in anggota_tim_sendiri:
+            used_ids.discard(m_id)
+
+    qs = Mahasiswa.objects.select_related('user').filter(
+        Q(nim__icontains=query) |
+        Q(user__first_name__icontains=query) |
+        Q(user__last_name__icontains=query)
+    ).exclude(
+        id__in=used_ids
+    )[:10]
+
+    data = []
+
+    for m in qs:
+
+        nama = m.user.get_full_name()
+
+        if not nama:
+            nama = m.user.username
+
+        data.append({
+            "id": m.id,
+            "nim": m.nim,
+            "nama": nama,
+            "kategori": m.kategori or "EPD"
+        })
+
+    return JsonResponse(data, safe=False)
+
+
+# =========================================================
+# LIST DOSEN PEMBIMBING
+# =========================================================
+@login_required
+def list_dospem(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['MAHASISWA'])
+    if not has_access:
+        return response
+    
+    dosen_list = DosenPembimbing.objects.select_related('dosen__user').filter(status='OPEN')
+
+    return render(request, 'mahasiswa/list_dospem.html', {
+        'dosen_list': dosen_list
+    })
+
+
+# =========================================================
+# CEK STATUS
+# =========================================================
+@login_required
+def cek_status(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['MAHASISWA'])
+    if not has_access:
+        return response
+
+    mahasiswa = get_object_or_404(
+        Mahasiswa,
+        user=request.user
+    )
+
+    proposal = get_proposal_ketua(mahasiswa)
+
+    resume = Resume.objects.filter(
+        mahasiswa=mahasiswa
+    ).first()
+
+    pengajuan = PengajuanDospem.objects.filter(
+        mahasiswa=mahasiswa
+    ).first()
+
+    # ==========================================
+    # RIWAYAT FEEDBACK
+    # ==========================================
+    riwayat_cp = []
+    riwayat_pb = []
+    riwayat_resume = []
+
+    if proposal:
+
+        riwayat_cp = RiwayatFeedbackProposal.objects.filter(
+            proposal=proposal,
+            reviewer='CP'
+        ).order_by('-created_at')
+
+        riwayat_pb = RiwayatFeedbackProposal.objects.filter(
+            proposal=proposal,
+            reviewer='PB'
+        ).order_by('-created_at')
+
+    if resume:
+
+        riwayat_resume = RiwayatFeedbackResume.objects.filter(
+            resume=resume
+        ).order_by('-created_at')
+
+    return render(
+        request,
+        'mahasiswa/cek_status.html',
+        {
+            'proposal': proposal,
+            'resume': resume,
+            'pengajuan': pengajuan,
+            'riwayat_cp': riwayat_cp,
+            'riwayat_pb': riwayat_pb,
+            'riwayat_resume': riwayat_resume,
+        }
+    )
+
+
+# =========================================================
+# PROFILE MAHASISWA
+# =========================================================
+@login_required
+def mahasiswa_profile(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['MAHASISWA'])
+    if not has_access:
+        return response
+    
+    user = request.user
+    mahasiswa = user.mahasiswa
+
+    if request.method == 'POST':
+
+        # Hanya email yang dapat diubah
+        user.email = request.POST.get('email', '').strip()
+
+        # Password
+        password = request.POST.get('password')
+        if password:
+            user.set_password(password)
+            update_session_auth_hash(request, user)
+
+        user.save()
+
+        # Foto Profil
+        if request.FILES.get('foto_profil'):
+            mahasiswa.foto_profil = request.FILES['foto_profil']
+            mahasiswa.save()
+
+        messages.success(request, "Profil berhasil diperbarui.")
+        return redirect('capstone_system:mahasiswa_profile')
+
+    return render(request, 'mahasiswa/profile.html', {
+        'user': user,
+        'mahasiswa': mahasiswa,
+    })
+
+
+# =========================================================
+# BUAT / EDIT TIM
+# =========================================================
+@login_required
+def buat_tim(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['MAHASISWA'])
+    if not has_access:
+        return response
+
+    mahasiswa = get_object_or_404(
+        Mahasiswa,
+        user=request.user
+    )
+
+    # =====================================================
+    # CEK APAKAH SUDAH MASUK TIM
+    # =====================================================
+    anggota_tim = AnggotaTim.objects.filter(
+        mahasiswa=mahasiswa,
+        status_persetujuan__in=['PENDING', 'APPROVED']
+    ).first()
+
+    # Jika sudah menjadi anggota tim biasa
+    if anggota_tim and anggota_tim.role != 'ketua':
+
+        messages.error(
+            request,
+            "Anda sudah tergabung dalam tim dan tidak dapat membuat tim baru."
+        )
+
+        return redirect(
+            'capstone_system:mahasiswa_home'
+        )
+
+    # =====================================================
+    # CEK KETUA TIM
+    # =====================================================
+    anggota_user = AnggotaTim.objects.filter(
+        mahasiswa=mahasiswa,
+        role='ketua',
+        status_persetujuan='APPROVED'
+    ).first()
+
+    edit_mode = anggota_user is not None
+
+    tim = None
+    ketua_data = None
+    anggota_list = []
+
+    # =====================================================
+    # LOAD DATA EDIT
+    # =====================================================
+    if edit_mode:
+
+        tim = anggota_user.tim
+
+        # Tim sedang direview atau sudah diterima
+        if not tim.can_edit:
+            messages.error(
+                request,
+                "Tim tidak dapat diubah karena proposal sedang direview atau telah disetujui."
+            )
+            return redirect('capstone_system:mahasiswa_home')
+
+        anggota_queryset = tim.anggota.select_related(
+            'mahasiswa'
+        ).all()
+
+        ketua_obj = anggota_queryset.filter(
+            role='ketua'
+        ).first()
+
+        if ketua_obj:
+            ketua_data = {
+                "id": ketua_obj.mahasiswa.id,
+                "nama": str(ketua_obj.mahasiswa),
+                "kategori": ketua_obj.kategori,
+            }
+
+        anggota_list = [
+            {
+                "id": a.mahasiswa.id,
+                "name": str(a.mahasiswa),
+                "kategori": a.kategori,
+                "role": a.role,
+            }
+            for a in anggota_queryset.filter(
+                role='anggota'
+            )
+        ]
+
+    # =====================================================
+    # SUBMIT
+    # =====================================================
+    if request.method == 'POST':
+
+        if edit_mode:
+            tim = anggota_user.tim
+
+            if not tim.can_edit:
+                messages.error(
+                    request,
+                    "Tim tidak dapat diubah karena proposal sedang direview atau telah disetujui."
+                )
+                return redirect('capstone_system:mahasiswa_home')
+
+        nama_tim = request.POST.get('nama_tim')
+
+        anggota_ids = request.POST.getlist(
+            'anggota_id[]'
+        )
+
+        anggota_kategori = request.POST.getlist(
+            'anggota_kategori[]'
+        )
+
+        # =====================
+        # VALIDASI
+        # =====================
+
+        if not nama_tim:
+            messages.error(
+                request,
+                "Nama tim wajib diisi"
+            )
+            return redirect(
+                'capstone_system:mahasiswa_home'
+            )
+
+        if len(anggota_ids) > 4:
+            messages.error(
+                request,
+                "Maksimal anggota yang dapat diundang adalah 4 orang."
+            )
+            return redirect(
+                'capstone_system:mahasiswa_home'
+            )
+
+        # =====================================================
+        # EDIT TIM
+        # =====================================================
+        if edit_mode:
+
+            tim = anggota_user.tim
+
+            tim.nama_tim = nama_tim
+            tim.status = 'PENDING'
+            tim.save()
+
+        # =====================================================
+        # CREATE TIM
+        # =====================================================
+        else:
+
+            semua_id = set(anggota_ids)
+
+            sudah_pakai = AnggotaTim.objects.filter(
+                mahasiswa_id__in=semua_id,
+                status_persetujuan__in=['PENDING', 'APPROVED']
+            ).exists()
+
+            if sudah_pakai:
+
+                messages.error(
+                    request,
+                    "Ada anggota yang sudah memiliki tim"
+                )
+
+                return redirect(
+                    'capstone_system:mahasiswa_home'
+                )
+
+            tim = Tim.objects.create(
+                nama_tim=nama_tim,
+                status='PENDING'
+            )
+
+            # Ketua otomatis adalah mahasiswa yang login
+            AnggotaTim.objects.create(
+                tim=tim,
+                mahasiswa=mahasiswa,
+                role='ketua',
+                kategori=mahasiswa.kategori,
+                status_persetujuan='APPROVED'
+            )
+
+        # =====================================================
+        # UPDATE ANGGOTA TIM
+        # =====================================================
+
+        # Ambil hanya anggota (bukan ketua)
+        anggota_lama = {
+            a.mahasiswa_id: a
+            for a in tim.anggota.filter(role='anggota')
+        }
+
+        anggota_baru = set()
+
+        for m_id, kategori in zip(
+            anggota_ids,
+            anggota_kategori
+        ):
+
+            m_id = int(m_id)
+            anggota_baru.add(m_id)
+
+            if m_id in anggota_lama:
+
+                # Update kategori jika berubah
+                anggota = anggota_lama[m_id]
+                anggota.kategori = kategori
+                anggota.save()
+
+            else:
+
+                # Tambah anggota baru
+                AnggotaTim.objects.create(
+                    tim=tim,
+                    mahasiswa_id=m_id,
+                    role='anggota',
+                    kategori=kategori,
+                    status_persetujuan='PENDING'
+                )
+
+        # Hapus anggota yang sudah tidak dipilih lagi
+        for m_id, anggota in anggota_lama.items():
+
+            if m_id not in anggota_baru:
+
+                anggota.delete()
+
+        if edit_mode:
+            messages.success(
+                request,
+                "Tim berhasil diperbarui"
+            )
+        else:
+            messages.success(
+                request,
+                "Tim berhasil dibuat"
+            )
+
+        return redirect(
+            'capstone_system:mahasiswa_home'
+        )
+
+    return render(
+        request,
+        'mahasiswa/buat_tim.html',
+        {
+            'edit_mode': edit_mode,
+            'tim': tim,
+            'ketua_data': ketua_data,
+            'anggota_list': anggota_list,
+        }
+    )
+
+
+# =========================================================
+# LIST UNDANGAN TIM
+# =========================================================
+@login_required
+def undangan_tim(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['MAHASISWA'])
+    if not has_access:
+        return response
+
+    mahasiswa = get_object_or_404(
+        Mahasiswa,
+        user=request.user
+    )
+
+    undangan = AnggotaTim.objects.filter(
+        mahasiswa=mahasiswa,
+        status_persetujuan='PENDING'
+    ).select_related('tim')
+
+    if request.method == "POST":
+
+        anggota_id = request.POST.get("anggota_id")
+        aksi = request.POST.get("aksi")
+
+        anggota = get_object_or_404(
+            AnggotaTim,
+            id=anggota_id,
+            mahasiswa=mahasiswa
+        )
+
+        tim = anggota.tim
+
+        if aksi == "terima":
+
+            anggota.status_persetujuan = "APPROVED"
+            anggota.save()
+
+        elif aksi == "tolak":
+
+            # Simpan status penolakan (opsional)
+            anggota.status_persetujuan = "REJECTED"
+            anggota.save()
+
+            # Hapus anggota yang menolak dari tim
+            anggota.delete()
+
+        # ==========================================
+        # UPDATE STATUS TIM
+        # ==========================================
+        if tim.anggota.filter(status_persetujuan='PENDING').exists():
+
+            tim.status = 'PENDING'
+
+        else:
+
+            tim.status = 'APPROVED'
+
+        tim.save()
+
+        return redirect(
+            'capstone_system:undangan_tim'
+        )
+
+    return render(
+        request,
+        'mahasiswa/undangan_tim.html',
+        {
+            'undangan': undangan
+        }
+    )
+
+# =========================================================
+# JADWAL BIMBINGAN
+# =========================================================
+@login_required
+def mahasiswa_jadwal_bimbingan(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['MAHASISWA'])
+    if not has_access:
+        return response
+
+    mahasiswa = Mahasiswa.objects.get(user=request.user)
+    dosen_pb = mahasiswa.dosen_pembimbing
+
+    # semua jadwal dosen pembimbing
+    jadwal = JadwalKonsultasi.objects.filter(
+        dosen=dosen_pb
+    ).order_by('tanggal', 'jam_mulai')
+
+    # booking mahasiswa
+    booking_saya = BookingJadwal.objects.filter(
+        mahasiswa=mahasiswa
+    ).select_related('jadwal').order_by('-tanggal_booking')
+
+    return render(request, 'mahasiswa/jadwal_bimbingan.html', {
+        'jadwal': jadwal,
+        'booking_saya': booking_saya,
+        'dosen_pb': dosen_pb
+    })
+
+# =========================================================
+# BOOKING JADWAL BIMBINGAN
+# =========================================================
+@login_required
+def booking_jadwal(request, jadwal_id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['MAHASISWA'])
+    if not has_access:
+        return response
+
+    mahasiswa = Mahasiswa.objects.get(user=request.user)
+    jadwal = get_object_or_404(JadwalKonsultasi, id=jadwal_id)
+
+    booking, created = BookingJadwal.objects.get_or_create(
+        mahasiswa=mahasiswa,
+        jadwal=jadwal,
+        defaults={'status': 'BOOKED'}
+    )
+
+    # kalau sudah ada tapi CANCELLED → reaktifkan
+    if not created:
+        if booking.status == 'CANCELLED':
+            booking.status = 'BOOKED'
+            booking.save()
+        else:
+            messages.warning(request, "Kamu sudah ambil jadwal ini")
+            return redirect('capstone_system:mahasiswa_jadwal')
+
+    # update kuota hanya kalau baru BOOKED
+    if created or booking.status == 'BOOKED':
+        jadwal.jumlah_dipesan += 1
+        jadwal.save()
+
+    messages.success(request, "Jadwal berhasil diambil kembali")
+    return redirect('capstone_system:mahasiswa_jadwal')
+
+# =========================================================
+# CANCEL BOOKING JADWAL BIMBINGAN
+# =========================================================
+@login_required
+def cancel_booking(request, booking_id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['MAHASISWA'])
+    if not has_access:
+        return response
+
+    mahasiswa = Mahasiswa.objects.get(user=request.user)
+
+    booking = get_object_or_404(
+        BookingJadwal,
+        id=booking_id,
+        mahasiswa=mahasiswa
+    )
+
+    if booking.status != 'BOOKED':
+        messages.error(request, "Tidak bisa dibatalkan")
+        return redirect('capstone_system:mahasiswa_jadwal')
+
+    booking.status = 'CANCELLED'
+    booking.save()
+
+    jadwal = booking.jadwal
+    jadwal.jumlah_dipesan = max(0, jadwal.jumlah_dipesan - 1)
+    jadwal.save()
+
+    messages.success(request, "Booking dibatalkan")
+    return redirect('capstone_system:mahasiswa_jadwal')
+
+
+# =========================================================
+# DOSEN CP HOME
+# =========================================================
+@login_required
+def dosencp_home(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['DOSENCP'])
+    if not has_access:
+        return response
+
+    proposal_qs = ProposalCapstone.objects.all().order_by('-waktu_update')
+
+    # hitung berdasarkan status CP (source of truth)
+    pending_qs = proposal_qs.filter(status_cp='BELUM_REVIEW')
+    diterima_qs = proposal_qs.filter(status_cp='DITERIMA')
+    revisi_qs = proposal_qs.filter(status_cp='REVISI')
+    ditolak_qs = proposal_qs.filter(status_cp='DITOLAK')
+
+    context = {
+        'total_proposal': proposal_qs.count(),
+        'proposal_pending': pending_qs.count(),
+        'proposal_diterima': diterima_qs.count(),
+        'proposal_revisi': revisi_qs.count(),
+        'proposal_ditolak': ditolak_qs.count(),
+        'proposal_terbaru': proposal_qs[:5],
+    }
+
+    return render(request, 'dosencp/home.html', context)
+
+# =========================================================
+# LIST PROPOSAL
+# =========================================================
+@login_required
+def dosencp_list_proposal(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['DOSENCP'])
+    if not has_access:
+        return response
+
+    proposals = ProposalCapstone.objects.select_related(
+        'tim'
+    ).order_by('-id')   # Proposal terbaru di paling atas
+
+    status = request.GET.get('status')
+
+    if status:
+        proposals = proposals.filter(status_cp=status)
+
+    return render(request, 'dosencp/list_proposal.html', {
+        'proposals': proposals
+    })
+
+# =========================================================
+# DETAIL PROPOSAL
+# =========================================================
+@login_required
+def dosencp_detail_proposal(request, proposal_id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['DOSENCP'])
+    if not has_access:
+        return response
+
+    proposal = get_object_or_404(
+        ProposalCapstone,
+        id=proposal_id
+    )
+
+    # =====================================
+    # LOCK REVIEW JIKA SUDAH DITERIMA
+    # =====================================
+    if request.method == "POST" and proposal.status_cp == "DITERIMA":
+        messages.warning(
+            request,
+            "Proposal telah disetujui sehingga tidak dapat direview kembali."
+        )
+        return redirect(
+            'capstone_system:dosencp_detail_proposal',
+            proposal_id=proposal.id
+        )
+
+    # =====================================
+    # AMBIL DAFTAR ANGGOTA TIM
+    # =====================================
+    anggota_tim = proposal.tim.anggota.select_related(
+        'mahasiswa__user'
+    ).order_by('-role', 'mahasiswa__nim')
+
+    if request.method == 'POST':
+
+        action = request.POST.get('action')
+        catatan = request.POST.get('keterangan', '').strip()
+
+        VALID_STATUS = ['DITERIMA', 'DITOLAK', 'REVISI']
+
+        if action in VALID_STATUS:
+
+            # ===============================
+            # UPDATE STATUS TERBARU
+            # ===============================
+            proposal.status_cp = action
+            proposal.catatan_cp = catatan
+            proposal.waktu_peninjauan = timezone.now()
+            proposal.save()
+
+            # ===============================
+            # SIMPAN RIWAYAT FEEDBACK
+            # ===============================
+            RiwayatFeedbackProposal.objects.create(
+                proposal=proposal,
+                reviewer='CP',
+                dosen=proposal.cp_reviewer.dosen if proposal.cp_reviewer else None,
+                status=action,
+                catatan=catatan
+            )
+
+        return redirect(
+            'capstone_system:dosencp_list_proposal'
+        )
+
+    return render(
+        request,
+        'dosencp/detail_proposal.html',
+        {
+            'proposal': proposal,
+            'anggota_tim': anggota_tim,
+        }
+    )
+
+# =========================================================
+# PROFILE DOSEN CP
+# =========================================================
+@login_required
+def dosencp_profile(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['DOSENCP'])
+    if not has_access:
+        return response
+
+    user = request.user
+    dosen = user.dosen
+
+    if request.method == 'POST':
+
+        # Email
+        user.email = request.POST.get('email', '').strip()
+
+        # Password
+        password = request.POST.get('password')
+        if password:
+            user.set_password(password)
+            update_session_auth_hash(request, user)
+
+        user.save()
+
+        # Foto Profil
+        if request.FILES.get('foto_profil'):
+            dosen.foto_profil = request.FILES['foto_profil']
+
+        dosen.save()
+
+        messages.success(request, "Profil berhasil diperbarui.")
+        return redirect('capstone_system:dosencp_profile')
+
+    return render(request, 'dosencp/profile.html', {
+        'user': user,
+        'dosen': dosen
+    })
+
+# =========================================================
+# DOSEN PEMBIMBING
+# =========================================================
+def get_dosen_pb(user):
+    try:
+        return DosenPembimbing.objects.select_related('dosen__user').get(
+            dosen__user=user
+        )
+    except DosenPembimbing.DoesNotExist:
+        return None
+
+
+# =========================================================
+# DASHBOARD DOSEN PEMBIMBING
+# =========================================================
+@login_required
+def dosenpb_home(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['DOSENPB'])
+    if not has_access:
+        return response
+    
+    dosen_pb = get_dosen_pb(request.user)
+
+    if not dosen_pb:
+        return redirect('login')
+
+    jumlah_mahasiswa = Mahasiswa.objects.filter(
+        dosen_pembimbing=dosen_pb
+    ).count()
+
+    today = timezone.localdate()
+
+    jadwal_hari_ini = JadwalKonsultasi.objects.filter(
+        dosen=dosen_pb,
+        tanggal=today
+    ).order_by('jam_mulai')
+    jadwal_tersedia = sum(
+    j.sisa_kuota for j in jadwal_hari_ini
+)
+
+    from django.db.models import F
+    return render(request, 'dosenpb/home.html', {
+        'jumlah_mahasiswa': jumlah_mahasiswa,
+        'jadwal_hari_ini': jadwal_hari_ini,
+        'jadwal_tersedia': jadwal_tersedia,
+    })
+
+
+# =========================================================
+# LIST MAHASISWA BIMBINGAN
+# =========================================================
+@login_required
+def dosenpb_list_mahasiswa(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['DOSENPB'])
+    if not has_access:
+        return response
+    
+    dosen_pb = get_dosen_pb(request.user)
+
+    mahasiswa_list = Mahasiswa.objects.filter(
+        dosen_pembimbing=dosen_pb
+    )
+
+    query = request.GET.get('q')
+    if query:
+        mahasiswa_list = mahasiswa_list.filter(
+            Q(nim__icontains=query) |
+            Q(user__first_name__icontains=query) |
+            Q(user__last_name__icontains=query)
+        )
+
+    return render(request, 'dosenpb/list_mahasiswa.html', {
+        'mahasiswa_list': mahasiswa_list,
+        'query': query
+    })
+
+
+# =========================================================
+# LIST PENGAJUAN DOSPEM
+# =========================================================
+@login_required
+def dosenpb_pengajuan(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['DOSENPB'])
+    if not has_access:
+        return response
+    
+    dosen_pb = get_dosen_pb(request.user)
+
+    pengajuan_list = PengajuanDospem.objects.select_related(
+        'mahasiswa__user',
+        'resume'
+    ).filter(
+        dosen_pembimbing=dosen_pb
+    ).order_by('-tanggal_pengajuan')
+
+    return render(request, 'dosenpb/pengajuan.html', {
+        'pengajuan_list': pengajuan_list
+    })
+
+
+# =========================================================
+# DETAIL MAHASISWA (DARI MENU MAHASISWA)
+# =========================================================
+@login_required
+def dosenpb_detail_mahasiswa(request, id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['DOSENPB'])
+    if not has_access:
+        return response
+    
+    dosen_pb = get_dosen_pb(request.user)
+
+    mahasiswa = get_object_or_404(
+        Mahasiswa.objects.select_related('user'),
+        id=id,
+        dosen_pembimbing=dosen_pb
+    )
+
+    # ambil pengajuan jika ada (tidak wajib ada)
+    pengajuan = PengajuanDospem.objects.filter(
+        mahasiswa=mahasiswa,
+        dosen_pembimbing=dosen_pb
+    ).select_related('resume').first()
+
+    resume = pengajuan.resume if pengajuan else None
+
+    return render(request, 'dosenpb/detail_mahasiswa.html', {
+        'mahasiswa': mahasiswa,
+        'pengajuan': pengajuan,
+        'resume': resume
+    })
+
+
+# =========================================================
+# DETAIL PENGAJUAN DOSEN PEMBIMBING (FIX FINAL)
+# =========================================================
+@login_required
+def dosenpb_detail_pengajuan(request, id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['DOSENPB'])
+    if not has_access:
+        return response
+    
+    dosen_pb = get_dosen_pb(request.user)
+
+    if not dosen_pb:
+        return redirect('login')
+
+    pengajuan = get_object_or_404(
+        PengajuanDospem.objects.select_related('mahasiswa__user', 'resume', 'resume__proposal'),
+        id=id,
+        dosen_pembimbing=dosen_pb
+    )
+
+    mahasiswa = pengajuan.mahasiswa
+    resume = pengajuan.resume
+    proposal = resume.proposal if resume else None
+    print("RESUME ID:", resume.id if resume else None)
+    print("PENGAJUAN ID:", pengajuan.id)
+
+    if request.method == 'POST':
+        aksi = request.POST.get('aksi')
+        catatan = request.POST.get('catatan', '').strip()
+
+        status_sekarang = pengajuan.status
+
+        # =====================================================
+        # SETUJUI
+        # =====================================================
+        if aksi == 'setujui':
+
+            if status_sekarang != 'DISETUJUI':
+
+                if dosen_pb.jumlah_bimbingan_sekarang >= dosen_pb.batas_bimbingan:
+                    messages.error(request, "Kuota bimbingan penuh!")
+                    return redirect(request.path)
+
+                dosen_pb.jumlah_bimbingan_sekarang += 1
+                dosen_pb.save()
+
+            pengajuan.status = 'DISETUJUI'
+            pengajuan.catatan_dosen = catatan
+            pengajuan.sudah_direview = True
+            pengajuan.waktu_direview = timezone.now()
+
+            if proposal:
+                proposal.status_pb = 'DITERIMA'
+                proposal.catatan_pb = catatan
+                proposal.tanggal_review_pb = timezone.now()
+                proposal.save()
+
+                RiwayatFeedbackProposal.objects.create(
+                proposal=proposal,
+                reviewer='PB',
+                dosen=dosen_pb.dosen,
+                status='DITERIMA',
+                catatan=catatan
+)
+
+            if resume:
+                resume.status = 'DISETUJUI'
+                resume.waktu_peninjauan = timezone.now()
+                resume.save()
+                
+                RiwayatFeedbackResume.objects.create(
+                resume=resume,
+                dosen=dosen_pb.dosen,
+                status='DISETUJUI',
+                catatan=catatan
+)
+
+            # mahasiswa masuk bimbingan aktif
+            mahasiswa.dosen_pembimbing = dosen_pb
+            mahasiswa.save()
+
+            messages.success(request, "Mahasiswa berhasil disetujui")
+
+        # =====================================================
+        # TOLAK
+        # =====================================================
+        elif aksi == 'tolak':
+
+            if not catatan:
+                messages.error(request, "Catatan wajib diisi untuk penolakan!")
+                return redirect(request.path)
+
+            if status_sekarang == 'DISETUJUI':
+                dosen_pb.jumlah_bimbingan_sekarang -= 1
+                dosen_pb.save()
+
+                mahasiswa.dosen_pembimbing = None
+                mahasiswa.save()
+
+            pengajuan.status = 'DITOLAK'
+            pengajuan.catatan_dosen = catatan
+            pengajuan.sudah_direview = True
+            pengajuan.waktu_direview = timezone.now()
+
+            if proposal:
+                proposal.status_pb = 'DITOLAK'
+                proposal.catatan_pb = catatan
+                proposal.tanggal_review_pb = timezone.now()
+                proposal.save()
+
+                RiwayatFeedbackProposal.objects.create(
+                proposal=proposal,
+                reviewer='PB',
+                dosen=dosen_pb.dosen,
+                status='DITOLAK',
+                catatan=catatan
+)
+
+            if resume:
+                resume.status = 'DITOLAK'
+                resume.catatan_revisi = catatan
+                resume.waktu_peninjauan = timezone.now()
+                resume.save()
+
+                RiwayatFeedbackResume.objects.create(
+                resume=resume,
+                dosen=dosen_pb.dosen,
+                status='DITOLAK',
+                catatan=catatan
+)
+            pengajuan.sudah_direview = True
+            pengajuan.waktu_direview = timezone.now()
+
+            messages.warning(request, "Pengajuan ditolak")
+
+        # =====================================================
+        # REVISI
+        # =====================================================
+        elif aksi == 'revisi':
+
+            if not catatan:
+                messages.error(request, "Catatan wajib diisi untuk revisi!")
+                return redirect(request.path)
+
+            if status_sekarang == 'DISETUJUI':
+                dosen_pb.jumlah_bimbingan_sekarang -= 1
+                dosen_pb.save()
+
+                mahasiswa.dosen_pembimbing = None
+                mahasiswa.save()
+
+            pengajuan.status = 'REVISI'
+            pengajuan.catatan_dosen = catatan
+            pengajuan.sudah_direview = True
+            pengajuan.waktu_direview = timezone.now()
+            
+            if proposal:
+                proposal.status_pb = 'REVISI'
+                proposal.catatan_pb = catatan
+                proposal.tanggal_review_pb = timezone.now()
+                proposal.save()
+
+                RiwayatFeedbackProposal.objects.create(
+                proposal=proposal,
+                reviewer='PB',
+                dosen=dosen_pb.dosen,
+                status='REVISI',
+                catatan=catatan
+)
+
+            if resume:
+                resume.status = 'REVISI'
+                resume.catatan_revisi = catatan
+                resume.waktu_peninjauan = timezone.now()
+                resume.save()
+
+                RiwayatFeedbackResume.objects.create(
+                resume=resume,
+                dosen=dosen_pb.dosen,
+                status='REVISI',
+                catatan=catatan
+)
+
+            pengajuan.sudah_direview = True
+            pengajuan.waktu_direview = timezone.now()
+
+            messages.info(request, "Revisi telah diminta")
+
+        # =====================================================
+        # SAVE
+        # =====================================================
+        pengajuan.save()
+
+        return redirect('capstone_system:dosenpb_pengajuan')
+
+    return render(request, 'dosenpb/detail_pengajuan.html', {
+        'mahasiswa': mahasiswa,
+        'pengajuan': pengajuan,
+        'resume': resume,
+        'proposal': proposal
+    })
+
+# =========================================================
+# PROFILE DOSEN PEMBIMBING
+# =========================================================
+@login_required
+def dosenpb_profile(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['DOSENPB'])
+    if not has_access:
+        return response
+    
+    dosen_pb = get_dosen_pb(request.user)
+    dosen = dosen_pb.dosen
+    user = request.user
+
+    if request.method == 'POST':
+
+        # Email
+        user.email = request.POST.get('email', '').strip()
+
+        # Password
+        password = request.POST.get('password')
+        if password:
+            user.set_password(password)
+            update_session_auth_hash(request, user)
+
+        user.save()
+
+        # Foto Profil
+        if request.FILES.get('foto_profil'):
+            dosen.foto_profil = request.FILES['foto_profil']
+            dosen.save()
+
+        messages.success(request, "Profil berhasil diperbarui.")
+        return redirect('capstone_system:dosenpb_profile')
+
+    return render(request, 'dosenpb/profile.html', {
+        'dosen': dosen,
+        'user': user,
+    })
+
+
+# =========================================================
+# JADWAL KONSULTASI
+# =========================================================
+@login_required
+def dosenpb_schedule(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['DOSENPB'])
+    if not has_access:
+        return response
+    
+    dosen_pb = get_dosen_pb(request.user)
+
+    if request.method == 'POST':
+        form = JadwalForm(request.POST)
+        if form.is_valid():
+            jadwal = form.save(commit=False)
+            jadwal.dosen = dosen_pb
+            jadwal.save()
+
+            messages.success(request, "Jadwal berhasil ditambahkan")
+            return redirect('capstone_system:dosenpb_schedule')
+    else:
+        form = JadwalForm()
+
+    jadwal_list = JadwalKonsultasi.objects.filter(
+        dosen=dosen_pb
+    ).order_by('tanggal', 'jam_mulai')
+
+    return render(request, 'dosenpb/schedule.html', {
+        'form': form,
+        'jadwal_list': jadwal_list
+    })
+
+
+# =========================================================
+# HAPUS JADWAL
+# =========================================================
+@login_required
+def dosenpb_hapus_jadwal(request, id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['DOSENPB'])
+    if not has_access:
+        return response
+    
+    dosen_pb = get_dosen_pb(request.user)
+
+    jadwal = get_object_or_404(
+        JadwalKonsultasi,
+        id=id,
+        dosen=dosen_pb
+    )
+
+    jadwal.delete()
+
+    messages.success(request, "Jadwal berhasil dihapus")
+    return redirect('capstone_system:dosenpb_schedule')
+
+
+
+
+# =========================================================
+# DASHBOARD KAPRODI
+# =========================================================
+@login_required
+def kaprodi_home(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    context = {
+        'total_proposal': ProposalCapstone.objects.count(),
+        'total_resume': Resume.objects.count(),
+
+        # MAHASISWA
+        'total_mahasiswa': Mahasiswa.objects.filter(status="AKTIF").count(),
+        'total_mahasiswa_aktif': Mahasiswa.objects.filter(status="AKTIF").count(),
+        'total_mahasiswa_nonaktif': Mahasiswa.objects.filter(status="NONAKTIF").count(),
+
+        'total_dospem': DosenPembimbing.objects.count(),
+
+        # DOSEN
+        'total_dosen': Dosen.objects.filter(status_aktif="AKTIF").count(),
+        'total_dosen_aktif': Dosen.objects.filter(status_aktif="AKTIF").count(),
+        'total_dosen_nonaktif': Dosen.objects.filter(status_aktif="NONAKTIF").count(),
+
+        'total_tim': Tim.objects.count(),
+    }
+
+    return render(request, 'kaprodi/home.html', context)
+
+# =========================================================
+# MAHASISWA (MASTER DATA)
+# =========================================================
+@login_required
+def kaprodi_list_mahasiswa(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    mahasiswa_list = Mahasiswa.objects.select_related(
+        'user',
+        'dosen_pembimbing'
+    ).exclude(
+        status="ARSIP"
+    ).all()
+
+
+    # ==========================
+    # FILTER STATUS
+    # ==========================
+    status = request.GET.get('status')
+
+    if status:
+        mahasiswa_list = mahasiswa_list.filter(
+            status=status
+        )
+
+
+    # ==========================
+    # FILTER ANGKATAN
+    # ==========================
+    angkatan = request.GET.get('angkatan')
+
+    if angkatan:
+        mahasiswa_list = mahasiswa_list.filter(
+            angkatan=angkatan
+        )
+
+
+    # ==========================
+    # SEARCH
+    # ==========================
+    keyword = request.GET.get('q', '').strip()
+
+    if keyword:
+        mahasiswa_list = mahasiswa_list.filter(
+            Q(user__first_name__icontains=keyword) |
+            Q(user__last_name__icontains=keyword) |
+            Q(nim__icontains=keyword)
+        )
+
+
+    # ==========================
+    # SORTING
+    # ==========================
+    mahasiswa_list = mahasiswa_list.order_by(
+        '-angkatan',
+        'nim'
+    )
+
+
+    # ==========================
+    # DAFTAR ANGKATAN
+    # ==========================
+    daftar_angkatan = (
+        Mahasiswa.objects
+        .exclude(
+            status="ARSIP"
+        )
+        .values_list(
+            'angkatan',
+            flat=True
+        )
+        .distinct()
+        .order_by('-angkatan')
+    )
+
+
+    # ==========================
+    # STATISTIK
+    # ==========================
+    total_mahasiswa_aktif = (
+        Mahasiswa.objects
+        .filter(status="AKTIF")
+        .count()
+    )
+
+    total_mahasiswa_nonaktif = (
+        Mahasiswa.objects
+        .filter(status="NONAKTIF")
+        .count()
+    )
+
+    total_mahasiswa_arsip = (
+        Mahasiswa.objects
+        .filter(status="ARSIP")
+        .count()
+    )
+
+
+    context = {
+
+        # Data mahasiswa aktif/nonaktif
+        'mahasiswa_list': mahasiswa_list,
+
+
+        # Filter
+        'daftar_angkatan': daftar_angkatan,
+        'status_filter': status,
+        'angkatan_filter': angkatan,
+        'keyword': keyword,
+
+
+        # Statistik
+        'total_mahasiswa':
+            total_mahasiswa_aktif +
+            total_mahasiswa_nonaktif,
+
+        'total_mahasiswa_aktif':
+            total_mahasiswa_aktif,
+
+        'total_mahasiswa_nonaktif':
+            total_mahasiswa_nonaktif,
+
+        'total_mahasiswa_arsip':
+            total_mahasiswa_arsip,
+    }
+
+
+    return render(
+        request,
+        'kaprodi/list_mahasiswa.html',
+        context
+    )
+
+# =========================================================
+# NONAKTIFKAN MAHASISWA
+# =========================================================
+@login_required
+@transaction.atomic
+def nonaktifkan_mahasiswa(request, id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    mahasiswa = get_object_or_404(
+        Mahasiswa,
+        id=id
+    )
+
+    # ==========================
+    # DOSEN PEMBIMBING
+    # ==========================
+    dospem = mahasiswa.dosen_pembimbing
+
+    # Hanya kurangi kuota jika sebelumnya AKTIF
+    if mahasiswa.status == "AKTIF" and dospem:
+
+        if dospem.jumlah_bimbingan_sekarang > 0:
+            dospem.jumlah_bimbingan_sekarang -= 1
+
+        dospem.update_status()
+
+    # ==========================
+    # UBAH STATUS MAHASISWA
+    # ==========================
+    mahasiswa.status = "NONAKTIF"
+    mahasiswa.save()
+
+    # ==========================
+    # NONAKTIFKAN USER
+    # ==========================
+    mahasiswa.user.is_active = False
+    mahasiswa.user.save()
+
+    messages.success(
+        request,
+        f"{mahasiswa.user.get_full_name()} berhasil dinonaktifkan."
+    )
+
+    return redirect(
+        "capstone_system:kaprodi_mahasiswa"
+    )
+
+
+# =========================================================
+# AKTIFKAN MAHASISWA
+# =========================================================
+@login_required
+@transaction.atomic
+def aktifkan_mahasiswa(request, id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    mahasiswa = get_object_or_404(
+        Mahasiswa,
+        id=id
+    )
+
+    # ==========================
+    # DOSEN PEMBIMBING
+    # ==========================
+    dospem = mahasiswa.dosen_pembimbing
+
+    # Hanya tambah kuota jika sebelumnya NONAKTIF
+    if mahasiswa.status == "NONAKTIF" and dospem:
+
+        # ==========================
+        # CEK KUOTA
+        # ==========================
+        if (
+            dospem.jumlah_bimbingan_sekarang
+            >= dospem.batas_bimbingan
+        ):
+
+            messages.error(
+                request,
+                f"Mahasiswa tidak dapat diaktifkan karena "
+                f"kuota Dosen Pembimbing "
+                f"{dospem.dosen.user.get_full_name()} "
+                f"sudah penuh."
+            )
+
+            return redirect(
+                "capstone_system:kaprodi_mahasiswa"
+            )
+
+        # ==========================
+        # TAMBAH JUMLAH BIMBINGAN
+        # ==========================
+        dospem.jumlah_bimbingan_sekarang += 1
+        dospem.update_status()
+
+    # ==========================
+    # UBAH STATUS MAHASISWA
+    # ==========================
+    mahasiswa.status = "AKTIF"
+    mahasiswa.save()
+
+    # ==========================
+    # AKTIFKAN USER
+    # ==========================
+    mahasiswa.user.is_active = True
+    mahasiswa.user.save()
+
+    messages.success(
+        request,
+        f"{mahasiswa.user.get_full_name()} berhasil diaktifkan kembali."
+    )
+
+    return redirect(
+        "capstone_system:kaprodi_mahasiswa"
+    )
+
+
+# =========================================================
+# Detail Mahasiswa (KAPRODI)
+# =========================================================
+@login_required
+def detail_mahasiswa(request, id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    mahasiswa = get_object_or_404(
+        Mahasiswa,
+        id=id
+    )
+
+    return render(
+        request,
+        "kaprodi/detail_mahasiswa.html",
+        {
+            "mahasiswa": mahasiswa
+        }
+    )
+
+# =========================================================
+# TAMBAH DOSEN
+# =========================================================
+@login_required
+@transaction.atomic
+def tambah_mahasiswa(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    if request.method == "POST":
+
+        form = Mahasiswa(request.POST)
+
+        if form.is_valid():
+
+            nim = form.cleaned_data["nim"]
+
+            if User.objects.filter(username=nim).exists():
+
+                messages.error(request, "NIM sudah terdaftar.")
+
+                return render(
+                    request,
+                    "kaprodi/tambah_mahasiswa.html",
+                    {"form": form}
+                )
+
+            if User.objects.filter(email=form.cleaned_data["email"]).exists():
+
+                messages.error(request, "Email sudah digunakan.")
+
+                return render(
+                    request,
+                    "kaprodi/tambah_mahasiswa.html",
+                    {"form": form}
+                )
+
+            user = User.objects.create_user(
+                username=nim,
+                password=nim,
+                first_name=form.cleaned_data["nama_lengkap"],
+                email=form.cleaned_data["email"],
+                role="MAHASISWA",
+                is_password_changed=False,
+            )
+
+            mahasiswa = form.save(commit=False)
+            mahasiswa.user = user
+            mahasiswa.status = "AKTIF"
+            mahasiswa.save()
+
+            messages.success(
+                request,
+                "Mahasiswa berhasil ditambahkan."
+            )
+
+            return redirect("capstone_system:kaprodi_mahasiswa")
+
+    else:
+
+        form = Mahasiswa()
+
+    return render(
+        request,
+        "kaprodi/tambah_mahasiswa.html",
+        {
+            "form": form
+        }
+    )
+
+# =========================================================
+# EDIT MAHASISWA (KAPRODI)
+# =========================================================
+@login_required
+def edit_mahasiswa(request, id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    mahasiswa = get_object_or_404(
+        Mahasiswa,
+        id=id
+    )
+
+    user = mahasiswa.user
+
+
+    # =====================================================
+    # DAFTAR DOSEN PEMBIMBING
+    # =====================================================
+    # Dospem OPEN ditampilkan.
+    # Dospem yang sedang dipakai mahasiswa tetap tampil
+    # walaupun sudah FULL.
+    # =====================================================
+
+    dospem_list = DosenPembimbing.objects.filter(
+        Q(status="OPEN") |
+        Q(id=mahasiswa.dosen_pembimbing_id)
+    ).select_related(
+        "dosen__user"
+    )
+
+
+    # =====================================================
+    # POST
+    # =====================================================
+    if request.method == "POST":
+
+
+        # ==========================
+        # USER
+        # ==========================
+
+        user.first_name = request.POST.get("nama")
+        user.email = request.POST.get("email")
+
+        nim = request.POST.get("nim")
+
+
+        # ==========================
+        # CEK NIM
+        # ==========================
+
+        if Mahasiswa.objects.exclude(
+            id=mahasiswa.id
+        ).filter(
+            nim=nim
+        ).exists():
+
+            messages.error(
+                request,
+                "NIM sudah digunakan."
+            )
+
+            return redirect(
+                "capstone_system:edit_mahasiswa",
+                id=id
+            )
+
+
+        user.username = nim
+        user.save()
+
+
+
+        # ==========================
+        # DATA MAHASISWA
+        # ==========================
+
+        mahasiswa.nim = nim
+        mahasiswa.kelas = request.POST.get("kelas")
+        mahasiswa.angkatan = request.POST.get("angkatan")
+        mahasiswa.kategori = request.POST.get("kategori")
+        mahasiswa.status = request.POST.get("status")
+
+
+        tanggal_masuk = request.POST.get(
+            "tanggal_masuk"
+        )
+
+        mahasiswa.tanggal_masuk = (
+            tanggal_masuk
+            if tanggal_masuk
+            else None
+        )
+
+
+
+        # ==========================
+        # DOSEN PEMBIMBING
+        # ==========================
+
+        dospem_id = request.POST.get(
+            "dosen_pembimbing"
+        )
+
+        dospem_lama = mahasiswa.dosen_pembimbing
+
+
+
+        # =================================================
+        # DOSPEM DIKOSONGKAN
+        # =================================================
+
+        if not dospem_id:
+
+            if dospem_lama:
+                dospem_lama.update_status()
+
+
+            mahasiswa.dosen_pembimbing = None
+
+
+
+        else:
+
+            dospem_baru = get_object_or_404(
+                DosenPembimbing,
+                id=dospem_id
+            )
+
+
+
+            # =================================================
+            # JIKA DOSPEM BERUBAH
+            # =================================================
+
+            if (
+                dospem_lama is None
+                or dospem_lama.id != dospem_baru.id
+            ):
+
+
+                # =============================================
+                # CEK KUOTA DOSPEM BARU
+                # =============================================
+
+                if dospem_baru.penuh:
+
+
+                    messages.error(
+                        request,
+                        f"Kuota Dosen Pembimbing "
+                        f"{dospem_baru.dosen.user.get_full_name()} "
+                        f"sudah penuh."
+                    )
+
+
+                    return redirect(
+                        "capstone_system:edit_mahasiswa",
+                        id=id
+                    )
+
+
+
+                # =============================================
+                # UPDATE STATUS DOSPEM LAMA
+                # =============================================
+
+                if dospem_lama:
+                    dospem_lama.update_status()
+
+
+
+                # =============================================
+                # SIMPAN DOSPEM BARU
+                # =============================================
+
+                mahasiswa.dosen_pembimbing = dospem_baru
+
+
+                dospem_baru.update_status()
+
+
+
+            else:
+
+                mahasiswa.dosen_pembimbing = dospem_lama
+
+
+
+        # ==========================
+        # SIMPAN DATA
+        # ==========================
+
+        mahasiswa.save()
+
+
+        # Update status dospem setelah perubahan mahasiswa
+        if mahasiswa.dosen_pembimbing:
+            mahasiswa.dosen_pembimbing.update_status()
+
+
+        messages.success(
+            request,
+            "Data mahasiswa berhasil diperbarui."
+        )
+
+
+        return redirect(
+            "capstone_system:kaprodi_mahasiswa"
+        )
+
+
+
+    # =====================================================
+    # GET
+    # =====================================================
+
+    return render(
+        request,
+        "kaprodi/edit_mahasiswa.html",
+        {
+            "mahasiswa": mahasiswa,
+            "dospem_list": dospem_list,
+        }
+    )
+
+
+# =========================================================
+# DOSEN PEMBIMBING
+# =========================================================
+@login_required
+def kaprodi_manage_dospem(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    dospem_list = (
+        DosenPembimbing.objects
+        .select_related(
+            "dosen",
+            "dosen__user"
+        )
+        .filter(
+            dosen__status_aktif="AKTIF"
+        )
+        .order_by(
+            "dosen__user__first_name"
+        )
+    )
+
+    # Sinkronkan status OPEN/FULL
+    for dospem in dospem_list:
+        dospem.update_status()
+
+    context = {
+        "dospem_list": dospem_list,
+        "total_dospem": dospem_list.count(),
+        "total_open": dospem_list.filter(status="OPEN").count(),
+        "total_full": dospem_list.filter(status="FULL").count(),
+    }
+
+    return render(
+        request,
+        "kaprodi/manage_dospem.html",
+        context
+    )
+
+
+# =========================================================
+# DOSEN CP (OPSIONAL JIKA KAMU TAMBAH DI URLS)
+# =========================================================
+@login_required
+def kaprodi_list_dosen(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    dosen_list = Dosen.objects.select_related('user').all()
+
+    keyword = request.GET.get('q', '')
+    status = request.GET.get('status')
+
+    if keyword:
+        dosen_list = dosen_list.filter(
+            Q(user__first_name__icontains=keyword) |
+            Q(user__last_name__icontains=keyword) |
+            Q(nip__icontains=keyword)
+        )
+
+    if status:
+        dosen_list = dosen_list.filter(status_aktif=status)
+
+    context = {
+        'dosen_list': dosen_list,
+        'keyword': keyword,
+        'status_filter': status,
+
+        # Statistik
+        'total_dosen': Dosen.objects.filter(status_aktif='AKTIF').count(),
+        'total_dosen_aktif': Dosen.objects.filter(status_aktif='AKTIF').count(),
+        'total_dosen_nonaktif': Dosen.objects.filter(status_aktif='NONAKTIF').count(),
+    }
+
+    return render(request, 'kaprodi/list_dosen.html', context)
+
+# =========================================================
+# NON AKTIF DOSEN
+# =========================================================
+@login_required
+def nonaktifkan_dosen(request, id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    dosen = get_object_or_404(Dosen, id=id)
+
+    dosen.status_aktif = "NONAKTIF"
+    dosen.save()
+
+    dosen.user.is_active = False
+    dosen.user.save()
+
+    DosenPembimbing.objects.filter(
+    dosen=dosen
+    ).update(status="CLOSED")
+
+    messages.success(request, "Dosen berhasil dinonaktifkan.")
+
+    return redirect('capstone_system:kaprodi_dosen')
+
+# =========================================================
+# AKTIF DOSEN
+# =========================================================
+@login_required
+def aktifkan_dosen(request, id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    dosen = get_object_or_404(Dosen, id=id)
+
+    dosen.status_aktif = "AKTIF"
+    dosen.save()
+
+    dosen.user.is_active = True
+    dosen.user.save()
+
+    DosenPembimbing.objects.filter(
+    dosen=dosen
+    ).update(status="OPEN")
+
+    messages.success(request, "Dosen berhasil diaktifkan.")
+
+    return redirect('capstone_system:kaprodi_dosen')
+
+# =========================================================
+# TAMBAH DOSEN
+# =========================================================
+@login_required
+@transaction.atomic
+def tambah_dosen(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    if request.method == "POST":
+
+        form = DosenForm(request.POST)
+
+        if form.is_valid():
+
+            nama = form.cleaned_data['nama_lengkap']
+            email = form.cleaned_data['email']
+            role = form.cleaned_data['role']
+            if User.objects.filter(username=form.cleaned_data['nip']).exists():
+                messages.error(request, "NIP sudah terdaftar.")
+                return render(request, "kaprodi/tambah_dosen.html", {"form": form})
+
+            if User.objects.filter(email=email).exists():
+                messages.error(request, "Email sudah digunakan.")
+                return render(request, "kaprodi/tambah_dosen.html", {"form": form})
+
+            user = User.objects.create_user(
+                username=form.cleaned_data['nip'],
+                password=form.cleaned_data['nip'],
+                first_name=nama,
+                email=email,
+                role=role,
+                is_password_changed=False,
+            )
+
+            dosen = form.save(commit=False)
+            dosen.user = user
+            dosen.save()
+
+            if role == "DOSENPB":
+                DosenPembimbing.objects.create(dosen=dosen)
+
+            else:
+                DosenCP.objects.create(
+                    dosen=dosen,
+                    tugas="Reviewer Capstone"
+                )
+
+            messages.success(
+                request,
+                "Dosen berhasil ditambahkan."
+            )
+
+            return redirect("capstone_system:kaprodi_dosen")
+
+    else:
+
+        form = DosenForm()
+
+    return render(
+        request,
+        "kaprodi/tambah_dosen.html",
+        {
+            "form": form
+        }
+    )
+
+
+# =========================================================
+# EDIT DOSEN
+# =========================================================
+@login_required
+@transaction.atomic
+def edit_dosen(request, id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    dosen = get_object_or_404(Dosen, id=id)
+
+    if request.method == "POST":
+
+        form = DosenForm(request.POST, instance=dosen)
+
+        if form.is_valid():
+            form.save()
+
+            dosen = form.instance
+
+            # sinkron role
+            DosenPembimbing.objects.filter(dosen=dosen).delete()
+            DosenCP.objects.filter(dosen=dosen).delete()
+
+            if dosen.user.role == "DOSENPB":
+                DosenPembimbing.objects.create(dosen=dosen)
+            else:
+                DosenCP.objects.create(
+                    dosen=dosen,
+                    tugas="Reviewer Capstone"
+                )
+
+            messages.success(request, "Data dosen berhasil diperbarui.")
+            return redirect("capstone_system:kaprodi_dosen")
+
+    else:
+        form = DosenForm(instance=dosen)
+
+    return render(request, "kaprodi/edit_dosen.html", {
+        "form": form,
+        "dosen": dosen
+    })
+
+# =========================================================
+# TIM
+# =========================================================
+@login_required
+def kaprodi_list_tim(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    tim_list = Tim.objects.all().order_by('-dibuat_pada')
+
+    return render(request, 'kaprodi/list_tim.html', {
+        'tim_list': tim_list
+    })
+
+
+@login_required
+def kaprodi_detail_tim(request, tim_id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    tim = get_object_or_404(Tim, id=tim_id)
+    anggota = tim.anggota.all()
+
+    return render(request, 'kaprodi/detail_tim.html', {
+        'tim': tim,
+        'anggota': anggota
+    })
+
+
+# =========================================================
+# PROPOSAL
+# =========================================================
+@login_required
+def kaprodi_list_proposal(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    proposals = ProposalCapstone.objects.all().order_by('-waktu_pengajuan')
+
+    return render(request, 'kaprodi/list_proposal.html', {
+        'proposals': proposals
+    })
+
+
+@login_required
+def kaprodi_detail_proposal(request, proposal_id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    proposal = get_object_or_404(ProposalCapstone, id=proposal_id)
+
+    return render(request, 'kaprodi/detail_proposal.html', {
+        'proposal': proposal
+    })
+
+
+@login_required
+def kaprodi_update_proposal(request, proposal_id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    proposal = get_object_or_404(ProposalCapstone, id=proposal_id)
+
+    if request.method == 'POST':
+        form = ProposalForm(request.POST, request.FILES, instance=proposal)
+
+        if form.is_valid():
+            form.save()
+
+            messages.success(request, "Proposal berhasil diperbarui")
+            return redirect('capstone_system:kaprodi_proposal')
+
+    else:
+        form = ProposalForm(instance=proposal)
+
+    return render(request, 'kaprodi/update_proposal.html', {
+        'form': form,
+        'proposal': proposal
+    })
+
+
+@login_required
+def kaprodi_delete_proposal(request, proposal_id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    proposal = get_object_or_404(ProposalCapstone, id=proposal_id)
+
+    if request.method == 'POST':
+        proposal.delete()
+
+        messages.success(request, "Proposal berhasil dihapus")
+        return redirect('capstone_system:kaprodi_proposal')
+
+    return render(request, 'kaprodi/delete_proposal.html', {
+        'proposal': proposal
+    })
+
+
+# =========================================================
+# RESUME
+# =========================================================
+@login_required
+def kaprodi_list_resume(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    resumes = Resume.objects.all().order_by('-waktu_pengajuan')
+
+    return render(request, 'kaprodi/list_resume.html', {
+        'resumes': resumes
+    })
+
+
+@login_required
+def kaprodi_detail_resume(request, resume_id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    resume = get_object_or_404(Resume, id=resume_id)
+
+    return render(request, 'kaprodi/detail_resume.html', {
+        'resume': resume
+    })
+
+
+
+# =========================================================
+# PENGAJUAN DOSPEM
+# =========================================================
+@login_required
+def kaprodi_pengajuan(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    from .models import PengajuanDospem
+
+    pengajuan_list = PengajuanDospem.objects.all().order_by('-tanggal_pengajuan')
+
+    return render(request, 'kaprodi/pengajuan.html', {
+        'pengajuan_list': pengajuan_list
+    })
+
+
+# =========================================================
+# MONITORING
+# =========================================================
+@login_required
+def kaprodi_monitoring(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    proposals = ProposalCapstone.objects.select_related(
+        'tim',
+        'cp_reviewer'
+    ).all().order_by('-id')
+
+    return render(request, 'kaprodi/monitoring.html', {
+        'proposals': proposals
+    })
+
+
+# =========================================================
+# LAPORAN
+# =========================================================
+@login_required
+def kaprodi_laporan(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    total_mahasiswa = Mahasiswa.objects.count()
+    total_tim = Tim.objects.count()
+    total_proposal = ProposalCapstone.objects.count()
+    total_resume = Resume.objects.count()
+
+    # =====================================================
+    # DOSEN PEMBIMBING (MASTER DATA - PALING BENAR)
+    # =====================================================
+    total_dospem = DosenPembimbing.objects.count()
+
+    # =====================================================
+    # DOSEN YANG AKTIF MEMBIMBING (OPSIONAL KPI)
+    # =====================================================
+    total_dospem_aktif = Mahasiswa.objects.filter(
+        dosen_pembimbing__isnull=False
+    ).values('dosen_pembimbing').distinct().count()
+
+    return render(request, 'kaprodi/laporan.html', {
+        'total_mahasiswa': total_mahasiswa,
+        'total_tim': total_tim,
+        'total_proposal': total_proposal,
+        'total_resume': total_resume,
+
+        # utama
+        'total_dospem': total_dospem,
+
+        # tambahan (kalau mau dipakai di template)
+        'total_dospem_aktif': total_dospem_aktif,
+    })
+
+
+# =========================================================
+# PROFILE KAPRODI
+# =========================================================
+@login_required
+def kaprodi_profile(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    user = request.user
+    dosen, created = Dosen.objects.get_or_create(user=user)
+
+    if request.method == 'POST':
+
+        # Email
+        user.email = request.POST.get('email', '').strip()
+
+        # Password (opsional)
+        password = request.POST.get('password')
+        if password:
+            user.set_password(password)
+            update_session_auth_hash(request, user)
+
+        user.save()
+
+        # Foto Profil
+        if request.FILES.get('foto_profil'):
+            dosen.foto_profil = request.FILES['foto_profil']
+            dosen.save()
+
+        messages.success(request, "Profil berhasil diperbarui.")
+        return redirect('capstone_system:kaprodi_profile')
+
+    return render(request, 'kaprodi/profile.html', {
+        'user': user,
+        'dosen': dosen,
+    })
+
+
+# =========================================================
+# ARSIP MAHASASISWA
+# =========================================================
+@login_required
+def arsip_mahasiswa(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    keyword = request.GET.get("q", "")
+
+    mahasiswa_list = Mahasiswa.objects.filter(
+        status="ARSIP"
+    ).select_related("user")
+
+    if keyword:
+        mahasiswa_list = mahasiswa_list.filter(
+            Q(user__first_name__icontains=keyword) |
+            Q(user__last_name__icontains=keyword) |
+            Q(nim__icontains=keyword)
+        )
+
+    context = {
+        "mahasiswa_list": mahasiswa_list,
+        "keyword": keyword,
+        "total_arsip": mahasiswa_list.count(),
+    }
+
+    return render(
+        request,
+        "kaprodi/arsip_mahasiswa.html",
+        context
+    )
+
+# =========================================================
+# LIST DOSEN CAPSTONE (KAPRODI)
+# =========================================================
+@login_required
+def kaprodi_dosen_cp(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    dosen_capstone = (
+        DosenCP.objects
+        .select_related("dosen", "dosen__user")
+        .all()
+        .order_by("dosen__user__first_name")
+    )
+
+    context = {
+        "dosen_capstone": dosen_capstone,
+    }
+
+    return render(
+        request,
+        "kaprodi/list_dosen_cp.html",
+        context
+    )
+
+#=========================================================
+# ARSIP TAHUNAN MAHASISWA (KAPRODI)
+#=========================================================
+@login_required
+@transaction.atomic
+def arsip_tahunan(request):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    if request.method == 'POST':
+
+        ids = request.POST.getlist('mahasiswa')
+
+        if not ids:
+            messages.warning(request, 'Pilih minimal satu mahasiswa.')
+            return redirect('capstone_system:kaprodi_mahasiswa')
+
+        mahasiswa_list = Mahasiswa.objects.filter(
+            id__in=ids
+        ).select_related(
+            'user',
+            'dosen_pembimbing'
+        )
+
+        for mahasiswa in mahasiswa_list:
+
+            # =========================================
+            # KURANGI KUOTA DOSEN PEMBIMBING
+            # =========================================
+            if (
+                mahasiswa.status == "AKTIF"
+                and mahasiswa.dosen_pembimbing
+            ):
+
+                dospem = mahasiswa.dosen_pembimbing
+
+                if dospem.jumlah_bimbingan_sekarang > 0:
+                    dospem.jumlah_bimbingan_sekarang -= 1
+
+                dospem.update_status()
+
+            # =========================================
+            # ARSIPKAN MAHASISWA
+            # =========================================
+            mahasiswa.status = 'ARSIP'
+            mahasiswa.save()
+
+            mahasiswa.user.is_active = False
+            mahasiswa.user.save()
+
+        messages.success(
+            request,
+            f'{mahasiswa_list.count()} mahasiswa berhasil diarsipkan.'
+        )
+
+    return redirect('capstone_system:kaprodi_mahasiswa')
+
+#=========================================================
+# EDIT BATAS BIMBINGAN DOSEN PEMBIMBING (KAPRODI)
+#=========================================================
+@login_required
+def edit_batas_dospem(request, id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    dospem = get_object_or_404(
+        DosenPembimbing,
+        id=id
+    )
+
+    if request.method == "POST":
+
+        batas = int(request.POST.get("batas_bimbingan"))
+
+        if batas < dospem.jumlah_bimbingan:
+
+            messages.error(
+                request,
+                f"Batas minimal adalah {dospem.jumlah_bimbingan} karena saat ini dosen masih membimbing {dospem.jumlah_bimbingan} mahasiswa."
+            )
+
+            return redirect(
+                "capstone_system:edit_batas_dospem",
+                id=id
+            )
+
+        dospem.batas_bimbingan = batas
+        dospem.save()
+
+        dospem.update_status()
+
+        messages.success(
+            request,
+            "Batas bimbingan berhasil diperbarui."
+        )
+
+        return redirect(
+        "capstone_system:kaprodi_dospem"
+    )
+
+    return render(
+        request,
+        "kaprodi/edit_batas_dospem.html",
+        {
+            "dospem": dospem
+        }
+    )
+
+#=========================================================
+# HAPUS DOSEN (KAPRODI)
+#=========================================================
+@login_required
+@transaction.atomic
+def hapus_dosen(request, id):
+    # CEK ROLE
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    dosen = get_object_or_404(Dosen, id=id)
+
+    # Cek apakah masih menjadi pembimbing mahasiswa
+    if Mahasiswa.objects.filter(dosen_pembimbing__dosen=dosen).exists():
+
+        messages.error(
+            request,
+            "Dosen tidak dapat dihapus karena masih menjadi pembimbing mahasiswa."
+        )
+
+        return redirect("capstone_system:kaprodi_dosen")
+
+    # Hapus data turunan
+    DosenPembimbing.objects.filter(dosen=dosen).delete()
+    DosenCP.objects.filter(dosen=dosen).delete()
+
+    # Hapus user
+    dosen.user.delete()
+
+    messages.success(
+        request,
+        "Data dosen berhasil dihapus."
+    )
+
+    return redirect("capstone_system:kaprodi_dosen")

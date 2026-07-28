@@ -1,0 +1,147 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Profil Dosen{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_dosenpb.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+/* HEADER SIAKAD BLUE */
+.page-header {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    padding: 20px;
+    border-radius: 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px rgba(37,99,235,0.2);
+}
+
+/* CARD GLOBAL SIAKAD */
+.card-modern {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    background: #fff;
+}
+
+/* PROFILE IMAGE */
+.profile-img {
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+    border: 4px solid #fff;
+}
+
+/* INPUT STYLE SAMA GLOBAL */
+.form-control {
+    border-radius: 12px;
+    min-height: 44px;
+}
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+    <h5 class="mb-0">Profil Dosen</h5>
+    <small>Kelola informasi akun Anda</small>
+</div>
+
+<div class="card card-modern">
+    <div class="card-body p-4">
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success small">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="row g-4">
+
+            <!-- FOTO -->
+            <div class="col-md-4 text-center">
+
+                {% if dosen.foto_profil %}
+                    <img id="previewImage"
+                         src="{{ dosen.foto_profil.url }}"
+                         class="rounded-circle shadow profile-img mb-3">
+                {% else %}
+                    <img id="previewImage"
+                         src="https://ui-avatars.com/api/?name={{ user.get_full_name }}&background=2563eb&color=fff"
+                         class="rounded-circle shadow profile-img mb-3">
+                {% endif %}
+
+                <div>
+                    <strong>{{ user.get_full_name }}</strong><br>
+                    <small class="text-muted">{{ user.email }}</small>
+                </div>
+
+                <div class="mt-2">
+                    <small class="text-muted">NIP</small><br>
+                    <strong>{{ dosen.nip }}</strong>
+                </div>
+
+            </div>
+
+            <!-- FORM -->
+            <div class="col-md-8">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="col-12">
+                        <label class="form-label">Nama Lengkap</label>
+                        <input type="text"
+                            value="{{ user.get_full_name }}"
+                            class="form-control bg-light"
+                            readonly>
+                        <small class="text-muted">
+                            Nama tidak dapat diubah.
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Email</label>
+                        <input type="email" name="email"
+                               value="{{ user.email }}"
+                               class="form-control">
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Password Baru</label>
+                        <input type="password" name="password"
+                               class="form-control">
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Foto Profil</label>
+                        <input type="file" name="foto_profil"
+                               class="form-control"
+                               onchange="previewFoto(event)">
+                    </div>
+
+                    <button class="btn btn-primary w-100 rounded-pill">
+                        Simpan Perubahan
+                    </button>
+
+                </form>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+function previewFoto(event) {
+    const reader = new FileReader();
+    reader.onload = function(){
+        document.getElementById('previewImage').src = reader.result;
+    };
+    reader.readAsDataURL(event.target.files[0]);
+}
+</script>
+
+{% endblock %}

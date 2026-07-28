@@ -1,0 +1,167 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Data Tim Capstone{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+body{
+    background:#f5f7fb;
+}
+
+/* HEADER SIAKAD */
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:22px;
+    border-radius:16px;
+    margin-bottom:20px;
+}
+
+/* CARD */
+.card-modern{
+    border:none;
+    border-radius:15px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+    background:white;
+}
+
+/* TABLE */
+.table-modern{
+    margin-bottom:0;
+}
+
+.table-modern thead{
+    background:#f8f9fa;
+}
+
+.table-modern th{
+    border:none;
+    font-weight:600;
+}
+
+.table-modern td{
+    vertical-align:middle;
+}
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+
+    <h4 class="mb-1">
+        Data Tim Capstone 
+    </h4>
+
+    <div>
+        Monitoring seluruh tim capstone mahasiswa
+    </div>
+
+</div>
+
+<!-- SUMMARY -->
+<div class="row mb-3">
+
+    <div class="col-md-4">
+
+        <div class="card card-modern p-3">
+
+            <small>Total Tim</small>
+
+            <h3 class="mb-0 mt-2">
+                {{ tim_list.count }}
+            </h3>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- TABLE -->
+<div class="card card-modern">
+
+    <div class="card-header bg-white">
+        <b>Daftar Tim Capstone</b>
+    </div>
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table table-modern align-middle">
+
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama Tim</th>
+                        <th>Kategori</th>
+                        <th>Jumlah Anggota</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% for tim in tim_list %}
+
+                <tr>
+
+                    <td>{{ forloop.counter }}</td>
+
+                    <td>
+                        <b>{{ tim.nama_tim }}</b>
+                    </td>
+
+                    <td>
+                        {{ tim.kategori }}
+                    </td>
+
+                    <td>
+                        {{ tim.anggota.count }} Orang
+                    </td>
+
+                    <td>
+                        {% if tim.status == "AKTIF" %}
+                            <span class="badge bg-success">AKTIF</span>
+                        {% else %}
+                            <span class="badge bg-secondary">
+                                {{ tim.status }}
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <a href="{% url 'capstone_system:kaprodi_detail_tim' tim.id %}"
+                           class="btn btn-sm btn-primary rounded-pill">
+                            Detail
+                        </a>
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                        Belum ada data tim
+                    </td>
+                </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

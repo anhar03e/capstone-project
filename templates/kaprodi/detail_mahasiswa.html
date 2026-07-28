@@ -1,0 +1,705 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Detail Mahasiswa{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+
+body{
+    background:#f5f7fb;
+}
+
+/* HEADER */
+
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:22px;
+    border-radius:16px;
+    margin-bottom:25px;
+}
+
+/* CARD */
+
+.card-modern{
+    border:none;
+    border-radius:16px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+    background:white;
+}
+
+/* PROFILE */
+
+.profile-img{
+    width:150px;
+    height:150px;
+    border-radius:50%;
+    object-fit:cover;
+    border:5px solid #fff;
+    box-shadow:0 5px 15px rgba(0,0,0,.15);
+}
+
+.avatar{
+    width:150px;
+    height:150px;
+    border-radius:50%;
+    background:#2563eb;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:52px;
+    font-weight:bold;
+    margin:auto;
+    box-shadow:0 5px 15px rgba(0,0,0,.15);
+}
+
+.table-modern th{
+    width:35%;
+    background:#f8f9fa;
+    font-weight:600;
+}
+
+.table-modern td,
+.table-modern th{
+    vertical-align:middle;
+}
+
+/* TOMBOL KEMBALI - BADGE */
+.badge-status{
+    font-size:14px;
+    padding:6px 16px;
+}
+
+/* RIWAYAT CARD */
+.riwayat-card{
+    border:1px solid #eef2f7;
+    border-radius:12px;
+    padding:16px;
+    margin-bottom:12px;
+    transition:.2s;
+    background:#fafbfc;
+}
+
+.riwayat-card:hover{
+    background:#f1f5f9;
+    border-color:#2563eb;
+}
+
+.riwayat-card .judul{
+    font-weight:600;
+    color:#1f2937;
+}
+
+.riwayat-card .meta{
+    font-size:13px;
+    color:#6b7280;
+}
+
+.riwayat-card .badge-status-riwayat{
+    font-size:12px;
+    padding:4px 12px;
+}
+
+.riwayat-empty{
+    text-align:center;
+    padding:30px;
+    color:#9ca3af;
+}
+
+.riwayat-empty i{
+    font-size:40px;
+    display:block;
+    margin-bottom:12px;
+}
+
+/* TABEL RIWAYAT */
+.table-riwayat{
+    font-size:14px;
+}
+
+.table-riwayat th{
+    background:#f8f9fa;
+    font-weight:600;
+    color:#374151;
+}
+
+.table-riwayat td{
+    vertical-align:middle;
+}
+
+/* FILE LINK */
+.file-link{
+    color:#2563eb;
+    text-decoration:none;
+}
+
+.file-link:hover{
+    text-decoration:underline;
+    color:#1d4ed8;
+}
+
+</style>
+
+<!-- HEADER -->
+
+<div class="page-header">
+
+    <div class="d-flex justify-content-between align-items-center">
+
+        <div>
+
+            <h4 class="mb-1">
+                Detail Mahasiswa 🎓
+            </h4>
+
+            <div>
+                Informasi lengkap data mahasiswa
+            </div>
+
+        </div>
+
+        <!-- 🔥 TOMBOL EDIT DENGAN NEXT -->
+        <a href="{% url 'capstone_system:edit_mahasiswa' mahasiswa.id %}?next={{ request.path }}"
+           class="btn btn-light rounded-pill">
+
+            <i class="bi bi-pencil-square"></i>
+            Edit Data
+
+        </a>
+
+    </div>
+
+</div>
+
+<!-- ========================================================= -->
+<!-- CARD PROFIL & INFORMASI                                   -->
+<!-- ========================================================= -->
+
+<div class="card card-modern">
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <!-- PROFILE -->
+
+            <div class="col-md-4 text-center border-end">
+
+                {% if mahasiswa.foto_profil %}
+
+                    <img src="{{ mahasiswa.foto_profil.url }}"
+                         class="profile-img">
+
+                {% else %}
+
+                    <div class="avatar">
+
+                        {{ mahasiswa.user.first_name|first|upper }}
+
+                    </div>
+
+                {% endif %}
+
+                <h4 class="mt-3 mb-1">
+
+                    {{ mahasiswa.user.get_full_name }}
+
+                </h4>
+
+                <p class="text-muted">
+
+                    {{ mahasiswa.nim }}
+
+                </p>
+
+                {% if mahasiswa.status == "AKTIF" %}
+
+                    <span class="badge bg-success rounded-pill px-3 badge-status">
+
+                        <i class="bi bi-check-circle"></i> Aktif
+
+                    </span>
+
+                {% elif mahasiswa.status == "NONAKTIF" %}
+
+                    <span class="badge bg-danger rounded-pill px-3 badge-status">
+
+                        <i class="bi bi-x-circle"></i> Nonaktif
+
+                    </span>
+
+                {% else %}
+
+                    <span class="badge bg-dark rounded-pill px-3 badge-status">
+
+                        <i class="bi bi-archive"></i> Arsip
+
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+            <!-- INFORMASI -->
+
+            <div class="col-md-8">
+
+                <table class="table table-modern align-middle">
+
+                    <tr>
+                        <th>Nama Lengkap</th>
+                        <td>{{ mahasiswa.user.get_full_name }}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Email</th>
+                        <td>{{ mahasiswa.user.email }}</td>
+                    </tr>
+
+                    <tr>
+                        <th>NIM</th>
+                        <td>{{ mahasiswa.nim }}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Kelas</th>
+                        <td>{{ mahasiswa.kelas }}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Angkatan</th>
+                        <td>{{ mahasiswa.angkatan }}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Kategori</th>
+                        <td>{{ mahasiswa.kategori|default:"-" }}</td>
+                    </tr>
+
+                    <tr>
+                        <th>Status</th>
+
+                        <td>
+
+                            {% if mahasiswa.status == "AKTIF" %}
+                                <span class="badge bg-success">Aktif</span>
+
+                            {% elif mahasiswa.status == "NONAKTIF" %}
+                                <span class="badge bg-danger">Nonaktif</span>
+
+                            {% else %}
+                                <span class="badge bg-dark">Arsip</span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                    <tr>
+
+                        <th>Dosen Pembimbing</th>
+
+                        <td>
+
+                            {% if mahasiswa.dosen_pembimbing %}
+
+                                {{ mahasiswa.dosen_pembimbing.dosen.user.get_full_name }}
+
+                            {% else %}
+
+                                <span class="badge bg-secondary">
+
+                                    Belum Ada Pembimbing
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                    <tr>
+                        <th>Tanggal Masuk</th>
+                        <td>{{ mahasiswa.tanggal_masuk|date:"d M Y"|default:"-" }}</td>
+                    </tr>
+
+                </table>
+
+                <div class="mt-4 d-flex flex-wrap gap-2">
+
+                    <!-- 🔥 TOMBOL EDIT DENGAN NEXT -->
+                    <a href="{% url 'capstone_system:edit_mahasiswa' mahasiswa.id %}?next={{ request.path }}"
+                       class="btn btn-warning rounded-pill">
+
+                        <i class="bi bi-pencil-square"></i>
+                        Edit Data
+
+                    </a>
+
+                    <!-- TOMBOL KEMBALI - CEK STATUS -->
+                    {% if mahasiswa.status == "ARSIP" %}
+                        <a href="{% url 'capstone_system:arsip_mahasiswa' %}"
+                           class="btn btn-secondary rounded-pill">
+
+                            <i class="bi bi-arrow-left"></i>
+                            Kembali ke Arsip
+
+                        </a>
+                    {% else %}
+                        <a href="{% url 'capstone_system:kaprodi_mahasiswa' %}"
+                           class="btn btn-secondary rounded-pill">
+
+                            <i class="bi bi-arrow-left"></i>
+                            Kembali ke Daftar Mahasiswa
+
+                        </a>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ========================================================= -->
+<!-- RIWAYAT PROPOSAL                                         -->
+<!-- ========================================================= -->
+
+<div class="card card-modern mt-4">
+
+    <div class="card-header" style="background:#2563eb; color:#fff; border:none;">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div>
+                <i class="bi bi-file-earmark-text"></i>
+                Riwayat Proposal
+            </div>
+
+            <span class="badge bg-light text-dark">
+                {{ proposal_list|length }} Data
+            </span>
+
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        {% if proposal_list %}
+
+            <div class="table-responsive">
+
+                <table class="table table-riwayat align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Judul Proposal</th>
+                            <th>Mitra</th>
+                            <th>Status CP</th>
+                            <th>Status PB</th>
+                            <th>Tanggal</th>
+                            <th>File</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for proposal in proposal_list %}
+
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+
+                            <td>
+                                <div class="fw-semibold">{{ proposal.judul|truncatechars:40 }}</div>
+                            </td>
+
+                            <td>{{ proposal.mitra|default:"-"|truncatechars:20 }}</td>
+
+                            <td>
+                                <span class="badge 
+                                    {% if proposal.status_cp == 'DITERIMA' %}bg-success
+                                    {% elif proposal.status_cp == 'REVISI' %}bg-warning text-dark
+                                    {% elif proposal.status_cp == 'DITOLAK' %}bg-danger
+                                    {% elif proposal.status_cp == 'SEDANG_REVIEW' %}bg-info text-dark
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ proposal.get_status_cp_display }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="badge 
+                                    {% if proposal.status_pb == 'DITERIMA' %}bg-success
+                                    {% elif proposal.status_pb == 'REVISI' %}bg-warning text-dark
+                                    {% elif proposal.status_pb == 'DITOLAK' %}bg-danger
+                                    {% elif proposal.status_pb == 'SEDANG_REVIEW' %}bg-info text-dark
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ proposal.get_status_pb_display }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <small class="text-muted">
+                                    {{ proposal.waktu_pengajuan|date:"d M Y H:i" }}
+                                </small>
+                            </td>
+
+                            <td>
+                                {% if proposal.file %}
+                                    <a href="{{ proposal.file.url }}" 
+                                       class="file-link"
+                                       target="_blank">
+                                        <i class="bi bi-file-earmark-pdf"></i> Lihat
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="riwayat-empty">
+                <i class="bi bi-file-earmark-x"></i>
+                <p class="mb-0">Belum ada proposal yang diupload.</p>
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+<!-- ========================================================= -->
+<!-- RIWAYAT RESUME                                            -->
+<!-- ========================================================= -->
+
+<div class="card card-modern mt-4">
+
+    <div class="card-header" style="background:#0ea5e9; color:#fff; border:none;">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div>
+                <i class="bi bi-file-earmark-text"></i>
+                Riwayat Resume
+            </div>
+
+            <span class="badge bg-light text-dark">
+                {{ resume_list|length }} Data
+            </span>
+
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        {% if resume_list %}
+
+            <div class="table-responsive">
+
+                <table class="table table-riwayat align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Sub Judul</th>
+                            <th>Status</th>
+                            <th>Tanggal</th>
+                            <th>File</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for resume in resume_list %}
+
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+
+                            <td>
+                                <div class="fw-semibold">{{ resume.sub_judul|truncatechars:40 }}</div>
+                            </td>
+
+                            <td>
+                                <span class="badge 
+                                    {% if resume.status == 'DISETUJUI' %}bg-success
+                                    {% elif resume.status == 'REVISI' %}bg-warning text-dark
+                                    {% elif resume.status == 'DITOLAK' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ resume.get_status_display }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <small class="text-muted">
+                                    {{ resume.waktu_pengajuan|date:"d M Y H:i" }}
+                                </small>
+                            </td>
+
+                            <td>
+                                {% if resume.file_resume %}
+                                    <a href="{{ resume.file_resume.url }}" 
+                                       class="file-link"
+                                       target="_blank">
+                                        <i class="bi bi-file-earmark-pdf"></i> Lihat
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="riwayat-empty">
+                <i class="bi bi-file-earmark-x"></i>
+                <p class="mb-0">Belum ada resume yang diupload.</p>
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+<!-- ========================================================= -->
+<!-- RIWAYAT PENGAJUAN DOSPEM                                  -->
+<!-- ========================================================= -->
+
+<div class="card card-modern mt-4">
+
+    <div class="card-header" style="background:#8b5cf6; color:#fff; border:none;">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div>
+                <i class="bi bi-person-check"></i>
+                Riwayat Pengajuan Dosen Pembimbing
+            </div>
+
+            <span class="badge bg-light text-dark">
+                {{ pengajuan_list|length }} Data
+            </span>
+
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        {% if pengajuan_list %}
+
+            <div class="table-responsive">
+
+                <table class="table table-riwayat align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Dosen Pembimbing</th>
+                            <th>Status</th>
+                            <th>Tanggal</th>
+                            <th>Surat</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for pengajuan in pengajuan_list %}
+
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+
+                            <td>
+                                {% if pengajuan.dosen_pembimbing %}
+                                    {{ pengajuan.dosen_pembimbing.dosen.user.get_full_name }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <span class="badge 
+                                    {% if pengajuan.status == 'DISETUJUI' %}bg-success
+                                    {% elif pengajuan.status == 'REVISI' %}bg-warning text-dark
+                                    {% elif pengajuan.status == 'DITOLAK' %}bg-danger
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ pengajuan.get_status_display }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <small class="text-muted">
+                                    {{ pengajuan.tanggal_pengajuan|date:"d M Y H:i" }}
+                                </small>
+                            </td>
+
+                            <td>
+                                {% if pengajuan.surat_permohonan_dospem %}
+                                    <a href="{{ pengajuan.surat_permohonan_dospem.url }}" 
+                                       class="file-link"
+                                       target="_blank">
+                                        <i class="bi bi-file-earmark-pdf"></i> Lihat
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="riwayat-empty">
+                <i class="bi bi-person-x"></i>
+                <p class="mb-0">Belum ada pengajuan dosen pembimbing.</p>
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

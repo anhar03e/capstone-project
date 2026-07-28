@@ -1,0 +1,688 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Monitoring Capstone{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+body {
+    background: #f5f7fb;
+}
+
+/* HEADER */
+.page-header {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    padding: 22px 24px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+}
+
+/* CARD */
+.card-modern {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .06);
+    background: white;
+    overflow: hidden;
+}
+
+.card-header {
+    background: white;
+    border-bottom: 1px solid #eef2f7;
+    font-weight: 600;
+    padding: 14px 20px;
+}
+
+.card-header .badge {
+    font-size: 12px;
+}
+
+/* STAT CARD */
+.stat-card {
+    padding: 16px 20px;
+    border-radius: 12px;
+    background: white;
+    border-left: 4px solid #2563eb;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+}
+
+.stat-card small {
+    color: #6c757d;
+    display: block;
+    font-size: 12px;
+}
+
+.stat-card h3 {
+    margin-top: 4px;
+    margin-bottom: 0;
+    font-weight: 700;
+    font-size: 22px;
+}
+
+.stat-card.total { border-left-color: #2563eb; }
+.stat-card.proposal { border-left-color: #0d6efd; }
+.stat-card.resume { border-left-color: #198754; }
+.stat-card.belum { border-left-color: #ffc107; }
+
+/* TABLE */
+.table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-modern {
+    margin-bottom: 0;
+    min-width: 750px;
+}
+
+.table-modern thead {
+    background: #f8f9fa;
+}
+
+.table-modern th {
+    border: none;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 10px 12px;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+}
+
+.table-modern th i {
+    margin-left: 4px;
+    opacity: 0.4;
+    font-size: 11px;
+}
+
+.table-modern th.active-sort i {
+    opacity: 1;
+    color: #2563eb;
+}
+
+.table-modern td {
+    vertical-align: middle;
+    padding: 10px 12px;
+    font-size: 13px;
+}
+
+.table-modern tbody tr:hover {
+    background: #f8fbff;
+}
+
+/* AVATAR */
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #2563eb;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    flex-shrink: 0;
+    font-size: 14px;
+}
+
+/* BADGE */
+.badge {
+    font-size: 11px;
+    padding: 4px 10px;
+    font-weight: 500;
+}
+
+.badge-status {
+    min-width: 85px;
+    display: inline-block;
+    text-align: center;
+}
+
+/* FILTER */
+.filter-title {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* ================= DOSEN LIST ================= */
+.dosen-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.dosen-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #e8f0fe;
+    color: #1a56db;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.dosen-item .count {
+    background: #1a56db;
+    color: white;
+    border-radius: 50%;
+    padding: 0 7px;
+    font-size: 10px;
+    min-width: 20px;
+    text-align: center;
+    line-height: 20px;
+}
+
+.dosen-item.belum {
+    background: #f1f3f4;
+    color: #6c757d;
+}
+
+.dosen-item.belum .count {
+    background: #6c757d;
+}
+
+.dosen-item i {
+    font-size: 14px;
+}
+
+/* NAMA MAHASISWA + DOSEN */
+.mahasiswa-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.mahasiswa-info .nama {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.mahasiswa-info .dosen {
+    font-size: 11px;
+    color: #6c757d;
+}
+
+.mahasiswa-info .dosen i {
+    font-size: 10px;
+}
+
+.mahasiswa-info .dosen.text-success {
+    color: #198754 !important;
+}
+
+.mahasiswa-info .dosen.text-secondary {
+    color: #6c757d !important;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .page-header {
+        padding: 14px 16px;
+    }
+    .page-header h4 {
+        font-size: 16px;
+    }
+    .stat-card {
+        padding: 12px 16px;
+    }
+    .stat-card h3 {
+        font-size: 18px;
+    }
+    .table-modern th,
+    .table-modern td {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+    .avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 11px;
+    }
+    .badge {
+        font-size: 10px;
+        padding: 3px 8px;
+    }
+    .badge-status {
+        min-width: 70px;
+    }
+    .table-modern {
+        min-width: 600px;
+    }
+    .dosen-item {
+        font-size: 10px;
+        padding: 3px 10px;
+    }
+    .dosen-item .count {
+        font-size: 9px;
+        min-width: 18px;
+        line-height: 18px;
+    }
+    .mahasiswa-info .nama {
+        font-size: 12px;
+    }
+    .mahasiswa-info .dosen {
+        font-size: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .table-modern {
+        min-width: 500px;
+    }
+    .stat-card h3 {
+        font-size: 15px;
+    }
+    .table-modern th,
+    .table-modern td {
+        padding: 4px 6px;
+        font-size: 10px;
+    }
+    .avatar {
+        width: 22px;
+        height: 22px;
+        font-size: 9px;
+    }
+}
+
+/* SCROLLBAR */
+.table-wrapper::-webkit-scrollbar {
+    height: 6px;
+}
+.table-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+.table-wrapper::-webkit-scrollbar-thumb {
+    background: #c1c7cd;
+    border-radius: 10px;
+}
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #a8b0b8;
+}
+
+/* EMPTY STATE */
+.empty-state {
+    padding: 40px 20px;
+    text-align: center;
+}
+.empty-state i {
+    font-size: 48px;
+    color: #dee2e6;
+    margin-bottom: 16px;
+}
+.empty-state h5 {
+    color: #495057;
+    margin-bottom: 8px;
+}
+.empty-state p {
+    color: #6c757d;
+    font-size: 14px;
+}
+</style>
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+    <div class="d-flex flex-wrap justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0">
+                <i class="bi bi-graph-up-arrow me-2"></i> Monitoring Capstone
+            </h4>
+            <small class="text-white-50">Monitoring Proposal & Resume Mahasiswa</small>
+        </div>
+        <div class="mt-2 mt-sm-0">
+            <a href="{% url 'capstone_system:kaprodi_mahasiswa' %}" class="btn btn-light btn-sm me-1">
+                <i class="bi bi-people"></i> Mahasiswa
+            </a>
+            <a href="{% url 'capstone_system:kaprodi_dospem' %}" class="btn btn-light btn-sm">
+                <i class="bi bi-person-badge"></i> Dospem
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- ================= STATISTIK ================= -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card total">
+            <small><i class="bi bi-people me-1"></i> Total Mahasiswa</small>
+            <h3>{{ total_mahasiswa|default:0 }}</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card proposal">
+            <small><i class="bi bi-file-earmark-text me-1"></i> Upload Proposal</small>
+            <h3>{{ total_proposal|default:0 }}</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card resume">
+            <small><i class="bi bi-file-earmark-pdf me-1"></i> Upload Resume</small>
+            <h3>{{ total_resume|default:0 }}</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card belum">
+            <small><i class="bi bi-clock-history me-1"></i> Belum Upload</small>
+            <h3>{{ total_belum_upload|default:0 }}</h3>
+        </div>
+    </div>
+</div>
+
+<!-- ================= STATISTIK DETAIL ================= -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="border-left-color: #198754;">
+            <small><i class="bi bi-check-circle text-success"></i> Proposal Diterima</small>
+            <h3 class="text-success">{{ stats_proposal.diterima|default:0 }}</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="border-left-color: #ffc107;">
+            <small><i class="bi bi-clock text-warning"></i> Proposal Pending</small>
+            <h3 class="text-warning">{{ stats_proposal.pending|default:0 }}</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="border-left-color: #198754;">
+            <small><i class="bi bi-check-circle text-success"></i> Resume Diterima</small>
+            <h3 class="text-success">{{ stats_resume.diterima|default:0 }}</h3>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card" style="border-left-color: #ffc107;">
+            <small><i class="bi bi-clock text-warning"></i> Resume Pending</small>
+            <h3 class="text-warning">{{ stats_resume.pending|default:0 }}</h3>
+        </div>
+    </div>
+</div>
+
+<!-- ================= LIST DOSEN PEMBIMBING ================= -->
+<div class="card card-modern mb-4">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+        <strong><i class="bi bi-person-badge me-1"></i> Daftar Dosen Pembimbing</strong>
+        <span class="badge bg-primary">{{ dosen_list|length }} Dosen</span>
+    </div>
+    <div class="card-body">
+        <div class="dosen-list">
+            {% for dosen in dosen_list %}
+            <span class="dosen-item">
+                <i class="bi bi-person-check"></i>
+                {{ dosen.nama }}
+                <span class="count">{{ dosen.jumlah_mahasiswa }}</span>
+            </span>
+            {% empty %}
+            <span class="dosen-item belum">
+                <i class="bi bi-person-x"></i>
+                Belum ada dosen pembimbing
+            </span>
+            {% endfor %}
+            
+            {% if total_tanpa_dosen > 0 %}
+            <span class="dosen-item belum">
+                <i class="bi bi-person-x"></i>
+                Tanpa Dosen
+                <span class="count">{{ total_tanpa_dosen }}</span>
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ================= FILTER ================= -->
+<div class="card card-modern mb-4">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+        <span class="filter-title">
+            <i class="bi bi-funnel me-1"></i> Filter Data
+        </span>
+        <span class="text-muted small">
+            <i class="bi bi-info-circle"></i> Klik header tabel untuk sorting
+        </span>
+    </div>
+    <div class="card-body">
+        <form method="get" id="filterForm">
+            <div class="row g-2 g-md-3">
+                <div class="col-12 col-md-4">
+                    <input type="text" name="q" class="form-control form-control-sm"
+                        placeholder="Cari Nama atau NIM..." value="{{ keyword|default:'' }}">
+                </div>
+                <div class="col-6 col-md-3">
+                    <select name="status_proposal" class="form-select form-select-sm">
+                        <option value="">Semua Proposal</option>
+                        <option value="BELUM_REVIEW" {% if status_proposal == 'BELUM_REVIEW' %}selected{% endif %}>
+                            Belum Review
+                        </option>
+                        <option value="SEDANG_REVIEW" {% if status_proposal == 'SEDANG_REVIEW' %}selected{% endif %}>
+                            Sedang Review
+                        </option>
+                        <option value="DITERIMA" {% if status_proposal == 'DITERIMA' %}selected{% endif %}>
+                            Diterima
+                        </option>
+                        <option value="DITOLAK" {% if status_proposal == 'DITOLAK' %}selected{% endif %}>
+                            Ditolak
+                        </option>
+                        <option value="REVISI" {% if status_proposal == 'REVISI' %}selected{% endif %}>
+                            Revisi
+                        </option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <select name="status_resume" class="form-select form-select-sm">
+                        <option value="">Semua Resume</option>
+                        <option value="BELUM_REVIEW" {% if status_resume == 'BELUM_REVIEW' %}selected{% endif %}>
+                            Belum Review
+                        </option>
+                        <option value="DISETUJUI" {% if status_resume == 'DISETUJUI' %}selected{% endif %}>
+                            Disetujui
+                        </option>
+                        <option value="DITOLAK" {% if status_resume == 'DITOLAK' %}selected{% endif %}>
+                            Ditolak
+                        </option>
+                        <option value="REVISI" {% if status_resume == 'REVISI' %}selected{% endif %}>
+                            Revisi
+                        </option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
+                    <button class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                </div>
+            </div>
+            <!-- Hidden field untuk sorting -->
+            <input type="hidden" name="sort" id="sortField" value="{{ sort_by|default:'' }}">
+            <input type="hidden" name="order" id="sortOrder" value="{{ sort_order|default:'asc' }}">
+        </form>
+    </div>
+</div>
+
+<!-- ================= TABEL MONITORING ================= -->
+<div class="card card-modern">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center">
+        <strong><i class="bi bi-list-ul me-1"></i> Daftar Monitoring Mahasiswa</strong>
+        <span class="badge bg-primary">{{ monitoring_list|length }} Data</span>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-wrapper">
+            <table class="table table-modern align-middle" id="monitoringTable">
+                <thead>
+                    <tr>
+                        <th style="width:40px;" class="text-center">#</th>
+                        <th style="min-width:180px;" data-sort="nama">
+                            Mahasiswa <i class="bi bi-arrow-down-up"></i>
+                        </th>
+                        <th style="min-width:120px;" data-sort="nim">
+                            NIM <i class="bi bi-arrow-down-up"></i>
+                        </th>
+                        <th style="min-width:80px;" data-sort="kelas">
+                            Kelas <i class="bi bi-arrow-down-up"></i>
+                        </th>
+                        <th style="min-width:90px;" data-sort="angkatan">
+                            Angkatan <i class="bi bi-arrow-down-up"></i>
+                        </th>
+                        <th style="min-width:140px;" data-sort="status_proposal">
+                            Status Proposal <i class="bi bi-arrow-down-up"></i>
+                        </th>
+                        <th style="min-width:140px;" data-sort="status_resume">
+                            Status Resume <i class="bi bi-arrow-down-up"></i>
+                        </th>
+                        <th style="width:110px;" class="text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in monitoring_list %}
+                    <tr>
+                        <td class="text-center text-muted">{{ forloop.counter }}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="avatar">{{ item.nama|first|upper }}</div>
+                                <div class="mahasiswa-info">
+                                    <span class="nama">{{ item.nama }}</span>
+                                    {% if item.dosen_pembimbing %}
+                                    <span class="dosen text-success">
+                                        <i class="bi bi-person-check"></i> {{ item.dosen_pembimbing }}
+                                    </span>
+                                    {% else %}
+                                    <span class="dosen text-secondary">
+                                        <i class="bi bi-person-x"></i> Belum Ada Dosen
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td><code class="text-dark" style="font-size:12px;">{{ item.nim }}</code></td>
+                        <td><span class="badge bg-light text-dark">{{ item.kelas }}</span></td>
+                        <td><span class="badge bg-secondary bg-opacity-10 text-dark">{{ item.angkatan }}</span></td>
+                        <td>
+                            {% if item.status_proposal == 'DITERIMA' %}
+                            <span class="badge bg-success badge-status">
+                                <i class="bi bi-check-circle"></i> Diterima
+                            </span>
+                            {% elif item.status_proposal == 'DITOLAK' %}
+                            <span class="badge bg-danger badge-status">
+                                <i class="bi bi-x-circle"></i> Ditolak
+                            </span>
+                            {% elif item.status_proposal == 'REVISI' %}
+                            <span class="badge bg-warning text-dark badge-status">
+                                <i class="bi bi-pencil"></i> Revisi
+                            </span>
+                            {% elif item.status_proposal == 'SEDANG_REVIEW' %}
+                            <span class="badge bg-info text-dark badge-status">
+                                <i class="bi bi-hourglass-split"></i> Review
+                            </span>
+                            {% elif item.status_proposal == 'BELUM_REVIEW' %}
+                            <span class="badge bg-secondary badge-status">
+                                <i class="bi bi-clock"></i> Belum Review
+                            </span>
+                            {% else %}
+                            <span class="badge bg-light text-secondary badge-status">
+                                <i class="bi bi-dash"></i> Belum Upload
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.status_resume == 'DISETUJUI' %}
+                            <span class="badge bg-success badge-status">
+                                <i class="bi bi-check-circle"></i> Disetujui
+                            </span>
+                            {% elif item.status_resume == 'DITOLAK' %}
+                            <span class="badge bg-danger badge-status">
+                                <i class="bi bi-x-circle"></i> Ditolak
+                            </span>
+                            {% elif item.status_resume == 'REVISI' %}
+                            <span class="badge bg-warning text-dark badge-status">
+                                <i class="bi bi-pencil"></i> Revisi
+                            </span>
+                            {% elif item.status_resume == 'BELUM_REVIEW' %}
+                            <span class="badge bg-secondary badge-status">
+                                <i class="bi bi-clock"></i> Belum Review
+                            </span>
+                            {% else %}
+                            <span class="badge bg-light text-secondary badge-status">
+                                <i class="bi bi-dash"></i> Belum Upload
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1 justify-content-center">
+                                {% if item.proposal_id %}
+                                <a href="{% url 'capstone_system:kaprodi_detail_proposal' item.proposal_id %}"
+                                    class="btn btn-outline-primary btn-sm" title="Detail Proposal">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </a>
+                                {% endif %}
+                                {% if item.resume_id %}
+                                <a href="{% url 'capstone_system:kaprodi_detail_resume' item.resume_id %}"
+                                    class="btn btn-outline-success btn-sm" title="Detail Resume">
+                                    <i class="bi bi-file-earmark-pdf"></i>
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'capstone_system:detail_mahasiswa' item.mahasiswa_id %}"
+                                    class="btn btn-outline-secondary btn-sm" title="Detail Mahasiswa">
+                                    <i class="bi bi-person"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <i class="bi bi-inbox"></i>
+                                <h5>Belum Ada Data</h5>
+                                <p>Belum ada mahasiswa yang terdaftar di sistem.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ================= SCRIPT SORTING ================= -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const headers = document.querySelectorAll('#monitoringTable th[data-sort]');
+        const sortField = document.getElementById('sortField');
+        const sortOrder = document.getElementById('sortOrder');
+
+        headers.forEach(header => {
+            header.addEventListener('click', function() {
+                const field = this.dataset.sort;
+                const currentSort = sortField.value;
+                const currentOrder = sortOrder.value;
+
+                let newOrder = 'asc';
+                if (currentSort === field && currentOrder === 'asc') {
+                    newOrder = 'desc';
+                }
+
+                sortField.value = field;
+                sortOrder.value = newOrder;
+                document.getElementById('filterForm').submit();
+            });
+
+            if (header.dataset.sort === sortField.value) {
+                header.classList.add('active-sort');
+                const icon = header.querySelector('i');
+                if (sortOrder.value === 'asc') {
+                    icon.className = 'bi bi-arrow-up';
+                } else {
+                    icon.className = 'bi bi-arrow-down';
+                }
+            }
+        });
+    });
+</script>
+
+{% endblock %}

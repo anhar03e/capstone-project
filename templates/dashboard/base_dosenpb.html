@@ -1,0 +1,11 @@
+{% extends "dashboard/base_dashboard.html" %}
+
+{% block sidebar %}
+<ul class="nav flex-column">
+    <li><a class="nav-link" href="{% url 'capstone_system:dosenpb_home' %}">Dashboard</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:dosenpb_list_mahasiswa' %}">Daftar Mahasiswa</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:dosenpb_atur_jadwal' %}">Atur Jadwal Konsultasi</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:dosenpb_profile' %}">Profile</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:dosenpb_pengajuan' %}">Pengajuan Dosen Pembimbing</a></li>
+</ul>
+{% endblock %}

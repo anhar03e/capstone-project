@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Capstone Project{% endblock %}</title>
+
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+    body {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    header {
+        background-color: #28a745; /* hijau header */
+        color: white;
+        padding: 0.75rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: fixed;
+        width: 100%;
+        top: 0;
+        z-index: 1000;
+    }
+
+    .sidebar {
+        min-width: 220px;
+        max-width: 220px;
+        background-color: #f8f9fa;
+        height: 100vh;
+        position: fixed;
+        top: 56px; /* tinggi header */
+        left: 0;
+        padding-top: 1rem;
+        transition: all 0.3s;
+        overflow-y: auto;
+    }
+
+    .sidebar.collapsed {
+        margin-left: -220px;
+    }
+
+    .content {
+        margin-left: 220px;
+        padding: 2rem;
+        flex: 1;
+        transition: all 0.3s;
+        margin-top: 56px; /* space for fixed header */
+    }
+
+    .content.full-width {
+        margin-left: 0;
+    }
+
+    .nav-link.active {
+        background-color: #28a745;
+        color: white !important;
+        border-radius: 4px;
+    }
+
+    @media (max-width: 768px) {
+        .sidebar {
+            left: -220px;
+            top: 56px;
+        }
+        .sidebar.show {
+            left: 0;
+        }
+        .content {
+            margin-left: 0;
+        }
+    }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+    <div class="d-flex align-items-center">
+        <button class="btn btn-sm btn-light me-3" id="sidebarToggle">
+            &#9776; <!-- Hamburger icon -->
+        </button>
+        <h4 class="mb-0">Capstone Project System</h4>
+    </div>
+    <div>
+        Hi, {{ request.user.username }} |
+        <a href="{% url 'capstone_system:logout' %}" class="text-white text-decoration-none">Logout</a>
+    </div>
+</header>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <nav class="nav flex-column">
+        {% if request.user.role == 'MAHASISWA' %}
+            <a class="nav-link {% if request.path == '/mahasiswa/home/' %}active{% endif %}" href="{% url 'capstone_system:mahasiswa_home' %}">Dashboard</a>
+            <a class="nav-link {% if request.path == '/mahasiswa/upload_proposal/' %}active{% endif %}" href="{% url 'capstone_system:upload_proposal' %}">Upload Proposal</a>
+            <a class="nav-link {% if request.path == '/mahasiswa/upload_resume/' %}active{% endif %}" href="{% url 'capstone_system:upload_resume' %}">Upload Resume</a>
+            <a class="nav-link {% if request.path == '/mahasiswa/cek_status/' %}active{% endif %}" href="{% url 'capstone_system:cek_status' %}">Cek Status Proposal</a>
+            <a class="nav-link {% if request.path == '/mahasiswa/profile/' %}active{% endif %}" href="{% url 'capstone_system:mahasiswa_profile' %}">Profile</a>
+        {% endif %}
+
+        {% if request.user.role == 'DOSENCP' %}
+            <a class="nav-link {% if request.path == '/dosencp/home/' %}active{% endif %}" href="{% url 'capstone_system:dosencp_home' %}">Dashboard</a>
+            <a class="nav-link {% if request.path == '/dosencp/list_proposal/' %}active{% endif %}" href="{% url 'capstone_system:dosencp_list_proposal' %}">Proposal Mahasiswa</a>
+            <a class="nav-link {% if request.path == '/dosencp/profile/' %}active{% endif %}" href="{% url 'capstone_system:dosencp_profile' %}">Profile</a>
+        {% endif %}
+
+        {% if request.user.role == 'DOSENPB' %}
+            <a class="nav-link {% if request.path == '/dosenpb/home/' %}active{% endif %}" href="{% url 'capstone_system:dosenpb_home' %}">Dashboard</a>
+            <a class="nav-link {% if request.path == '/dosenpb/list_mahasiswa/' %}active{% endif %}" href="{% url 'capstone_system:dosenpb_list_mahasiswa' %}">Daftar Mahasiswa</a>
+            <a class="nav-link {% if request.path == '/dosenpb/schedule/' %}active{% endif %}" href="{% url 'capstone_system:dosenpb_schedule' %}">Atur Jadwal Konsultasi</a>
+            <a class="nav-link {% if request.path == '/dosenpb/profile/' %}active{% endif %}" href="{% url 'capstone_system:dosenpb_profile' %}">Profile</a>
+        {% endif %}
+
+        {% if request.user.role == 'KAPRODI' %}
+            <a class="nav-link {% if request.path == '/kaprodi/home/' %}active{% endif %}" href="{% url 'capstone_system:kaprodi_home' %}">Dashboard</a>
+            <a class="nav-link {% if request.path == '/kaprodi/list_proposal/' %}active{% endif %}" href="{% url 'capstone_system:kaprodi_list_proposal' %}">Daftar Proposal</a>
+            <a class="nav-link {% if request.path == '/kaprodi/list_resume/' %}active{% endif %}" href="{% url 'capstone_system:kaprodi_list_resume' %}">Daftar Resume</a>
+            <a class="nav-link {% if request.path == '/kaprodi/list_mahasiswa/' %}active{% endif %}" href="{% url 'capstone_system:kaprodi_list_mahasiswa' %}">Daftar Mahasiswa</a>
+            <a class="nav-link {% if request.path == '/kaprodi/manage_dospem/' %}active{% endif %}" href="{% url 'capstone_system:kaprodi_manage_dospem' %}">Kelola Dosen Pembimbing</a>
+            <a class="nav-link {% if request.path == '/kaprodi/profile/' %}active{% endif %}" href="{% url 'capstone_system:kaprodi_profile' %}">Profile</a>
+        {% endif %}
+    </nav>
+</div>
+
+<!-- Content -->
+<div class="content" id="mainContent">
+    {% block content %}{% endblock %}
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Sidebar toggle script -->
+<script>
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('mainContent');
+    const toggleBtn = document.getElementById('sidebarToggle');
+
+    toggleBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        mainContent.classList.toggle('full-width');
+    });
+</script>
+
+</body>
+</html>

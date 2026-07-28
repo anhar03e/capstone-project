@@ -1,0 +1,208 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Dosen Capstone{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+body{
+    background:#f5f7fb;
+}
+
+/* HEADER */
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:22px;
+    border-radius:16px;
+    margin-bottom:20px;
+}
+
+/* CARD */
+.card-modern{
+    border:none;
+    border-radius:15px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+    background:white;
+}
+
+/* TABLE */
+.table-modern{
+    margin-bottom:0;
+}
+
+.table-modern thead{
+    background:#f8f9fa;
+}
+
+.table-modern th{
+    border:none;
+    font-weight:600;
+}
+
+.table-modern td{
+    vertical-align:middle;
+}
+
+/* AVATAR */
+.avatar{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:#2563eb;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+}
+
+/* Badge */
+.badge-status{
+    font-size:12px;
+    padding:7px 12px;
+    border-radius:20px;
+}
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+
+    <h4 class="mb-1">
+        Dosen Capstone 
+    </h4>
+
+    <div>
+        Monitoring seluruh dosen yang bertugas sebagai Dosen Capstone
+    </div>
+
+</div>
+
+<!-- SUMMARY -->
+<div class="row mb-3">
+
+    <div class="col-md-4">
+
+        <div class="card card-modern p-3">
+
+            <small>Total Dosen Capstone</small>
+
+            <h3 class="mb-0 mt-2">
+                {{ dosen_capstone.count }}
+            </h3>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- TABLE -->
+<div class="card card-modern">
+
+    <div class="card-header bg-white">
+        <b>Daftar Dosen Capstone</b>
+    </div>
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table table-modern align-middle">
+
+                <thead>
+
+                    <tr>
+                        <th>No</th>
+                        <th>Nama Dosen</th>
+                        <th>NIP</th>
+                        <th>Email</th>
+                        <th>Tugas</th>
+                        <th>Status</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                {% for cp in dosen_capstone %}
+
+                <tr>
+
+                    <td>{{ forloop.counter }}</td>
+
+                    <td>
+
+                        <div class="d-flex align-items-center gap-2">
+
+                            <div class="avatar">
+                                {{ cp.dosen.user.first_name|first|upper }}
+                            </div>
+
+                            <div>
+                                <b>{{ cp.dosen.user.get_full_name }}</b>
+                            </div>
+
+                        </div>
+
+                    </td>
+
+                    <td>
+                        {{ cp.dosen.nip }}
+                    </td>
+
+                    <td>
+                        {{ cp.dosen.user.email }}
+                    </td>
+
+                    <td>
+                        {{ cp.tugas }}
+                    </td>
+
+                    <td>
+
+                        {% if cp.dosen.status_aktif == "AKTIF" %}
+
+                            <span class="badge bg-success badge-status">
+                                Aktif
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-danger badge-status">
+                                Nonaktif
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td colspan="6" class="text-center py-4 text-muted">
+                        Belum ada Dosen Capstone.
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

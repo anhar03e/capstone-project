@@ -1,0 +1,170 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Pengajuan Dosen Pembimbing{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_dosenpb.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+.dashboard-content {
+    background: #f5f7fb;
+}
+
+/* HEADER SAMA DASHBOARD */
+.page-header {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    padding: 20px;
+    border-radius: 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px rgba(37,99,235,0.2);
+}
+
+/* CARD */
+.card-modern {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    background: #fff;
+}
+
+/* TABLE STYLE */
+.table thead {
+    background: #2563eb;
+    color: white;
+}
+
+.table {
+    font-size: 14px;
+}
+
+/* BADGE */
+.badge {
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+/* BUTTON */
+.btn-primary {
+    background: #2563eb;
+    border: none;
+    border-radius: 10px;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.btn-success {
+    border-radius: 10px;
+}
+
+.btn-danger {
+    border-radius: 10px;
+}
+
+.btn-warning {
+    border-radius: 10px;
+}
+</style>
+
+<div class="page-header">
+    <h5 class="mb-0">Pengajuan Dosen Pembimbing</h5>
+    <small>Kelola permohonan bimbingan mahasiswa</small>
+</div>
+
+<div class="card card-modern p-3">
+
+<div class="table-responsive">
+
+    <table class="table align-middle">
+
+        <thead>
+            <tr>
+                <th>Mahasiswa</th>
+                <th>Judul Resume</th>
+                <th>Status</th>
+                <th width="200">Aksi</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for p in pengajuan_list %}
+            <tr>
+
+                <!-- MAHASISWA -->
+                <td>
+                    <div class="fw-semibold">{{ p.mahasiswa.nim }}</div>
+                    <small class="text-muted">
+                        {{ p.mahasiswa.user.get_full_name|default:"Nama belum ada" }}
+                    </small>
+                </td>
+
+                <!-- RESUME -->
+                <td>
+                    {% if p.resume %}
+                        <div class="fw-semibold">
+                            {{ p.resume.judul_proposal|default:"-" }}
+                        </div>
+                        <small class="text-muted">
+                            {{ p.resume.mitra|default:"-" }}
+                        </small>
+                    {% else %}
+                        <span class="text-muted">Tidak ada resume</span>
+                    {% endif %}
+                </td>
+
+                <!-- STATUS (FIX UTAMA DISINI) -->
+                <td>
+                    {% if not p.sudah_direview %}
+                        <span class="badge bg-secondary">BELUM DIREVIEW</span>
+
+                    {% elif p.status == "PENDING" %}
+                        <span class="badge bg-warning text-dark">PENDING</span>
+
+                    {% elif p.status == "DISETUJUI" %}
+                        <span class="badge bg-success">DISETUJUI</span>
+
+                    {% elif p.status == "DITOLAK" %}
+                        <span class="badge bg-danger">DITOLAK</span>
+
+                    {% elif p.status == "REVISI" %}
+                        <span class="badge bg-warning text-dark">REVISI</span>
+
+                    {% else %}
+                        <span class="badge bg-secondary">-</span>
+                    {% endif %}
+                </td>
+
+                <!-- AKSI -->
+                <td>
+                    <a href="{% url 'capstone_system:dosenpb_detail_pengajuan' p.id %}"
+                       class="btn btn-primary btn-sm rounded-pill w-100">
+                        Lihat / Review
+                    </a>
+                </td>
+
+            </tr>
+
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center text-muted py-4">
+                    Belum ada pengajuan
+                </td>
+            </tr>
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+</div>
+
+{% endblock %}

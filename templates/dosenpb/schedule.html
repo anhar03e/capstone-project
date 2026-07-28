@@ -1,0 +1,241 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Jadwal Konsultasi{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_dosenpb.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+.dashboard-content {
+    background: #f5f7fb;
+}
+
+/* HEADER SAMA DASHBOARD */
+.page-header {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    padding: 20px;
+    border-radius: 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px rgba(37,99,235,0.2);
+}
+
+/* CARD */
+.card-modern {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    background: #fff;
+}
+
+/* TABLE STYLE */
+.table thead {
+    background: #2563eb;
+    color: white;
+}
+
+.table {
+    font-size: 14px;
+}
+
+/* BADGE */
+.badge {
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+/* BUTTON */
+.btn-primary {
+    background: #2563eb;
+    border: none;
+    border-radius: 10px;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.btn-success {
+    border-radius: 10px;
+}
+
+.btn-danger {
+    border-radius: 10px;
+}
+
+.btn-warning {
+    border-radius: 10px;
+}
+</style>
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+    <h4 class="mb-1">Jadwal Konsultasi</h4>
+    <small>Kelola jadwal bimbingan mahasiswa</small>
+</div>
+
+<div class="row g-4">
+
+    <!-- ================= FORM ================= -->
+    <div class="col-md-4">
+
+        <div class="card card-modern p-3">
+
+            <h6 class="mb-3">Tambah Jadwal</h6>
+
+            <form method="post">
+                {% csrf_token %}
+
+                <!-- TANGGAL -->
+                <div class="mb-2">
+                    <label>Tanggal</label>
+
+                    <input type="date"
+                           name="tanggal"
+                           class="form-control"
+                           id="tanggalInput">
+
+                    <div class="mt-2 d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-success"
+                                onclick="setToday()">
+                            Hari Ini
+                        </button>
+
+                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                onclick="setTomorrow()">
+                            Besok
+                        </button>
+                    </div>
+                </div>
+
+                <!-- JAM MULAI -->
+                <div class="mb-2">
+                    <label>Jam Mulai</label>
+                    <input type="time"
+                           name="jam_mulai"
+                           class="form-control"
+                           step="900">
+                </div>
+
+                <!-- JAM SELESAI -->
+                <div class="mb-2">
+                    <label>Jam Selesai</label>
+                    <input type="time"
+                           name="jam_selesai"
+                           class="form-control"
+                           step="900">
+                </div>
+
+                <button class="btn btn-success w-100 mt-2 rounded-pill">
+                    Tambah Jadwal
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    <!-- ================= LIST ================= -->
+    <div class="col-md-8">
+
+        <div class="card card-modern p-3">
+
+            <h6 class="mb-3">Daftar Jadwal</h6>
+
+            {% if jadwal_list %}
+
+            <table class="table align-middle">
+
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Jam</th>
+                        <th>Kuota</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for j in jadwal_list %}
+                    <tr>
+
+                        <!-- Tanggal -->
+                        <td>{{ j.tanggal }}</td>
+
+                        <!-- Jam -->
+                        <td>{{ j.jam_mulai }} - {{ j.jam_selesai }}</td>
+
+                        <!-- KUOTA -->
+                        <td>
+                            {{ j.jumlah_dipesan }}/{{ j.kuota }}
+
+                            <br>
+
+                            {% if j.penuh %}
+                                <small class="text-danger">Full</small>
+                            {% else %}
+                                <small class="text-muted">
+                                    Sisa: {{ j.sisa_kuota }}
+                                </small>
+                            {% endif %}
+                        </td>
+
+                        <!-- STATUS -->
+                        <td>
+                            {% if j.penuh %}
+                                <span class="badge bg-danger">Penuh</span>
+                            {% else %}
+                                <span class="badge bg-success">Tersedia</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- AKSI -->
+                        <td>
+                            <a href="{% url 'capstone_system:dosenpb_hapus_jadwal' j.id %}"
+                               class="btn btn-sm btn-danger rounded-pill">
+                                Hapus
+                            </a>
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+            {% else %}
+            <div class="text-center text-muted py-3">
+                Belum ada jadwal
+            </div>
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ================= SCRIPT ================= -->
+<script>
+function setToday() {
+    let today = new Date().toISOString().split('T')[0];
+    document.getElementById('tanggalInput').value = today;
+}
+
+function setTomorrow() {
+    let d = new Date();
+    d.setDate(d.getDate() + 1);
+    let tomorrow = d.toISOString().split('T')[0];
+    document.getElementById('tanggalInput').value = tomorrow;
+}
+</script>
+
+{% endblock %}

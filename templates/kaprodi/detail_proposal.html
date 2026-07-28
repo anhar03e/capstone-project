@@ -1,0 +1,438 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Detail Proposal{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+body {
+    background: #f5f7fb;
+}
+
+/* HEADER - WARNA BIRU (SAMA DENGAN RESUME) */
+.page-header {
+    background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+    color: white;
+    padding: 22px 24px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+}
+
+/* CARD */
+.card-modern {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .06);
+    background: white;
+    overflow: hidden;
+}
+
+.card-header {
+    background: white;
+    border-bottom: 1px solid #eef2f7;
+    font-weight: 600;
+    padding: 14px 20px;
+}
+
+/* INFO ROW */
+.info-label {
+    font-size: 12px;
+    color: #6c757d;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.info-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.info-value .badge {
+    font-size: 13px;
+    padding: 5px 14px;
+}
+
+/* FILE PREVIEW */
+.file-preview {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f8f9fa;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+}
+
+.file-preview i {
+    font-size: 28px;
+    color: #dc3545;
+}
+
+.file-preview .file-name {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.file-preview .file-size {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* CATATAN */
+.catatan-box {
+    background: #f8f9fa;
+    border-left: 4px solid #0d6efd;
+    padding: 16px 20px;
+    border-radius: 8px;
+}
+
+.catatan-box p {
+    margin-bottom: 0;
+    color: #1f2937;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+/* PROGRESS */
+.progress-status {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.progress-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.progress-item .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.progress-item .dot.done {
+    background: #198754;
+}
+.progress-item .dot.pending {
+    background: #ffc107;
+}
+.progress-item .dot.empty {
+    background: #e9ecef;
+}
+
+/* TIMELINE */
+.timeline-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.timeline-item:last-child {
+    border-bottom: none;
+}
+
+.timeline-item .icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.timeline-item .icon.bg-success {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+.timeline-item .icon.bg-warning {
+    background: #fff3cd;
+    color: #664d03;
+}
+.timeline-item .icon.bg-danger {
+    background: #f8d7da;
+    color: #842029;
+}
+.timeline-item .icon.bg-info {
+    background: #cff4fc;
+    color: #055160;
+}
+.timeline-item .icon.bg-secondary {
+    background: #e9ecef;
+    color: #41464b;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .page-header {
+        padding: 14px 16px;
+    }
+    .page-header h4 {
+        font-size: 16px;
+    }
+    .info-value {
+        font-size: 14px;
+    }
+    .file-preview {
+        flex-wrap: wrap;
+    }
+    .progress-status {
+        gap: 10px;
+    }
+}
+</style>
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+    <div class="d-flex flex-wrap justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0">
+                <i class="bi bi-file-earmark-text me-2"></i> Detail Proposal
+            </h4>
+            <small class="text-white-50">Informasi lengkap proposal capstone</small>
+        </div>
+        <div class="mt-2 mt-sm-0">
+            <a href="{% url 'capstone_system:kaprodi_monitoring' %}" class="btn btn-light btn-sm">
+                <i class="bi bi-arrow-left"></i> Kembali ke Monitoring
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- ================= DETAIL PROPOSAL ================= -->
+<div class="card card-modern">
+    <div class="card-header">
+        <i class="bi bi-file-earmark-text me-1"></i> Informasi Proposal
+    </div>
+    <div class="card-body">
+
+        <div class="row g-4">
+
+            <!-- Judul -->
+            <div class="col-12">
+                <div class="info-label">Judul Proposal</div>
+                <div class="info-value">{{ proposal.judul|default:"-" }}</div>
+            </div>
+
+            <!-- Tim -->
+            <div class="col-md-6">
+                <div class="info-label">Tim Capstone</div>
+                <div class="info-value">{{ proposal.tim.nama_tim|default:"-" }}</div>
+            </div>
+
+            <!-- Mitra -->
+            <div class="col-md-6">
+                <div class="info-label">Mitra</div>
+                <div class="info-value">{{ proposal.mitra|default:"-" }}</div>
+            </div>
+
+            <!-- Status Final -->
+            <div class="col-md-4">
+                <div class="info-label">Status Final</div>
+                <div class="info-value">
+                    {% if proposal.status_final == 'DITERIMA' %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Diterima</span>
+                    {% elif proposal.status_final == 'REVISI' %}
+                        <span class="badge bg-warning text-dark"><i class="bi bi-pencil"></i> Revisi</span>
+                    {% elif proposal.status_final == 'DITOLAK' %}
+                        <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Ditolak</span>
+                    {% elif proposal.status_final == 'SEDANG_REVIEW' %}
+                        <span class="badge bg-info"><i class="bi bi-hourglass-split"></i> Sedang Review</span>
+                    {% elif proposal.status_final == 'BELUM_REVIEW' %}
+                        <span class="badge bg-secondary"><i class="bi bi-clock"></i> Belum Review</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ proposal.status_final|default:"Belum Ada" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Progress -->
+            <div class="col-md-8">
+                <div class="info-label">Progress Review</div>
+                <div class="progress-status">
+                    <div class="progress-item">
+                        <span class="dot {% if proposal.status_pb != 'BELUM_REVIEW' %}done{% else %}empty{% endif %}"></span>
+                        <small>PB</small>
+                        <span class="badge 
+                            {% if proposal.status_pb == 'DITERIMA' %}bg-success
+                            {% elif proposal.status_pb == 'REVISI' %}bg-warning text-dark
+                            {% elif proposal.status_pb == 'DITOLAK' %}bg-danger
+                            {% elif proposal.status_pb == 'SEDANG_REVIEW' %}bg-info
+                            {% else %}bg-secondary{% endif %}">
+                            {{ proposal.status_pb|default:"Belum" }}
+                        </span>
+                    </div>
+                    <div class="progress-item">
+                        <span class="dot {% if proposal.status_cp != 'BELUM_REVIEW' %}done{% else %}empty{% endif %}"></span>
+                        <small>CP</small>
+                        <span class="badge 
+                            {% if proposal.status_cp == 'DITERIMA' %}bg-success
+                            {% elif proposal.status_cp == 'REVISI' %}bg-warning text-dark
+                            {% elif proposal.status_cp == 'DITOLAK' %}bg-danger
+                            {% elif proposal.status_cp == 'SEDANG_REVIEW' %}bg-info
+                            {% else %}bg-secondary{% endif %}">
+                            {{ proposal.status_cp|default:"Belum" }}
+                        </span>
+                    </div>
+                    <div class="progress-item">
+                        <span class="dot {% if proposal.status_final == 'DITERIMA' %}done{% else %}empty{% endif %}"></span>
+                        <small>Final</small>
+                        <span class="badge 
+                            {% if proposal.status_final == 'DITERIMA' %}bg-success
+                            {% elif proposal.status_final == 'REVISI' %}bg-warning text-dark
+                            {% elif proposal.status_final == 'DITOLAK' %}bg-danger
+                            {% elif proposal.status_final == 'SEDANG_REVIEW' %}bg-info
+                            {% else %}bg-secondary{% endif %}">
+                            {{ proposal.status_final|default:"Belum" }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tanggal Pengajuan -->
+            <div class="col-md-6">
+                <div class="info-label">Tanggal Pengajuan</div>
+                <div class="info-value">
+                    <i class="bi bi-calendar3 me-1 text-muted"></i>
+                    {{ proposal.waktu_pengajuan|date:"d F Y H:i"|default:"-" }}
+                </div>
+            </div>
+
+            <!-- Tanggal Update -->
+            <div class="col-md-6">
+                <div class="info-label">Terakhir Diupdate</div>
+                <div class="info-value">
+                    <i class="bi bi-clock-history me-1 text-muted"></i>
+                    {{ proposal.waktu_update|date:"d F Y H:i"|default:"-" }}
+                </div>
+            </div>
+
+            <!-- Dosen CP Reviewer -->
+            <div class="col-md-6">
+                <div class="info-label">Dosen CP Reviewer</div>
+                <div class="info-value">
+                    {% if proposal.cp_reviewer %}
+                        <i class="bi bi-person-check text-success me-1"></i>
+                        {{ proposal.cp_reviewer.dosen.user.get_full_name|default:"-" }}
+                    {% else %}
+                        <span class="text-muted">Belum ditentukan</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Catatan PB -->
+            {% if proposal.catatan_pb %}
+            <div class="col-md-6">
+                <div class="info-label">Catatan Dosen Pembimbing</div>
+                <div class="catatan-box" style="border-left-color: #0d6efd;">
+                    <p>{{ proposal.catatan_pb|linebreaks }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Catatan CP -->
+            {% if proposal.catatan_cp %}
+            <div class="col-md-6">
+                <div class="info-label">Catatan Dosen CP</div>
+                <div class="catatan-box" style="border-left-color: #dc3545;">
+                    <p>{{ proposal.catatan_cp|linebreaks }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- File Proposal -->
+            {% if proposal.file %}
+            <div class="col-12">
+                <div class="info-label">Dokumen Proposal</div>
+                <div class="file-preview">
+                    <i class="bi bi-file-earmark-pdf"></i>
+                    <div>
+                        <div class="file-name">{{ proposal.file.name|cut:"proposal/" }}</div>
+                        <div class="file-size">
+                            <i class="bi bi-file-earmark me-1"></i>
+                            PDF Document
+                        </div>
+                    </div>
+                    <a href="{{ proposal.file.url }}" target="_blank" class="btn btn-primary btn-sm ms-auto">
+                        <i class="bi bi-eye"></i> Lihat
+                    </a>
+                    <a href="{{ proposal.file.url }}" download class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-download"></i>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+    </div>
+</div>
+
+<!-- ================= RIWAYAT FEEDBACK ================= -->
+{% if riwayat_feedback %}
+<div class="card card-modern mt-4">
+    <div class="card-header">
+        <i class="bi bi-clock-history me-1"></i> Riwayat Feedback
+    </div>
+    <div class="card-body">
+        {% for feedback in riwayat_feedback %}
+        <div class="timeline-item">
+            <div class="icon 
+                {% if feedback.status == 'DITERIMA' %}bg-success
+                {% elif feedback.status == 'REVISI' %}bg-warning
+                {% elif feedback.status == 'DITOLAK' %}bg-danger
+                {% elif feedback.status == 'SEDANG_REVIEW' %}bg-info
+                {% else %}bg-secondary{% endif %}">
+                <i class="bi 
+                    {% if feedback.status == 'DITERIMA' %}bi-check-lg
+                    {% elif feedback.status == 'REVISI' %}bi-pencil
+                    {% elif feedback.status == 'DITOLAK' %}bi-x-lg
+                    {% elif feedback.status == 'SEDANG_REVIEW' %}bi-hourglass-split
+                    {% else %}bi-clock{% endif %}">
+                </i>
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex flex-wrap justify-content-between align-items-center">
+                    <div>
+                        <span class="fw-semibold">
+                            {% if feedback.reviewer == 'PB' %}
+                                <i class="bi bi-person-badge text-primary"></i> Dosen Pembimbing
+                            {% else %}
+                                <i class="bi bi-person-check text-danger"></i> Dosen CP
+                            {% endif %}
+                        </span>
+                        <span class="badge 
+                            {% if feedback.status == 'DITERIMA' %}bg-success
+                            {% elif feedback.status == 'REVISI' %}bg-warning text-dark
+                            {% elif feedback.status == 'DITOLAK' %}bg-danger
+                            {% elif feedback.status == 'SEDANG_REVIEW' %}bg-info
+                            {% else %}bg-secondary{% endif %} ms-2">
+                            {{ feedback.status }}
+                        </span>
+                    </div>
+                    <small class="text-muted">{{ feedback.created_at|date:"d F Y H:i" }}</small>
+                </div>
+                {% if feedback.catatan %}
+                <p class="mb-0 mt-1 text-muted" style="font-size:13px;">{{ feedback.catatan }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

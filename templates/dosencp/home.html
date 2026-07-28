@@ -1,0 +1,261 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Dashboard Dosen CP{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_dosencp.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+body {
+    background: #f4f7fc;
+    margin: 0;
+}
+
+/* ================= HEADER SIAKAD BLUE ================= */
+.dashboard-header {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    padding: 20px;
+    border-radius: 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px rgba(37,99,235,0.2);
+}
+
+/* ================= CARD ================= */
+.card-modern {
+    border: none;
+    border-radius: 16px;
+    transition: all 0.25s ease;
+    box-shadow: 0 6px 18px rgba(0,0,0,.06);
+    background: #ffffff;
+}
+
+.card-modern:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(0,0,0,.10);
+}
+
+/* ================= ICON BOX ================= */
+.icon-box {
+    width: 55px;
+    height: 55px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+/* ================= BADGE OVERRIDE ================= */
+.badge {
+    border-radius: 8px;
+    padding: 6px 10px;
+}
+
+/* ================= TABLE ================= */
+.table td,
+.table th {
+    vertical-align: middle;
+}
+
+/* ================= RESPONSIVE ================= */
+@media(max-width:768px){
+    .dashboard-header {
+        text-align: center;
+    }
+}
+</style>
+
+<!-- HEADER -->
+<div class="dashboard-header">
+
+    <h4 class="mb-1">
+        Dashboard Dosen CP
+    </h4>
+
+    <div>
+        Selamat datang,
+        <b>{{ user.get_full_name|default:user.username }}</b>
+    </div>
+
+    <small>
+        Review Proposal Capstone dan berikan feedback kepada mahasiswa
+    </small>
+
+</div>
+
+<!-- SUMMARY -->
+<div class="row g-3 mb-4">
+
+    <div class="col-md-3">
+        <div class="card card-modern p-3">
+            <small class="text-muted">Total Proposal</small>
+            <div class="fw-bold fs-3 mt-2">
+                {{ total_proposal }}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-modern p-3">
+            <small class="text-muted">Menunggu Review</small>
+            <div class="fw-bold fs-3 mt-2 text-warning">
+                {{ proposal_pending }}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-modern p-3">
+            <small class="text-muted">Disetujui</small>
+            <div class="fw-bold fs-3 mt-2 text-success">
+                {{ proposal_diterima }}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card card-modern p-3">
+            <small class="text-muted">Revisi / Ditolak</small>
+            <div class="fw-bold fs-3 mt-2 text-danger">
+                {{ proposal_revisi }}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- PROPOSAL TERBARU -->
+<div class="card card-modern mb-4">
+
+    <div class="card-header bg-white d-flex justify-content-between">
+
+        <b>Proposal Terbaru</b>
+
+        <a href="{% url 'capstone_system:dosencp_list_proposal' %}"
+           class="btn btn-outline-primary btn-sm rounded-pill">
+            Lihat Semua
+        </a>
+
+    </div>
+
+    <div class="card-body">
+
+        {% if proposal_terbaru %}
+
+        <div class="table-responsive">
+
+            <table class="table">
+
+                <thead>
+                    <tr>
+                        <th>Judul</th>
+                        <th>Tim</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for proposal in proposal_terbaru %}
+
+                    <tr>
+
+                        <td>{{ proposal.judul }}</td>
+
+                        <td>{{ proposal.tim.nama_tim }}</td>
+
+                        <td>
+
+                            {% if proposal.status_cp == 'DITERIMA' %}
+                                <span class="badge bg-success">Diterima</span>
+
+                            {% elif proposal.status_cp == 'REVISI' %}
+                                <span class="badge bg-warning text-dark">Revisi</span>
+
+                            {% elif proposal.status_cp == 'DITOLAK' %}
+                                <span class="badge bg-danger">Ditolak</span>
+
+                            {% else %}
+                                <span class="badge bg-secondary">Belum Review</span>
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+                            <a href="{% url 'capstone_system:dosencp_detail_proposal' proposal.id %}"
+                               class="btn btn-outline-primary btn-sm">
+                                Review
+                            </a>
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+            <div class="text-center text-muted py-4">
+                Belum ada proposal yang masuk.
+            </div>
+        {% endif %}
+
+    </div>
+
+</div>
+
+<!-- QUICK ACTION -->
+<h5 class="mb-3">Aksi Cepat</h5>
+
+<div class="row g-3">
+
+    <div class="col-md-6">
+
+        <div class="card card-modern p-4 text-center h-100">
+
+            <div class="icon-box bg-primary text-white mx-auto mb-3">
+                <i class="bi bi-file-earmark-text-fill"></i>
+            </div>
+
+            <h6>Review Proposal</h6>
+
+            <a href="{% url 'capstone_system:dosencp_list_proposal' %}"
+               class="btn btn-primary rounded-pill w-100 mt-2">
+                Buka Proposal
+            </a>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-6">
+
+        <div class="card card-modern p-4 text-center h-100">
+
+            <div class="icon-box bg-primary text-white mx-auto mb-3">
+                <i class="bi bi-person-circle"></i>
+            </div>
+
+            <h6>Profil Saya</h6>
+
+            <a href="{% url 'capstone_system:dosencp_profile' %}"
+               class="btn btn-primary rounded-pill w-100 mt-2">
+                Edit Profil
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

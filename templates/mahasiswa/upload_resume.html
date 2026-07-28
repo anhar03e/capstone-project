@@ -1,0 +1,670 @@
+{% extends "dashboard/base_dashboard.html" %}
+
+{% block title %}
+{% if resume %}Edit Resume{% else %}Upload Resume{% endif %}
+{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_mahasiswa.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+
+/* ================= GLOBAL ================= */
+body{
+    background:#f4f6f9;
+}
+
+/* ================= HEADER ================= */
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:22px;
+    border-radius:18px;
+    margin-bottom:20px;
+    box-shadow:0 10px 25px rgba(37,99,235,.15);
+}
+
+/* ================= CARD ================= */
+.card-modern{
+    border:none;
+    border-radius:18px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+    overflow:hidden;
+    background:#fff;
+}
+
+/* ================= HEADER CARD ================= */
+.card-header-modern{
+    background:#fff;
+    font-weight:600;
+    border-bottom:1px solid #eef2f7;
+    padding:15px 20px;
+    color:#1f2937;
+}
+
+/* ================= INFO BOX ================= */
+.info-box{
+    background:#f8fafc;
+    border-radius:12px;
+    padding:15px;
+    margin-bottom:12px;
+    border:1px solid #eef2f7;
+    transition:.2s;
+}
+
+.info-box:hover{
+    background:#f1f5f9;
+}
+
+/* ================= FORM ================= */
+.form-control,
+.form-select{
+    border-radius:12px;
+    min-height:46px;
+    border:1px solid #e5e7eb;
+    transition:.2s;
+}
+
+.form-control:focus,
+.form-select:focus{
+    border-color:#2563eb;
+    box-shadow:0 0 0 4px rgba(37,99,235,.12);
+}
+
+/* ================= BUTTON ================= */
+.btn-success{
+    background:#2563eb;
+    border:none;
+    border-radius:12px;
+    padding:12px;
+    font-weight:600;
+}
+
+.btn-success:hover{
+    background:#1d4ed8;
+}
+
+.btn-primary{
+    border-radius:12px;
+}
+
+.btn-secondary{
+    border-radius:12px;
+}
+
+.btn-outline-success{
+    border-radius:12px;
+}
+
+/* ================= FILE BOX ================= */
+.file-box{
+    background:#f8fafc;
+    border-radius:12px;
+    padding:12px;
+    margin-top:10px;
+    border:1px dashed #cbd5e1;
+    color:#64748b;
+}
+
+/* ================= STEP BOX ================= */
+.step-box{
+    background:white;
+    border-radius:16px;
+    padding:18px;
+    text-align:center;
+    box-shadow:0 5px 15px rgba(0,0,0,.05);
+    margin-bottom:20px;
+}
+
+.step-circle{
+    width:50px;
+    height:50px;
+    border-radius:50%;
+    background:#2563eb;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:auto;
+    font-weight:bold;
+    font-size:18px;
+}
+
+/* ================= STATUS CARD ================= */
+.status-card{
+    border-radius:16px;
+    padding:20px;
+    margin-bottom:20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+    border-left:6px solid;
+}
+
+.status-card .status-left{
+    display:flex;
+    align-items:center;
+    gap:15px;
+}
+
+.status-card .status-icon{
+    font-size:28px;
+}
+
+.status-card .status-label{
+    font-size:14px;
+    font-weight:600;
+    margin-bottom:4px;
+}
+
+.status-card .status-detail{
+    font-size:13px;
+    opacity:0.8;
+}
+
+/* ===== VARIAN STATUS RESUME ===== */
+.status-belum-review{
+    background:#f8f9fa;
+    border-left-color:#6c757d;
+    color:#6c757d;
+}
+
+.status-disetujui{
+    background:#d4edda;
+    border-left-color:#28a745;
+    color:#155724;
+}
+
+.status-ditolak{
+    background:#f8d7da;
+    border-left-color:#dc3545;
+    color:#721c24;
+}
+
+.status-revisi{
+    background:#fff3cd;
+    border-left-color:#fd7e14;
+    color:#856404;
+}
+
+.status-belum-upload{
+    background:#e9ecef;
+    border-left-color:#adb5bd;
+    color:#495057;
+}
+
+/* ================= BADGE STATUS LARGE ================= */
+.badge-status-large{
+    padding:8px 20px;
+    border-radius:20px;
+    font-size:14px;
+    font-weight:600;
+}
+
+/* ================= DISABLED FORM ================= */
+.form-disabled{
+    opacity:0.7;
+    pointer-events:none;
+}
+
+.form-disabled .form-control,
+.form-disabled .form-select{
+    background:#e9ecef;
+}
+
+.form-disabled .btn{
+    opacity:0.5;
+}
+
+/* ================= STATUS PENGAJUAN DOSPEM ================= */
+.status-pengajuan{
+    padding:12px 16px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+}
+
+.status-pengajuan-pending{
+    background:#fff3cd;
+    border:1px solid #ffc107;
+    color:#856404;
+}
+
+.status-pengajuan-disetujui{
+    background:#d4edda;
+    border:1px solid #28a745;
+    color:#155724;
+}
+
+.status-pengajuan-ditolak{
+    background:#f8d7da;
+    border:1px solid #dc3545;
+    color:#721c24;
+}
+
+</style>
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+    <h4 class="mb-1">
+        <i class="bi bi-file-earmark-text"></i> Upload Resume Capstone
+    </h4>
+    <small>
+        Lengkapi resume dan ajukan dosen pembimbing untuk proses capstone
+    </small>
+</div>
+
+<!-- ================= STATUS RESUME ================= -->
+{% if resume %}
+
+<!-- ===================================================== -->
+<!-- CARD STATUS RESUME (DI BAGIAN ATAS)                  -->
+<!-- ===================================================== -->
+<div class="card card-modern mb-3">
+    <div class="card-body p-0">
+
+        {% with status=resume.status %}
+
+        <!-- ===== STATUS: BELUM REVIEW ===== -->
+        {% if status == 'BELUM_REVIEW' %}
+        <div class="status-card status-belum-review">
+            <div class="status-left">
+                <div class="status-icon">⏳</div>
+                <div>
+                    <div class="status-label">Status Resume: Belum Review</div>
+                    <div class="status-detail">
+                        Resume belum direview oleh Dosen Pembimbing
+                    </div>
+                </div>
+            </div>
+            <span class="badge bg-secondary badge-status-large">
+                <i class="bi bi-clock"></i> Menunggu Review
+            </span>
+        </div>
+
+        <!-- ===== STATUS: DISETUJUI ===== -->
+        {% elif status == 'DISETUJUI' %}
+        <div class="status-card status-disetujui">
+            <div class="status-left">
+                <div class="status-icon">✅</div>
+                <div>
+                    <div class="status-label">Status Resume: Disetujui</div>
+                    <div class="status-detail">
+                        Resume telah disetujui oleh Dosen Pembimbing
+                    </div>
+                </div>
+            </div>
+            <span class="badge bg-success badge-status-large">
+                <i class="bi bi-check-circle-fill"></i> Disetujui
+            </span>
+        </div>
+
+        <!-- ===== STATUS: DITOLAK ===== -->
+        {% elif status == 'DITOLAK' %}
+        <div class="status-card status-ditolak">
+            <div class="status-left">
+                <div class="status-icon">❌</div>
+                <div>
+                    <div class="status-label">Status Resume: Ditolak</div>
+                    <div class="status-detail">
+                        Resume ditolak, silakan upload ulang resume baru
+                    </div>
+                </div>
+            </div>
+            <span class="badge bg-danger badge-status-large">
+                <i class="bi bi-x-circle-fill"></i> Ditolak
+            </span>
+        </div>
+
+        <!-- ===== STATUS: REVISI ===== -->
+        {% elif status == 'REVISI' %}
+        <div class="status-card status-revisi">
+            <div class="status-left">
+                <div class="status-icon">✏️</div>
+                <div>
+                    <div class="status-label">Status Resume: Perlu Revisi</div>
+                    <div class="status-detail">
+                        Resume perlu direvisi sesuai catatan dosen
+                    </div>
+                </div>
+            </div>
+            <span class="badge bg-warning text-dark badge-status-large">
+                <i class="bi bi-pencil-fill"></i> Perlu Revisi
+            </span>
+        </div>
+
+        {% endif %}
+        {% endwith %}
+
+    </div>
+</div>
+
+<!-- ===================================================== -->
+<!-- STATUS PENGAJUAN DOSPEM                              -->
+<!-- ===================================================== -->
+{% if pengajuan_dospem %}
+<div class="card card-modern mb-3">
+    <div class="card-body">
+
+        <h6 class="mb-3">
+            <i class="bi bi-person-check"></i> Status Pengajuan Dosen Pembimbing
+        </h6>
+
+        {% with status=pengajuan_dospem.status %}
+
+        {% if status == 'PENDING' %}
+        <div class="status-pengajuan status-pengajuan-pending">
+            <div>
+                <i class="bi bi-clock-history"></i>
+                <strong>Pending</strong> - Menunggu persetujuan Dosen Pembimbing
+            </div>
+            <span class="badge bg-warning text-dark">
+                <i class="bi bi-hourglass-split"></i> Menunggu
+            </span>
+        </div>
+
+        {% elif status == 'DISETUJUI' %}
+        <div class="status-pengajuan status-pengajuan-disetujui">
+            <div>
+                <i class="bi bi-check-circle"></i>
+                <strong>Disetujui</strong> - Dosen Pembimbing telah menyetujui
+            </div>
+            <span class="badge bg-success">
+                <i class="bi bi-check-circle-fill"></i> Disetujui
+            </span>
+        </div>
+
+        {% elif status == 'DITOLAK' %}
+        <div class="status-pengajuan status-pengajuan-ditolak">
+            <div>
+                <i class="bi bi-x-circle"></i>
+                <strong>Ditolak</strong> - Pengajuan ditolak oleh Dosen Pembimbing
+            </div>
+            <span class="badge bg-danger">
+                <i class="bi bi-x-circle-fill"></i> Ditolak
+            </span>
+        </div>
+
+        {% elif status == 'REVISI' %}
+        <div class="status-pengajuan status-pengajuan-ditolak">
+            <div>
+                <i class="bi bi-pencil"></i>
+                <strong>Revisi</strong> - Pengajuan perlu direvisi
+            </div>
+            <span class="badge bg-warning text-dark">
+                <i class="bi bi-pencil-fill"></i> Revisi
+            </span>
+        </div>
+
+        {% endif %}
+
+        {% endwith %}
+
+        {% if pengajuan_dospem.catatan_dosen %}
+        <div class="alert alert-secondary mt-3">
+            <strong><i class="bi bi-chat-left-text"></i> Catatan Dosen:</strong>
+            {{ pengajuan_dospem.catatan_dosen }}
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
+
+<!-- ================= INFO PROPOSAL ================= -->
+<div class="card card-modern mb-4">
+    <div class="card-header-modern">
+        <i class="bi bi-file-earmark-check"></i> Informasi Proposal
+    </div>
+    <div class="card-body">
+        <div class="info-box">
+            <small class="text-muted">Judul Proposal</small>
+            <div class="fw-bold">{{ proposal.judul }}</div>
+        </div>
+        <div class="info-box">
+            <small class="text-muted">Mitra</small>
+            <div class="fw-semibold">{{ proposal.mitra }}</div>
+        </div>
+        <span class="badge bg-primary">
+            <i class="bi bi-check-circle"></i> Proposal Sudah Diunggah
+        </span>
+    </div>
+</div>
+
+<!-- ================= DETAIL RESUME ================= -->
+{% if resume and not edit_mode %}
+
+<div class="card card-modern">
+    <div class="card-header-modern">
+        <i class="bi bi-file-earmark-text"></i> Detail Resume
+    </div>
+    <div class="card-body">
+
+        <div class="info-box">
+            <small class="text-muted">Judul Proposal</small>
+            <div class="fw-bold">{{ resume.judul_proposal }}</div>
+        </div>
+
+        <div class="info-box">
+            <small class="text-muted">Mitra</small>
+            <div>{{ resume.mitra }}</div>
+        </div>
+
+        <div class="info-box">
+            <small class="text-muted">Sub Judul Resume</small>
+            <div>{{ resume.sub_judul }}</div>
+        </div>
+
+        <div class="info-box">
+            <small class="text-muted">Dosen Pembimbing</small>
+            <div class="fw-semibold text-primary">
+                {{ resume.mahasiswa.dosen_pembimbing|default:"Belum ditentukan" }}
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <a href="{{ resume.file_resume.url }}"
+               class="btn btn-primary"
+               target="_blank">
+                <i class="bi bi-eye"></i> Lihat File Resume
+            </a>
+
+            {% if resume.status != 'DISETUJUI' %}
+            <a href="?edit=1"
+               class="btn btn-outline-primary">
+                <i class="bi bi-pencil"></i> Edit Resume
+            </a>
+            {% else %}
+            <span class="text-muted small ms-2">
+                <i class="bi bi-check-circle"></i> Resume sudah disetujui, tidak dapat diedit
+            </span>
+            {% endif %}
+        </div>
+
+        <!-- ===== CATATAN REVISI (JIKA ADA) ===== -->
+        {% if resume.status == 'REVISI' and resume.catatan_revisi %}
+        <div class="alert alert-warning mt-3">
+            <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Catatan Revisi</h6>
+            <p>{{ resume.catatan_revisi }}</p>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- ================= FORM ================= -->
+{% else %}
+
+<div class="card card-modern">
+    <div class="card-header-modern">
+        <i class="bi bi-file-earmark-plus"></i> Form Resume Capstone
+    </div>
+    <div class="card-body">
+
+        {% if form.errors %}
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            {{ form.errors }}
+        </div>
+        {% endif %}
+
+        <!-- ===== CEK APAKAH BISA UPLOAD ===== -->
+        {% if resume and resume.status == 'DISETUJUI' %}
+        <!-- RESUME SUDAH DISETUJUI - TIDAK BISA EDIT -->
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle-fill"></i>
+            Resume Anda sudah <strong>DISETUJUI</strong>. Tidak dapat melakukan edit.
+        </div>
+        <div class="text-center">
+            <a href="{% url 'capstone_system:upload_resume' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Kembali
+            </a>
+        </div>
+
+        {% elif resume and resume.status == 'DITOLAK' %}
+        <!-- RESUME DITOLAK - BISA UPLOAD ULANG -->
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            Resume Anda <strong>DITOLAK</strong>. Silakan upload ulang resume baru.
+            {% if resume.catatan_revisi %}
+            <br><small>Catatan: {{ resume.catatan_revisi }}</small>
+            {% endif %}
+        </div>
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    Sub Judul Resume
+                </label>
+                <input type="text" 
+                       name="sub_judul" 
+                       class="form-control"
+                       value="{{ resume.sub_judul|default:'' }}"
+                       required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    Dosen Pembimbing
+                </label>
+                <select name="dosen_pembimbing"
+                        class="form-select"
+                        required>
+                    <option value="">-- Pilih Dosen Pembimbing --</option>
+                    {% for dosen in dosen_list %}
+                    <option value="{{ dosen.id }}"
+                            {% if resume.mahasiswa.dosen_pembimbing.id == dosen.id %}selected{% endif %}>
+                        {{ dosen.dosen.user.get_full_name }}
+                        ({{ dosen.dosen.nip }}) - Kuota: {{ dosen.sisa_kuota }}/{{ dosen.batas_bimbingan }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    Upload File Resume
+                </label>
+                <input type="file" 
+                       name="file_resume" 
+                       class="form-control"
+                       required>
+                {% if resume and resume.file_resume %}
+                <div class="file-box">
+                    <i class="bi bi-file-earmark"></i> File sebelumnya: {{ resume.file_resume.name|slice:"20" }}...
+                </div>
+                {% endif %}
+            </div>
+
+            <button class="btn btn-success w-100">
+                <i class="bi bi-cloud-upload"></i> Upload Ulang Resume
+            </button>
+
+            <a href="{% url 'capstone_system:upload_resume' %}"
+               class="btn btn-secondary w-100 mt-2">
+                <i class="bi bi-arrow-left"></i> Batal
+            </a>
+        </form>
+
+        {% else %}
+        <!-- FORM NORMAL -->
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    Sub Judul Resume
+                </label>
+                {{ form.sub_judul }}
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    Dosen Pembimbing
+                </label>
+                <select name="dosen_pembimbing"
+                        class="form-select"
+                        required>
+                    <option value="">
+                        -- Pilih Dosen Pembimbing --
+                    </option>
+                    {% for dosen in dosen_list %}
+                    <option value="{{ dosen.id }}">
+                        {{ dosen.dosen.user.get_full_name }}
+                        ({{ dosen.dosen.nip }}) - Kuota: {{ dosen.sisa_kuota }}/{{ dosen.batas_bimbingan }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small class="text-muted">
+                    <i class="bi bi-info-circle"></i> Pilih dosen pembimbing yang masih memiliki kuota
+                </small>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">
+                    Upload File Resume
+                </label>
+                {{ form.file_resume }}
+                {% if resume and resume.file_resume %}
+                <div class="file-box">
+                    <i class="bi bi-file-earmark"></i> File sebelumnya: {{ resume.file_resume.name|slice:"20" }}...
+                </div>
+                {% endif %}
+            </div>
+
+            <button class="btn btn-success w-100">
+                {% if resume %}
+                    <i class="bi bi-pencil"></i> Update Resume
+                {% else %}
+                    <i class="bi bi-cloud-upload"></i> Simpan Resume & Ajukan Dosen Pembimbing
+                {% endif %}
+            </button>
+
+            {% if resume %}
+            <a href="{% url 'capstone_system:upload_resume' %}"
+               class="btn btn-secondary w-100 mt-2">
+                <i class="bi bi-arrow-left"></i> Batal
+            </a>
+            {% endif %}
+
+        </form>
+        {% endif %}
+
+    </div>
+</div>
+
+{% endif %}
+
+{% endblock %}

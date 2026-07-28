@@ -1,0 +1,482 @@
+{% extends 'dashboard/base_mahasiswa.html' %}
+
+{% block title %}Dashboard Mahasiswa{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_mahasiswa.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+
+/* ================= GLOBAL ================= */
+body{
+    background:#f4f6f9;
+    margin:0;
+}
+
+/* ================= HEADER (SIAKAD STYLE) ================= */
+.dashboard-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:22px;
+    border-radius:16px;
+    margin-bottom:20px;
+    box-shadow:0 8px 20px rgba(37,99,235,.15);
+}
+
+/* ================= CARD ================= */
+.card-modern{
+    border:none;
+    border-radius:14px;
+    background:#fff;
+    box-shadow:0 4px 12px rgba(0,0,0,0.05);
+    transition:.2s;
+}
+
+.card-modern:hover{
+    transform:translateY(-3px);
+    box-shadow:0 10px 20px rgba(0,0,0,0.08);
+}
+
+/* ================= ICON BOX ================= */
+.icon-box{
+    width:52px;
+    height:52px;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+/* ================= SECTION TITLE ================= */
+.section-title{
+    font-weight:600;
+    margin:22px 0 12px;
+    color:#1f2937;
+}
+
+/* ================= BUTTON ================= */
+.btn-primary,
+.btn-success,
+.btn-warning{
+    border-radius:10px;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width:768px){
+    .dashboard-header{
+        text-align:center;
+    }
+}
+
+/* ================= STATUS TIM ================= */
+.status-tim {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.status-tim.approved {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-tim.pending {
+    background: #fff3cd;
+    color: #664d03;
+}
+
+.status-tim.rejected {
+    background: #f8d7da;
+    color: #842029;
+}
+
+/* ================= KETUA TIM ================= */
+.ketua-item {
+    background: #fff8e1 !important;
+    border-left: 4px solid #ffc107 !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    margin-bottom: 6px !important;
+}
+
+/* ================= BADGE KATEGORI ================= */
+.badge-kategori {
+    font-size: 10px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+    display: inline-block;
+    margin-top: 2px;
+}
+
+.badge-kategori.epd {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.badge-kategori.sm {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+/* ================= NIM ================= */
+.nim-text {
+    font-size: 12px;
+    color: #6b7280;
+    display: block;
+}
+
+/* ================= NAMA ================= */
+.nama-text {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* ================= MEMBER ROW ================= */
+.member-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.member-row:last-child {
+    border-bottom: none;
+}
+
+.member-row.ketua {
+    background: #fff8e1;
+    border-left: 4px solid #ffc107;
+    border-radius: 8px;
+    margin-bottom: 6px;
+}
+
+.member-left {
+    display: flex;
+    flex-direction: column;
+}
+
+.member-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+</style>
+
+<!-- ================= HEADER ================= -->
+<div class="dashboard-header">
+    <h4 class="mb-1">Dashboard Mahasiswa 🎓</h4>
+    <div>Selamat datang, <b>{{ me.user.get_full_name }}</b></div>
+</div>
+
+<!-- ================= SUMMARY ================= -->
+<div class="row g-3 mb-4">
+
+    <div class="col-md-4">
+        <div class="card card-modern p-3 h-100">
+            <small>Status Proposal</small>
+            <div class="mt-2">
+                {% if proposal %}
+                    <span class="badge bg-primary">{{ proposal.status_final }}</span>
+                {% else %}
+                    <span class="badge bg-secondary">Belum Upload</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-modern p-3 h-100">
+            <small>Dosen Pembimbing</small>
+            <div class="mt-2 fw-semibold">
+                {{ dosen_pembimbing|default:"Belum Dipilih" }}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-modern p-3 h-100">
+            <small>Anggota Tim</small>
+            <div class="mt-2 fw-semibold">
+                {% if tim %}
+                    {{ tim.anggota.count }} Orang
+                {% else %}
+                    0 Orang
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ================= DETAIL PROPOSAL ================= -->
+{% if proposal %}
+<div class="card card-modern mb-4">
+    <div class="card-header bg-white">
+        <b>Detail Proposal</b>
+    </div>
+    <div class="card-body">
+        <b>{{ proposal.judul }}</b><br>
+        <small class="text-muted">{{ proposal.mitra }}</small>
+    </div>
+</div>
+{% endif %}
+
+<!-- ================= QUICK ACTION ================= -->
+<div class="section-title">Aksi Cepat</div>
+
+<div class="row g-3">
+
+    <div class="col-md-4">
+        <div class="card card-modern p-4 text-center">
+            <div class="icon-box bg-primary text-white mx-auto mb-2">
+                📤
+            </div>
+            <h6>Upload Proposal</h6>
+            <a href="{% url 'capstone_system:upload_proposal' %}"
+               class="btn btn-primary w-100">
+                Mulai
+            </a>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-modern p-4 text-center">
+            <div class="icon-box bg-primary text-white mx-auto mb-2">
+                📄
+            </div>
+            <h6>Upload Resume</h6>
+            <a href="{% url 'capstone_system:upload_resume' %}"
+               class="btn btn-primary w-100">
+                Mulai
+            </a>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card card-modern p-4 text-center">
+            <div class="icon-box bg-primary text-white mx-auto mb-2">
+                📊
+            </div>
+            <h6>Cek Status</h6>
+            <a href="{% url 'capstone_system:cek_status' %}"
+               class="btn btn-primary w-100">
+                Lihat
+            </a>
+        </div>
+    </div>
+
+</div>
+
+<!-- ================= TIM ================= -->
+<div class="section-title">Tim Capstone</div>
+
+<div class="card card-modern p-4">
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+        <div>
+            <b>Kelola Tim Capstone</b><br>
+            <small class="text-muted">
+                Tambah ketua, anggota, kategori, dan lihat detail tim
+            </small>
+        </div>
+
+        {% if tim %}
+
+            {% if tim.can_edit %}
+                <a href="{% url 'capstone_system:buat_tim' %}"
+                   class="btn btn-primary">
+                    <i class="bi bi-pencil-square"></i>
+                    Kelola Tim
+                </a>
+            {% else %}
+                <button class="btn btn-secondary" disabled>
+                    <i class="bi bi-lock-fill"></i>
+                    Tim Sedang Direview
+                </button>
+            {% endif %}
+
+        {% else %}
+
+            <a href="{% url 'capstone_system:buat_tim' %}"
+               class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i>
+                Buat Tim
+            </a>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+<!-- ================= LIST TIM ================= -->
+{% if tim %}
+
+<div class="mt-3">
+
+    <div class="card card-modern p-3">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div>
+                <b>{{ tim.nama_tim }}</b>
+                <!-- ========================================================= -->
+                <!-- STATUS TIM -->
+                <!-- ========================================================= -->
+                {% if tim.status == 'PENDING' %}
+                    <span class="status-tim pending ms-2">
+                        <i class="bi bi-clock"></i> Menunggu Persetujuan
+                    </span>
+                {% elif tim.status == 'REJECTED' %}
+                    <span class="status-tim rejected ms-2">
+                        <i class="bi bi-x-circle"></i> Ditolak
+                    </span>
+                {% else %}
+                    <span class="status-tim approved ms-2">
+                        <i class="bi bi-check-circle"></i> Tim Disetujui
+                    </span>
+                {% endif %}
+            </div>
+
+            <span class="badge bg-primary">
+                {{ anggota_tim|length }} Anggota
+            </span>
+
+        </div>
+
+        <!-- KATEGORI TIM -->
+        {% if tim.kategori %}
+        <div class="mt-2">
+            <span class="badge-kategori 
+                {% if tim.kategori == 'EPD' %}epd{% else %}sm{% endif %}">
+                <i class="bi bi-tag"></i> Kategori: {{ tim.kategori }}
+            </span>
+        </div>
+        {% endif %}
+
+        <hr>
+
+        <b>Anggota Tim</b>
+
+        <div class="mt-2">
+
+            <!-- ========================================================= -->
+            <!-- TAMPILKAN KETUA (DI ATAS)                                  -->
+            <!-- ========================================================= -->
+            {% for a in anggota_tim %}
+                {% if a.role == "ketua" %}
+                <div class="member-row ketua">
+                    <div class="member-left">
+                        <div>
+                            <span class="nama-text">{{ a.mahasiswa.user.get_full_name }}</span>
+                            <span class="badge bg-warning text-dark ms-2" style="font-size: 10px;">
+                                <i class="bi bi-crown"></i> Ketua Tim
+                            </span>
+                        </div>
+                        <span class="nim-text">{{ a.mahasiswa.nim }}</span>
+                        <!-- 🔥 KATEGORI KETUA DI BAWAH NIM (SAMA SEPERTI ANGGOTA) -->
+                        {% if a.kategori %}
+                        <span class="badge-kategori 
+                            {% if a.kategori == 'EPD' %}epd{% else %}sm{% endif %}">
+                            {{ a.kategori }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="member-right">
+                        <span class="badge bg-primary">
+                            <i class="bi bi-crown"></i> Ketua
+                        </span>
+
+                        {% if a.status_persetujuan == "APPROVED" %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle"></i> Diterima
+                            </span>
+                        {% elif a.status_persetujuan == "PENDING" %}
+                            <span class="badge bg-warning text-dark">
+                                <i class="bi bi-clock"></i> Menunggu
+                            </span>
+                        {% elif a.status_persetujuan == "REJECTED" %}
+                            <span class="badge bg-danger">
+                                <i class="bi bi-x-circle"></i> Ditolak
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+
+            <!-- ========================================================= -->
+            <!-- TAMPILKAN ANGGOTA (DI BAWAH)                               -->
+            <!-- ========================================================= -->
+            {% for a in anggota_tim %}
+                {% if a.role == "anggota" %}
+                <div class="member-row">
+                    <div class="member-left">
+                        <span class="nama-text">{{ a.mahasiswa.user.get_full_name }}</span>
+                        <span class="nim-text">{{ a.mahasiswa.nim }}</span>
+                        <!-- 🔥 KATEGORI ANGGOTA DI BAWAH NIM -->
+                        {% if a.kategori %}
+                        <span class="badge-kategori 
+                            {% if a.kategori == 'EPD' %}epd{% else %}sm{% endif %}">
+                            {{ a.kategori }}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="member-right">
+                        <span class="badge bg-secondary">
+                            <i class="bi bi-person"></i> Anggota
+                        </span>
+
+                        {% if a.status_persetujuan == "APPROVED" %}
+                            <span class="badge bg-success">
+                                <i class="bi bi-check-circle"></i> Diterima
+                            </span>
+                        {% elif a.status_persetujuan == "PENDING" %}
+                            <span class="badge bg-warning text-dark">
+                                <i class="bi bi-clock"></i> Menunggu
+                            </span>
+                        {% elif a.status_persetujuan == "REJECTED" %}
+                            <span class="badge bg-danger">
+                                <i class="bi bi-x-circle"></i> Ditolak
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            {% empty %}
+                <div class="text-muted text-center py-2">
+                    Belum ada anggota tim selain ketua.
+                </div>
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% else %}
+
+<div class="card card-modern p-3 mt-3">
+
+    <div class="text-muted text-center py-2">
+        <i class="bi bi-people fs-4 d-block mb-2"></i>
+        Belum ada tim yang kamu ikuti.
+    </div>
+
+</div>
+
+{% endif %}
+
+{% endblock %}

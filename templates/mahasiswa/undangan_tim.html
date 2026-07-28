@@ -1,0 +1,250 @@
+{% extends "dashboard/base_mahasiswa.html" %}
+
+{% block title %}Undangan Tim{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_mahasiswa.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+
+/* ================= GLOBAL ================= */
+body{
+    background:#f4f6f9;
+}
+
+/* ================= HEADER ================= */
+.page-header{
+
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+
+    color:white;
+
+    padding:18px;
+
+    border-radius:16px;
+
+    margin-bottom:20px;
+
+    box-shadow:0 8px 18px rgba(37,99,235,.15);
+}
+
+/* ================= CARD ================= */
+.card-modern{
+
+    border:none;
+
+    border-radius:16px;
+
+    box-shadow:0 4px 12px rgba(0,0,0,0.05);
+
+    background:#fff;
+}
+
+/* ================= TABLE ITEM ================= */
+.table-item{
+
+    display:grid;
+
+    grid-template-columns: 2fr 1fr auto auto;
+
+    gap:10px;
+
+    align-items:center;
+
+    padding:14px;
+
+    border-bottom:1px solid #f1f5f9;
+
+    background:#fff;
+
+    transition:.2s;
+}
+
+.table-item:hover{
+    background:#f8fafc;
+}
+
+/* ================= ICON ================= */
+.icon-box{
+
+    width:38px;
+
+    height:38px;
+
+    border-radius:10px;
+
+    background:#e0f2fe;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    color:#2563eb;
+
+    font-size:18px;
+
+    margin-right:10px;
+}
+
+/* ================= FLEX LEFT ================= */
+.flex-left{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+}
+
+/* ================= BADGE ================= */
+.badge-role{
+
+    padding:4px 8px;
+
+    border-radius:8px;
+
+    font-size:12px;
+}
+
+.badge-ketua{
+    background:#2563eb;
+    color:white;
+}
+
+.badge-anggota{
+    background:#6b7280;
+    color:white;
+}
+
+.badge-status{
+
+    font-size:12px;
+
+    padding:4px 8px;
+
+    border-radius:8px;
+}
+
+/* pending */
+.pending{
+    background:#f59e0b;
+    color:#111827;
+}
+
+/* ================= BUTTON ================= */
+.btn-success{
+    border-radius:8px;
+}
+
+.btn-danger{
+    border-radius:8px;
+}
+
+/* primary override biar SIAKAD */
+.btn-primary{
+    background:#2563eb;
+    border:none;
+    border-radius:8px;
+}
+
+.btn-primary:hover{
+    background:#1d4ed8;
+}
+
+</style>
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+    <h5 class="mb-0">Undangan Tim</h5>
+    <small>Kelola undangan masuk dari tim capstone</small>
+</div>
+
+<div class="card card-modern">
+
+    <div class="card-body p-0">
+
+        {% if undangan %}
+
+            {% for u in undangan %}
+
+            <div class="table-item">
+
+                <!-- TIM -->
+                <div class="flex-left">
+
+                    <div class="icon-box">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+
+                    <div>
+                        <b>{{ u.tim.nama_tim }}</b><br>
+                        <small class="text-muted">
+                            Kategori: {{ u.tim.kategori }}
+                        </small>
+                    </div>
+
+                </div>
+
+                <!-- ROLE -->
+                <div>
+                    {% if u.role == "ketua" %}
+                        <span class="badge-role badge-ketua">Ketua</span>
+                    {% else %}
+                        <span class="badge-role badge-anggota">Anggota</span>
+                    {% endif %}
+                </div>
+
+                <!-- STATUS -->
+                <div>
+                    <span class="badge-status pending">
+                        {{ u.status_persetujuan }}
+                    </span>
+                </div>
+
+                <!-- ACTION -->
+                <div class="d-flex gap-1">
+
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="anggota_id" value="{{ u.id }}">
+                        <input type="hidden" name="aksi" value="terima">
+
+                        <button class="btn btn-primary btn-sm">
+                            Terima
+                        </button>
+                    </form>
+
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="anggota_id" value="{{ u.id }}">
+                        <input type="hidden" name="aksi" value="tolak">
+
+                        <button class="btn btn-danger btn-sm">
+                            Tolak
+                        </button>
+                    </form>
+
+                </div>
+
+            </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <div class="p-4 text-center text-muted">
+                Tidak ada undangan tim
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

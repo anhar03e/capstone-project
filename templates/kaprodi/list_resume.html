@@ -1,0 +1,187 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Data Resume{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+body{
+    background:#f5f7fb;
+}
+
+/* HEADER SIAKAD */
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:22px;
+    border-radius:16px;
+    margin-bottom:20px;
+}
+
+/* CARD */
+.card-modern{
+    border:none;
+    border-radius:15px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+    background:white;
+}
+
+/* TABLE */
+.table-modern{
+    margin-bottom:0;
+}
+
+.table-modern thead{
+    background:#f8f9fa;
+}
+
+.table-modern th{
+    border:none;
+    font-weight:600;
+}
+
+.table-modern td{
+    vertical-align:middle;
+}
+
+/* AVATAR */
+.avatar{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:#2563eb;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+}
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+
+    <h4 class="mb-1">
+        Data Resume 
+    </h4>
+
+    <div>
+        Monitoring seluruh resume capstone mahasiswa
+    </div>
+
+</div>
+
+<!-- SUMMARY -->
+<div class="row mb-3">
+
+    <div class="col-md-4">
+
+        <div class="card card-modern p-3">
+
+            <small>Total Resume</small>
+
+            <h3 class="mb-0 mt-2">
+                {{ resumes.count }}
+            </h3>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- TABLE -->
+<div class="card card-modern">
+
+    <div class="card-header bg-white">
+        <b>Daftar Resume Capstone</b>
+    </div>
+
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table table-modern align-middle">
+
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Judul Resume</th>
+                        <th>Tim</th>
+                        <th>Status</th>
+                        <th>Tanggal Upload</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% for resume in resumes %}
+
+                <tr>
+
+                    <td>{{ forloop.counter }}</td>
+
+                    <td>
+                        <b>{{ resume.judul_proposal }}</b>
+                    </td>
+
+                    <td>
+                        {{ resume.proposal.tim.nama_tim }}
+                    </td>
+
+                    <td>
+
+                        {% if resume.status == "DISETUJUI" %}
+                            <span class="badge bg-success">Disetujui</span>
+
+                        {% elif resume.status == "REVISI" %}
+                            <span class="badge bg-warning text-dark">Revisi</span>
+
+                        {% elif resume.status == "DITOLAK" %}
+                            <span class="badge bg-danger">Ditolak</span>
+
+                        {% else %}
+                            <span class="badge bg-secondary">Belum Review</span>
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+                        {{ resume.waktu_pengajuan|date:"d M Y" }}
+                    </td>
+
+                    <td>
+                        <a href="{% url 'capstone_system:kaprodi_detail_resume' resume.id %}"
+                           class="btn btn-sm btn-primary rounded-pill">
+                            Detail
+                        </a>
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                        Belum ada resume yang diunggah
+                    </td>
+                </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,296 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Laporan{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+body{
+    background:#f5f7fb;
+}
+
+/* HEADER */
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:22px;
+    border-radius:16px;
+    margin-bottom:20px;
+}
+
+/* CARD */
+.card-modern{
+    border:none;
+    border-radius:15px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+    background:white;
+}
+
+/* STAT CARD */
+.stat-card{
+    padding:22px;
+    border-radius:15px;
+    color:white;
+    transition:.3s;
+}
+
+.stat-card:hover{
+    transform:translateY(-4px);
+}
+
+.icon-box{
+    width:58px;
+    height:58px;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
+    background:rgba(255,255,255,.2);
+}
+
+.table-modern{
+    margin-bottom:0;
+}
+
+.table-modern th{
+    width:40%;
+    font-weight:600;
+    background:#f8f9fa;
+}
+</style>
+
+<!-- HEADER -->
+
+<div class="page-header">
+
+    <h4 class="mb-1">
+        Laporan Sistem 
+    </h4>
+
+    <div>
+        Ringkasan seluruh data Capstone Project
+    </div>
+
+</div>
+
+<!-- SUMMARY -->
+
+<div class="row mb-4 g-3">
+
+    <div class="col-md-3">
+
+        <div class="stat-card bg-primary">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <div>
+
+                    <small>Total Mahasiswa</small>
+
+                    <h2 class="mb-0">
+                        {{ total_mahasiswa }}
+                    </h2>
+
+                </div>
+
+                <div class="icon-box">
+
+                    <i class="bi bi-mortarboard-fill"></i>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="stat-card bg-success">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <div>
+
+                    <small>Total Tim</small>
+
+                    <h2 class="mb-0">
+                        {{ total_tim }}
+                    </h2>
+
+                </div>
+
+                <div class="icon-box">
+
+                    <i class="bi bi-people-fill"></i>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="stat-card bg-warning">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <div>
+
+                    <small>Total Proposal</small>
+
+                    <h2 class="mb-0">
+                        {{ total_proposal }}
+                    </h2>
+
+                </div>
+
+                <div class="icon-box">
+
+                    <i class="bi bi-file-earmark-text-fill"></i>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="stat-card bg-danger">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <div>
+
+                    <small>Total Resume</small>
+
+                    <h2 class="mb-0">
+                        {{ total_resume }}
+                    </h2>
+
+                </div>
+
+                <div class="icon-box">
+
+                    <i class="bi bi-file-earmark-check-fill"></i>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- RINGKASAN -->
+
+<div class="card card-modern mb-4">
+
+    <div class="card-header bg-white">
+
+        <b>Ringkasan Sistem</b>
+
+    </div>
+
+    <div class="card-body p-0">
+
+        <table class="table table-modern">
+
+            <tbody>
+
+                <tr>
+
+                    <th>Jumlah Mahasiswa</th>
+
+                    <td>{{ total_mahasiswa }}</td>
+
+                </tr>
+
+                <tr>
+
+                    <th>Jumlah Dosen Pembimbing</th>
+
+                    <td>{{ total_dospem }}</td>
+
+                </tr>
+
+                <tr>
+
+                    <th>Dosen Aktif Membimbing</th>
+
+                    <td>{{ total_dospem_aktif }}</td>
+
+                </tr>
+
+                <tr>
+
+                    <th>Jumlah Tim Capstone</th>
+
+                    <td>{{ total_tim }}</td>
+
+                </tr>
+
+                <tr>
+
+                    <th>Jumlah Proposal</th>
+
+                    <td>{{ total_proposal }}</td>
+
+                </tr>
+
+                <tr>
+
+                    <th>Jumlah Resume</th>
+
+                    <td>{{ total_resume }}</td>
+
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<!-- KETERANGAN -->
+
+<div class="card card-modern">
+
+    <div class="card-header bg-white">
+
+        <b>Keterangan</b>
+
+    </div>
+
+    <div class="card-body">
+
+        <p class="mb-0">
+
+            Halaman laporan digunakan oleh Kaprodi untuk memantau seluruh
+            aktivitas Capstone Project. Informasi yang ditampilkan meliputi
+            jumlah mahasiswa, dosen pembimbing, tim capstone, proposal, dan
+            resume yang telah dikelola dalam sistem.
+
+        </p>
+
+    </div>
+
+</div>
+
+{% endblock %}

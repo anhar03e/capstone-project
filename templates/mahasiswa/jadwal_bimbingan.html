@@ -1,0 +1,287 @@
+{% extends "dashboard/base_dashboard.html" %}
+
+{% block title %}Jadwal Bimbingan{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_mahasiswa.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+
+/* ================= GLOBAL ================= */
+body{
+    background:#f4f6f9;
+}
+
+/* ================= HEADER ================= */
+.page-header{
+
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+
+    color:white;
+
+    padding:18px;
+
+    border-radius:16px;
+
+    margin-bottom:20px;
+
+    box-shadow:0 8px 18px rgba(37,99,235,.15);
+}
+
+/* ================= CARD ================= */
+.card-modern{
+
+    border:none;
+
+    border-radius:16px;
+
+    box-shadow:0 4px 12px rgba(0,0,0,0.05);
+
+    background:#fff;
+}
+
+/* ================= TABLE ================= */
+.table{
+
+    font-size:14px;
+}
+
+.table thead{
+
+    background:#f1f5f9;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd){
+    background:#fafafa;
+}
+
+/* ================= BADGE ================= */
+.badge{
+    font-size:12px;
+    padding:5px 8px;
+    border-radius:8px;
+}
+
+/* ================= BUTTON ================= */
+.btn-success{
+    background:#2563eb;
+    border:none;
+    border-radius:8px;
+}
+
+.btn-success:hover{
+    background:#1d4ed8;
+}
+
+.btn-primary{
+    border-radius:8px;
+}
+
+.btn-danger{
+    border-radius:8px;
+}
+
+.btn-secondary{
+    border-radius:8px;
+}
+
+/* ================= TEXT ================= */
+.text-muted{
+    font-size:13px;
+}
+
+</style>
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+
+    <h5 class="mb-0">Jadwal Bimbingan</h5>
+
+    <small>
+        Dosen Pembimbing: {{ dosen_pb.dosen.user.get_full_name }}
+    </small>
+
+</div>
+
+<div class="card card-modern">
+
+    <div class="card-body">
+
+        <!-- ================= JADWAL TERSEDIA ================= -->
+        <h6 class="mb-3">Jadwal Tersedia</h6>
+
+        {% if jadwal %}
+
+        <table class="table table-hover align-middle">
+
+            <thead>
+
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Jam</th>
+                    <th>Kuota</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for j in jadwal %}
+
+                <tr>
+
+                    <td>{{ j.tanggal }}</td>
+
+                    <td>{{ j.jam_mulai }} - {{ j.jam_selesai }}</td>
+
+                    <td>
+
+                        {{ j.jumlah_dipesan }}/{{ j.kuota }}
+
+                        <br>
+
+                        {% if j.penuh %}
+                            <small class="text-danger">Full</small>
+                        {% else %}
+                            <small class="text-muted">
+                                Sisa: {{ j.sisa_kuota }} slot
+                            </small>
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        {% if j.penuh %}
+                            <span class="badge bg-danger">Penuh</span>
+                        {% else %}
+                            <span class="badge bg-primary">Tersedia</span>
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        {% if j.penuh %}
+
+                            <button class="btn btn-secondary btn-sm" disabled>
+                                Penuh
+                            </button>
+
+                        {% else %}
+
+                            <a href="{% url 'capstone_system:booking_jadwal' j.id %}"
+                               class="btn btn-success btn-sm">
+                                Ambil Jadwal
+                            </a>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+        {% else %}
+
+        <div class="text-muted text-center py-3">
+            Tidak ada jadwal tersedia
+        </div>
+
+        {% endif %}
+
+        <!-- ================= JADWAL SAYA ================= -->
+        <hr class="my-4">
+
+        <h6 class="mb-3">Jadwal Saya</h6>
+
+        {% if booking_saya %}
+
+        <table class="table table-bordered align-middle">
+
+            <thead>
+
+                <tr>
+                    <th>Tanggal</th>
+                    <th>Jam</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for b in booking_saya %}
+
+                <tr>
+
+                    <td>{{ b.jadwal.tanggal }}</td>
+
+                    <td>{{ b.jadwal.jam_mulai }} - {{ b.jadwal.jam_selesai }}</td>
+
+                    <td>
+
+                        {% if b.status == "BOOKED" %}
+                            <span class="badge bg-primary">BOOKED</span>
+
+                        {% elif b.status == "DONE" %}
+                            <span class="badge bg-success">DONE</span>
+
+                        {% elif b.status == "CANCELLED" %}
+                            <span class="badge bg-danger">CANCELLED</span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        {% if b.status == "BOOKED" %}
+
+                            <a href="{% url 'capstone_system:cancel_booking' b.id %}"
+                               class="btn btn-danger btn-sm">
+                                Cancel
+                            </a>
+
+                        {% else %}
+
+                            <button class="btn btn-secondary btn-sm" disabled>
+                                -
+                            </button>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+        {% else %}
+
+        <div class="text-muted text-center py-3">
+            Kamu belum mengambil jadwal
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

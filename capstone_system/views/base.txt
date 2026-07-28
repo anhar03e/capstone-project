@@ -1,0 +1,244 @@
+# views/base.py
+from ast import keyword
+import email
+from urllib import request
+from django.contrib.admin import action
+from django.db.models.aggregates import Count
+from django.utils import timezone
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse, reverse_lazy
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404
+from django import forms
+from django.contrib.auth.forms import AuthenticationForm
+from datetime import datetime
+from django.contrib.messages import get_messages
+from django.contrib.sessions.models import Session
+
+from django.contrib.auth import (
+    login,
+    logout,
+    update_session_auth_hash
+)
+from django.contrib.auth.views import LoginView
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+
+from django.utils import timezone
+from django.db.models import F, Q
+from django.db import transaction
+
+from ..models import (
+    Mahasiswa,
+    Dosen,
+    DosenCP,
+    DosenPembimbing,
+    Tim,
+    AnggotaTim,
+    ProposalCapstone,
+    Resume,
+    PengajuanDospem,
+    JadwalKonsultasi,
+    BookingJadwal,
+    User,
+    RiwayatFeedbackProposal,
+    RiwayatFeedbackResume,
+)
+
+from ..forms import DosenForm, UserForm, JadwalForm, ProposalForm, ResumeForm
+
+# =========================================================
+# ROLE CHECKER HELPER
+# =========================================================
+def check_role(request, allowed_roles, redirect_to=None):
+    """
+    Cek apakah user memiliki role yang diizinkan.
+    Returns: (has_access, redirect_response)
+    """
+    if not request.user.is_authenticated:
+        messages.error(request, 'Silakan login terlebih dahulu.')
+        return False, redirect('capstone_system:login')
+    
+    if request.user.role not in allowed_roles:
+        messages.error(request, 'Anda tidak memiliki akses ke halaman ini.')
+        
+        # Redirect berdasarkan role jika tidak ditentukan
+        if not redirect_to:
+            role_redirects = {
+                'MAHASISWA': 'capstone_system:mahasiswa_home',
+                'DOSENCP': 'capstone_system:dosencp_home',
+                'DOSENPB': 'capstone_system:dosenpb_home',
+                'KAPRODI': 'capstone_system:kaprodi_home',
+            }
+            redirect_to = role_redirects.get(request.user.role, 'capstone_system:login')
+        
+        return False, redirect(redirect_to)
+    
+    return True, None
+
+# =========================================================
+# HELPER
+# =========================================================
+def get_tim_user(mahasiswa):
+    return AnggotaTim.objects.select_related('tim').filter(
+        mahasiswa=mahasiswa,
+        status_persetujuan='APPROVED'
+    ).first()
+
+def get_proposal_ketua(mahasiswa):
+    anggota = AnggotaTim.objects.select_related('tim').filter(
+        mahasiswa=mahasiswa,
+        status_persetujuan='APPROVED'
+    ).first()
+
+    if anggota:
+        return ProposalCapstone.objects.filter(
+            tim=anggota.tim
+        ).first()
+
+    return None
+
+def get_dosen_pb(user):
+    try:
+        return DosenPembimbing.objects.select_related('dosen__user').get(
+            dosen__user=user
+        )
+    except DosenPembimbing.DoesNotExist:
+        return None
+
+# =========================================================
+# CUSTOM AUTHENTICATION FORM
+# =========================================================
+class CustomAuthenticationForm(AuthenticationForm):
+
+    def confirm_login_allowed(self, user):
+        super().confirm_login_allowed(user)
+
+        if not user.is_active:
+            raise forms.ValidationError(
+                "Akun Anda telah dinonaktifkan oleh Kaprodi.",
+                code='inactive',
+            )
+
+# =========================================================
+# LOGIN & LOGOUT
+# =========================================================
+class CustomLoginView(LoginView):
+
+    template_name = 'login.html'
+    authentication_form = CustomAuthenticationForm
+
+    def form_valid(self, form):
+        user = form.get_user()
+        response = super().form_valid(form)
+        current_session = self.request.session.session_key
+
+        if user.session_key:
+            if user.session_key != current_session:
+                Session.objects.filter(session_key=user.session_key).delete()
+
+        user.session_key = current_session
+        user.save(update_fields=["session_key"])
+
+        return response
+
+    def form_invalid(self, form):
+        messages.error(
+            self.request,
+            "NIM/NIP atau password yang Anda masukkan salah. Silakan coba lagi."
+        )
+        return super().form_invalid(form)
+
+    def get_success_url(self):
+        user = self.request.user
+
+        if not user.is_password_changed:
+            return reverse_lazy('capstone_system:force_change_password')
+
+        if user.role == 'MAHASISWA':
+            return reverse_lazy('capstone_system:mahasiswa_home')
+        elif user.role == 'DOSENCP':
+            return reverse_lazy('capstone_system:dosencp_home')
+        elif user.role == 'DOSENPB':
+            return reverse_lazy('capstone_system:dosenpb_home')
+        elif user.role == 'KAPRODI':
+            return reverse_lazy('capstone_system:kaprodi_home')
+
+        return reverse_lazy('capstone_system:home')
+
+@login_required
+def force_change_password(request):
+    user = request.user
+
+    storage = get_messages(request)
+    for _ in storage:
+        pass
+
+    if user.is_password_changed:
+        return redirect('capstone_system:home')
+
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+
+        if not email or not password1 or not password2:
+            messages.error(request, "Semua field wajib diisi.")
+            return redirect('capstone_system:force_change_password')
+
+        if password1 != password2:
+            messages.error(request, "Konfirmasi password tidak sama.")
+            return redirect('capstone_system:force_change_password')
+
+        user.email = email
+        user.set_password(password1)
+        user.is_password_changed = True
+        user.save()
+
+        update_session_auth_hash(request, user)
+
+        messages.success(request, "Password berhasil diperbarui.")
+
+        if user.role == 'MAHASISWA':
+            return redirect('capstone_system:mahasiswa_home')
+        elif user.role == 'DOSENCP':
+            return redirect('capstone_system:dosencp_home')
+        elif user.role == 'DOSENPB':
+            return redirect('capstone_system:dosenpb_home')
+        elif user.role == 'KAPRODI':
+            return redirect('capstone_system:kaprodi_home')
+
+        return redirect('capstone_system:home')
+
+    return render(request, 'auth/force_change_password.html')
+
+# =========================================================
+# LOGOUT
+# =========================================================
+def logout_view(request):
+    if request.user.is_authenticated:
+        request.user.session_key = None
+        request.user.save(update_fields=["session_key"])
+        logout(request)
+
+    messages.info(request, "Anda berhasil logout.")
+    return redirect('capstone_system:login')
+
+# =========================================================
+# HOME
+# =========================================================
+@login_required
+def home(request):
+    user = request.user
+
+    if user.role == 'MAHASISWA':
+        return redirect('capstone_system:mahasiswa_home')
+    elif user.role == 'DOSENCP':
+        return redirect('capstone_system:dosencp_home')
+    elif user.role == 'DOSENPB':
+        return redirect('capstone_system:dosenpb_home')
+    elif user.role == 'KAPRODI':
+        return redirect('capstone_system:kaprodi_home')
+
+    return redirect('capstone_system:login')

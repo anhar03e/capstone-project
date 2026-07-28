@@ -1,0 +1,593 @@
+{% extends "dashboard/base_dashboard.html" %}
+
+{% block title %}Buat Tim Capstone{% endblock %}
+
+{% block sidebar %}
+    {% include "dashboard/sidebar_mahasiswa.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+
+/* ================= GLOBAL ================= */
+body{
+    background:#f4f6f9;
+}
+
+/* ================= HEADER ================= */
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:18px;
+    border-radius:16px;
+    margin-bottom:20px;
+    box-shadow:0 8px 18px rgba(37,99,235,.15);
+}
+
+/* ================= CARD ================= */
+.card-modern{
+    border:none;
+    border-radius:16px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.05);
+    background:#fff;
+}
+
+/* ================= SEARCH ================= */
+.search-box{
+    border-radius:10px;
+    padding:10px;
+    border:1px solid #e5e7eb;
+    width:100%;
+    outline:none;
+    transition:.2s;
+}
+
+.search-box:focus{
+    border-color:#2563eb;
+    box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
+
+/* ================= RESULT BOX ================= */
+.result-box{
+    max-height:260px;
+    overflow-y:auto;
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:10px;
+    margin-top:10px;
+}
+
+/* ================= TABLE ITEM ================= */
+.table-item{
+    display:grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap:10px;
+    align-items:center;
+    padding:10px;
+    border-bottom:1px solid #f1f5f9;
+}
+
+/* ================= MEMBER CARD ================= */
+.member-card{
+    background:#fff;
+    border:1px solid #e5e7eb;
+    border-radius:14px;
+    padding:14px;
+    margin-bottom:12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    transition:.2s;
+}
+
+.member-card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 10px 20px rgba(0,0,0,.08);
+}
+
+/* ================= TEXT ================= */
+.member-name{
+    font-weight:600;
+    font-size:15px;
+}
+
+.member-detail{
+    font-size:13px;
+    color:#6b7280;
+}
+
+/* ================= BUTTON ================= */
+.btn-primary{
+    background:#2563eb;
+    border:none;
+    border-radius:10px;
+}
+
+.btn-primary:hover{
+    background:#1d4ed8;
+}
+
+.btn-success{
+    border-radius:10px;
+}
+
+/* ================= KATEGORI CARD (UKURAN SEDANG) ================= */
+.kategori-card{
+    border:2px solid #e5e7eb;
+    border-radius:8px;
+    padding:8px 12px;
+    cursor:pointer;
+    transition:all 0.3s;
+    text-align:center;
+}
+
+.kategori-card:hover{
+    border-color:#2563eb;
+    background:#f8fafc;
+}
+
+.kategori-card.selected{
+    border-color:#2563eb;
+    background:#eff6ff;
+    box-shadow:0 0 0 3px rgba(37,99,235,.12);
+}
+
+.kategori-card .icon{
+    font-size:20px;
+    display:block;
+    margin-bottom:2px;
+}
+
+.kategori-card .label{
+    font-weight:600;
+    font-size:12px;
+}
+
+.kategori-card .desc{
+    font-size:10px;
+    color:#6b7280;
+    margin-top:1px;
+}
+
+/* ================= KETUA CARD ================= */
+.ketua-card{
+    background:#f0f4ff;
+    border:2px solid #2563eb;
+    border-radius:12px;
+    padding:14px 20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.ketua-card .badge-ketua{
+    background:#2563eb;
+    color:white;
+    padding:3px 12px;
+    border-radius:20px;
+    font-size:12px;
+}
+
+/* ================= ROW GAP KECIL ================= */
+.row-kategori{
+    display:flex;
+    gap:12px;
+}
+
+.row-kategori .col{
+    flex:1;
+}
+
+</style>
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+    <h5 class="mb-1"> 
+        {% if edit_mode %} 
+            <i class="bi bi-pencil-square"></i> Edit Tim Capstone 
+        {% else %} 
+            <i class="bi bi-people"></i> Buat Tim Capstone 
+        {% endif %}
+    </h5>
+    <small>Pilih kategori, nama tim, dan undang anggota</small>
+</div>
+
+<form method="POST">
+{% csrf_token %}
+
+<div class="card card-modern">
+<div class="card-body">
+
+    <!-- ========================================================= -->
+    <!-- PILIH KATEGORI KETUA (WAJIB) - UKURAN SEDANG              -->
+    <!-- ========================================================= -->
+    <div class="mb-3">
+        <label class="fw-semibold mb-1" style="font-size:14px;">
+            Kategori Ketua <span class="text-danger">*</span>
+        </label>
+        <div class="row-kategori">
+
+            <!-- EPD -->
+            <div class="col">
+                <div class="kategori-card" 
+                     id="kategoriEPD"
+                     onclick="pilihKategori('EPD')">
+                    <div>
+                        <span class="icon"></span>
+                        <div class="label">
+                            <span class="badge bg-primary" style="font-size:11px;">EPD</span>
+                        </div>
+                        <div class="desc">
+                            Engineering Process Design
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SM -->
+            <div class="col">
+                <div class="kategori-card" 
+                     id="kategoriSM"
+                     onclick="pilihKategori('SM')">
+                    <div>
+                        <span class="icon"></span>
+                        <div class="label">
+                            <span class="badge bg-success" style="font-size:11px;">SM</span>
+                        </div>
+                        <div class="desc">
+                            Scientific Method
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <input type="hidden" name="kategori" id="kategoriInput" value="{% if tim %}{{ tim.kategori }}{% endif %}">
+        <small class="text-danger" id="kategoriError" style="display:none; font-size:12px;">
+            <i class="bi bi-exclamation-circle"></i> Pilih kategori terlebih dahulu
+        </small>
+    </div>
+
+    <hr>
+
+    <!-- ========================================================= -->
+    <!-- NAMA TIM                                                   -->
+    <!-- ========================================================= -->
+    <div class="mb-3">
+        <label class="mb-1 fw-semibold" style="font-size:14px;">Nama Tim <span class="text-danger">*</span></label>
+        <input type="text"
+               name="nama_tim"
+               class="search-box"
+               placeholder="Masukkan nama tim..."
+               value="{% if tim %}{{ tim.nama_tim }}{% endif %}"
+               required>
+    </div>
+
+    <hr>
+
+    <!-- ========================================================= -->
+    <!-- KETUA TIM (OTOMATIS)                                      -->
+    <!-- ========================================================= -->
+    <div class="mb-3">
+        <h6 class="fw-semibold" style="font-size:14px;">
+            <i class="bi bi-person-check"></i> Ketua Tim
+        </h6>
+        <div class="ketua-card">
+            <div>
+                <span class="badge-ketua"> KETUA</span>
+                <span class="fw-semibold ms-2">{{ user.get_full_name }}</span>
+                <span class="text-muted ms-2" style="font-size:13px;">({{ user.mahasiswa.nim }})</span>
+            </div>
+            <div>
+                <span class="badge 
+                    {% if tim and tim.kategori == 'EPD' %}bg-primary
+                    {% elif tim and tim.kategori == 'SM' %}bg-success
+                    {% else %}bg-secondary{% endif %}"
+                    style="font-size:12px;">
+                    {% if tim and tim.kategori %}
+                        {{ tim.kategori }}
+                    {% else %}
+                        Pilih Kategori
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        <small class="text-muted" style="font-size:12px;">
+            <i class="bi bi-info-circle"></i> Anda adalah ketua tim secara otomatis
+        </small>
+    </div>
+
+    <hr>
+
+    <!-- ========================================================= -->
+    <!-- CARI MAHASISWA (UNTUK ANGGOTA)                            -->
+    <!-- ========================================================= -->
+    <h6 class="fw-semibold" style="font-size:14px;">
+        <i class="bi bi-person-plus"></i> Undang Anggota Tim
+    </h6>
+    <small class="text-muted" style="font-size:12px;">Cari berdasarkan nama atau NIM (maksimal 4 anggota tambahan)</small>
+
+    <input id="search"
+           class="search-box mt-2"
+           placeholder="Ketik nama atau NIM...">
+
+    <div id="result" class="result-box"></div>
+
+    <hr>
+
+    <!-- ========================================================= -->
+    <!-- DAFTAR ANGGOTA TIM                                        -->
+    <!-- ========================================================= -->
+    <h6 class="fw-semibold" style="font-size:14px;">
+        <i class="bi bi-people"></i> Anggota Tim
+        <span class="badge bg-secondary" id="totalAnggota" style="font-size:12px;">0</span>
+        <small class="text-muted" style="font-size:12px;">(Maksimal 4 anggota tambahan)</small>
+    </h6>
+
+    <div id="anggota_list"></div>
+
+</div>
+</div>
+
+<button class="btn btn-primary w-100 mt-3" onclick="return validasiForm()">
+    {% if edit_mode %}
+        <i class="bi bi-pencil-square"></i> Update Tim
+    {% else %}
+        <i class="bi bi-check-lg"></i> Buat Tim
+    {% endif %}
+</button>
+
+</form>
+
+<script>
+
+// =========================================================
+// DATA ANGGOTA (TANPA KETUA)
+// =========================================================
+let anggota = [];
+
+{% for a in anggota_list %}
+anggota.push({
+    id: "{{ a.id }}",
+    name: "{{ a.name|escapejs }}",
+    kategori: "{{ a.kategori|escapejs }}",
+});
+{% endfor %}
+
+const MAX_ANGGOTA = 4; // Maksimal 4 anggota tambahan
+
+// =========================================================
+// PILIH KATEGORI
+// =========================================================
+function pilihKategori(kategori) {
+    // Reset semua card
+    document.getElementById('kategoriEPD').classList.remove('selected');
+    document.getElementById('kategoriSM').classList.remove('selected');
+    
+    // Pilih yang sesuai
+    if (kategori === 'EPD') {
+        document.getElementById('kategoriEPD').classList.add('selected');
+    } else if (kategori === 'SM') {
+        document.getElementById('kategoriSM').classList.add('selected');
+    }
+    
+    document.getElementById('kategoriInput').value = kategori;
+    document.getElementById('kategoriError').style.display = 'none';
+    
+    // Update badge ketua
+    updateKetuaBadge(kategori);
+}
+
+// =========================================================
+// UPDATE BADGE KETUA
+// =========================================================
+function updateKetuaBadge(kategori) {
+    let badge = document.querySelector('.ketua-card .badge');
+    if (badge) {
+        badge.textContent = kategori || 'Pilih Kategori';
+        badge.className = 'badge';
+        if (kategori === 'EPD') {
+            badge.classList.add('bg-primary');
+        } else if (kategori === 'SM') {
+            badge.classList.add('bg-success');
+        } else {
+            badge.classList.add('bg-secondary');
+        }
+    }
+}
+
+// =========================================================
+// SET KATEGORI DEFAULT (JIKA EDIT)
+// =========================================================
+{% if tim and tim.kategori %}
+document.addEventListener('DOMContentLoaded', function() {
+    pilihKategori('{{ tim.kategori }}');
+});
+{% endif %}
+
+// =========================================================
+// SEARCH MAHASISWA
+// =========================================================
+document.getElementById("search").addEventListener("keyup", function(){
+
+    let q = this.value;
+
+    if(q.length < 1){
+        document.getElementById("result").innerHTML = "";
+        return;
+    }
+
+    fetch(`/search-mahasiswa/?q=${q}`)
+    .then(r => r.json())
+    .then(data => {
+
+        let html = "";
+
+        data.forEach(m => {
+
+            html += `
+            <div class="table-item">
+
+                <div>
+                    <b>${m.nama}</b><br>
+                    <small class="text-muted">${m.nim}</small>
+                </div>
+
+                <div>
+                    <select id="kat_${m.id}" class="form-select form-select-sm">
+                        <option value="EPD">EPD</option>
+                        <option value="SM">SM</option>
+                    </select>
+                </div>
+
+                <div>
+                    <button type="button"
+                            class="btn btn-primary btn-sm"
+                            onclick="add('${m.id}','${m.nama}')">
+                        <i class="bi bi-plus-lg"></i> Undang
+                    </button>
+                </div>
+
+            </div>`;
+        });
+
+        document.getElementById("result").innerHTML = html;
+
+    });
+
+});
+
+// =========================================================
+// 🔥 ADD ANGGOTA - PAKAI KATEGORI DARI DROPDOWN
+// =========================================================
+function add(id, name){
+
+    // Cek apakah kategori sudah dipilih
+    let kategoriTim = document.getElementById('kategoriInput').value;
+    if (!kategoriTim) {
+        alert('⚠️ Pilih kategori terlebih dahulu!');
+        return;
+    }
+
+    if(anggota.length >= MAX_ANGGOTA){
+        alert(`⚠️ Maksimal ${MAX_ANGGOTA} anggota tambahan`);
+        return;
+    }
+
+    if(anggota.find(a => a.id === id)){
+        alert("⚠️ Mahasiswa sudah ada dalam tim");
+        return;
+    }
+
+    // 🔥🔥🔥 PERBAIKI: Ambil kategori dari DROPDOWN, BUKAN dari tim!
+    let kategoriAnggota = document.getElementById("kat_" + id).value;
+    
+    // 🔥 PAKAI KATEGORI DARI DROPDOWN
+    anggota.push({ 
+        id, 
+        name, 
+        kategori: kategoriAnggota  // ✅ PAKAI DARI DROPDOWN!
+    });
+    render();
+}
+
+// =========================================================
+// RENDER ANGGOTA
+// =========================================================
+function render(){
+
+    let box = document.getElementById("anggota_list");
+
+    if(anggota.length === 0){
+        box.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="bi bi-person-plus fs-2 d-block mb-1"></i>
+                <span style="font-size:13px;">Belum ada anggota tambahan</span>
+            </div>
+        `;
+        document.getElementById("totalAnggota").textContent = "0";
+        return;
+    }
+
+    let html = "";
+    let kategoriTim = document.getElementById('kategoriInput').value;
+
+    anggota.forEach((a,index)=>{
+
+        let badgeKategori = a.kategori === 'EPD' ? 'bg-primary' : 'bg-success';
+
+        html += `
+        <div class="member-card">
+
+            <div>
+                <div class="member-name">
+                    ${a.name}
+                    <span class="badge bg-secondary" style="font-size:11px;">Anggota</span>
+                </div>
+                <div class="member-detail">
+                    <span class="badge ${badgeKategori}" style="font-size:11px;">${a.kategori}</span>
+                </div>
+            </div>
+
+            <div>
+                <button type="button"
+                        class="btn btn-outline-danger btn-sm"
+                        onclick="hapus(${index})"
+                        style="font-size:12px;">
+                    <i class="bi bi-person-dash"></i> Hapus
+                </button>
+            </div>
+
+            <input type="hidden" name="anggota_id[]" value="${a.id}">
+            <input type="hidden" name="anggota_kategori[]" value="${a.kategori}">
+
+        </div>`;
+    });
+
+    box.innerHTML = html;
+    document.getElementById("totalAnggota").textContent = anggota.length;
+}
+
+// =========================================================
+// HAPUS ANGGOTA
+// =========================================================
+function hapus(index){
+    if(confirm(`Hapus ${anggota[index].name} dari tim?`)){
+        anggota.splice(index,1);
+        render();
+    }
+}
+
+// =========================================================
+// VALIDASI FORM SEBELUM SUBMIT
+// =========================================================
+function validasiForm() {
+    // Cek kategori
+    let kategori = document.getElementById('kategoriInput').value;
+    if (!kategori) {
+        document.getElementById('kategoriError').style.display = 'block';
+        document.getElementById('kategoriError').scrollIntoView({ behavior: 'smooth' });
+        alert('⚠️ Silakan pilih kategori terlebih dahulu!');
+        return false;
+    }
+    
+    // Cek nama tim
+    let namaTim = document.querySelector('input[name="nama_tim"]').value.trim();
+    if (!namaTim) {
+        alert('⚠️ Silakan isi nama tim terlebih dahulu!');
+        document.querySelector('input[name="nama_tim"]').focus();
+        return false;
+    }
+    
+    return true;
+}
+
+// =========================================================
+// RENDER AWAL
+// =========================================================
+render();
+
+</script>
+
+{% endblock %}

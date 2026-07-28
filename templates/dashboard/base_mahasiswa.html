@@ -1,0 +1,14 @@
+{% extends "dashboard/base_dashboard.html" %}
+
+{% block sidebar %}
+<ul class="nav flex-column">
+    <li><a class="nav-link" href="{% url 'capstone_system:mahasiswa_home' %}">Dashboard</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:buat_tim' %}">Buat Tim</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:upload_proposal' %}">Upload Proposal</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:upload_resume' %}">Upload Resume</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:cek_status' %}">Cek Status</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:list_dospem' %}">Pilih Dosen Pembimbing</a></li>
+    <li><a class="nav-link" href="{% url 'capstone_system:mahasiswa_profile' %}">Profile</a></li>
+    
+</ul>
+{% endblock %}

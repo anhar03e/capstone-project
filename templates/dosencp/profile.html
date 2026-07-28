@@ -1,0 +1,208 @@
+{% extends "dashboard/base_dashboard.html" %}
+
+{% block title %}Profil Dosen CP{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_dosencp.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+body {
+    background: #f4f7fc;
+}
+
+/* HEADER (BLUE SIAKAD) */
+.page-header {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    padding: 18px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px rgba(37,99,235,0.2);
+}
+
+/* CARD */
+.card-modern {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    background: #fff;
+}
+
+/* FOTO */
+.profile-img {
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+    border: 4px solid #fff;
+}
+
+/* INFO BOX */
+.info-box {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 1px solid #eef2ff;
+}
+
+/* FORM */
+.form-control {
+    border-radius: 10px;
+}
+
+.form-control:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+
+/* BUTTON (SIAKAD BLUE) */
+.btn-primary-custom {
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 12px;
+    font-weight: 500;
+    transition: 0.2s;
+}
+
+.btn-primary-custom:hover {
+    background: #1d4ed8;
+    transform: translateY(-2px);
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+    .profile-img {
+        width: 120px;
+        height: 120px;
+    }
+}
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+    <h5 class="mb-0">Profil Saya</h5>
+    <small>Kelola informasi akun dan data dosen capstone</small>
+</div>
+
+<div class="card card-modern">
+    <div class="card-body p-4">
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success small">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="row g-4">
+
+            <!-- LEFT -->
+            <div class="col-12 col-md-4 text-center">
+
+                {% if dosen.foto_profil %}
+                    <img id="previewImage"
+                         src="{{ dosen.foto_profil.url }}"
+                         class="rounded-circle shadow profile-img mb-3">
+                {% else %}
+                    <img id="previewImage"
+                         src="https://ui-avatars.com/api/?name={{ user.get_full_name }}&background=2563eb&color=fff&size=200"
+                         class="rounded-circle shadow profile-img mb-3">
+                {% endif %}
+
+                <div class="info-box">
+                    <div class="fw-semibold">
+                        {{ user.get_full_name }}
+                    </div>
+                    <small class="text-muted">
+                        {{ user.email }}
+                    </small>
+                </div>
+
+                <div class="info-box">
+                    <small class="text-muted">NIP</small><br>
+                    <strong>{{ dosen.nip }}</strong>
+                </div>
+
+            </div>
+
+            <!-- RIGHT -->
+            <div class="col-12 col-md-8">
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="row g-3">
+
+                        <div class="col-12">
+                            <label class="form-label">Nama Lengkap</label>
+                            <input type="text"
+                                value="{{ user.get_full_name }}"
+                                class="form-control bg-light"
+                                readonly>
+                            <small class="text-muted">
+                                Nama tidak dapat diubah.
+                            </small>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Email</label>
+                            <input type="email"
+                                   name="email"
+                                   value="{{ user.email }}"
+                                   class="form-control">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Password Baru</label>
+                            <input type="password"
+                                   name="password"
+                                   class="form-control">
+                            <small class="text-muted">
+                                Kosongkan jika tidak ingin mengganti password
+                            </small>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Foto Profil</label>
+                            <input type="file"
+                                   name="foto_profil"
+                                   class="form-control"
+                                   accept=".jpg,.jpeg,.png"
+                                   onchange="previewFoto(event)">
+                        </div>
+
+                        <div class="col-12">
+                            <button type="submit"
+                                    class="btn-primary-custom w-100">
+                                Update Profil
+                            </button>
+                        </div>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+function previewFoto(event) {
+    const reader = new FileReader();
+    reader.onload = function(){
+        document.getElementById('previewImage').src = reader.result;
+    };
+    reader.readAsDataURL(event.target.files[0]);
+}
+</script>
+
+{% endblock %}

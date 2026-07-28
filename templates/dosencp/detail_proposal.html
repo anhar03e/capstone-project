@@ -1,0 +1,513 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Review Proposal{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_dosencp.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+/* =========================
+   PAGE
+========================= */
+.page-wrap{
+    max-width:900px;
+    margin:auto;
+}
+
+/* =========================
+   HEADER (SIAKAD BLUE)
+========================= */
+.header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:#fff;
+    padding:18px 20px;
+    border-radius:16px;
+    margin-bottom:18px;
+    box-shadow:0 10px 25px rgba(37,99,235,.20);
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:20px;
+}
+
+.header h4{
+    margin:0;
+    font-weight:600;
+}
+
+.header small{
+    opacity:.9;
+}
+
+.header .btn{
+    border-radius:50px;
+    font-weight:500;
+    padding:8px 18px;
+    white-space:nowrap;
+}
+
+/* =========================
+   CARD
+========================= */
+.card-clean{
+    background:#fff;
+    border-radius:18px;
+    padding:22px;
+    box-shadow:0 10px 30px rgba(0,0,0,.06);
+}
+
+/* =========================
+   META
+========================= */
+.meta{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:13px;
+    color:#6b7280;
+    margin-bottom:15px;
+    gap:10px;
+}
+
+/* =========================
+   STATUS BADGE
+========================= */
+.pill{
+    padding:5px 12px;
+    border-radius:50px;
+    font-size:12px;
+    font-weight:500;
+}
+
+.p-pending{
+    background:#e0e7ff;
+    color:#1d4ed8;
+}
+
+.p-ok{
+    background:#dbeafe;
+    color:#1e40af;
+}
+
+.p-rev{
+    background:#fef3c7;
+    color:#92400e;
+}
+
+.p-no{
+    background:#fee2e2;
+    color:#991b1b;
+}
+
+/* =========================
+   TITLE
+========================= */
+.title{
+    font-size:20px;
+    font-weight:600;
+    margin-bottom:8px;
+}
+
+/* =========================
+   BUTTON REVIEW
+========================= */
+.actions{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+}
+
+.btn-action{
+    border:none;
+    padding:10px;
+    border-radius:12px;
+    font-weight:500;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.btn-action:hover{
+    transform:translateY(-2px);
+}
+
+.approve{
+    background:#2563eb;
+    color:#fff;
+}
+
+.revisi{
+    background:#f59e0b;
+    color:#fff;
+}
+
+.reject{
+    background:#ef4444;
+    color:#fff;
+}
+
+/* =========================
+   TEXTAREA
+========================= */
+textarea{
+    width:100%;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:12px;
+    resize:none;
+    outline:none;
+    transition:.2s;
+}
+
+textarea:focus{
+    border-color:#2563eb;
+    box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
+
+/* =========================
+   FILE
+========================= */
+.file-link{
+    display:inline-block;
+    margin:10px 0 18px;
+    font-size:13px;
+    color:#2563eb;
+    text-decoration:none;
+}
+
+.file-link:hover{
+    text-decoration:underline;
+}
+
+.preview-frame{
+    width:100%;
+    height:700px;
+    border:1px solid #dee2e6;
+    border-radius:12px;
+    background:#fff;
+}
+
+/* =========================
+   TIMELINE
+========================= */
+.timeline{
+    position:relative;
+    margin:0;
+    padding-left:30px;
+}
+
+.timeline::before{
+    content:"";
+    position:absolute;
+    left:8px;
+    top:5px;
+    bottom:5px;
+    width:2px;
+    background:#dbeafe;
+}
+
+.timeline-item{
+    position:relative;
+    margin-bottom:22px;
+}
+
+.timeline-item:last-child{
+    margin-bottom:0;
+}
+
+.timeline-dot{
+    position:absolute;
+    left:-27px;
+    top:5px;
+    width:16px;
+    height:16px;
+    border-radius:50%;
+    background:#2563eb;
+    border:3px solid #fff;
+    box-shadow:0 0 0 2px #2563eb;
+}
+
+.timeline-title{
+    font-weight:600;
+}
+
+.timeline-time{
+    color:#6b7280;
+    font-size:13px;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media(max-width:768px){
+
+    .header{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .header .btn{
+        width:100%;
+    }
+
+    .meta{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+
+    .actions{
+        grid-template-columns:1fr;
+    }
+
+    .preview-frame{
+        height:500px;
+    }
+}
+</style>
+
+<div class="page-wrap">
+
+    <!-- HEADER -->
+    <div class="header d-flex justify-content-between align-items-center">
+
+        <div>
+            <h4>{{ proposal.judul }}</h4>
+            <small>Review Proposal Capstone</small>
+        </div>
+
+        <div>
+            <a href="{% url 'capstone_system:dosencp_list_proposal' %}"
+            class="btn btn-light rounded-pill px-3">
+                <i class="bi bi-arrow-left"></i>
+                Kembali
+            </a>
+        </div>
+
+    </div>
+
+    <!-- CARD -->
+    <div class="card-clean">
+
+        <!-- META -->
+        <div class="meta">
+            <div>
+                <b>Tim:</b> {{ proposal.tim.nama_tim }}
+            </div>
+
+            <div>
+                {% if proposal.status_cp == "DITERIMA" %}
+                 <span class="pill p-ok">Diterima</span>
+
+                {% elif proposal.status_cp == "REVISI" %}
+                    <span class="pill p-rev">Revisi</span>
+
+                {% elif proposal.status_cp == "DITOLAK" %}
+                    <span class="pill p-no">Ditolak</span>
+
+                {% else %}
+                    <span class="pill p-pending">Pending</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- TIMELINE -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="bi bi-clock-history text-primary"></i>
+                    Timeline Proposal
+                </h6>
+            </div>
+
+            <div class="card-body">
+
+                <div class="timeline">
+
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+
+                        <div class="timeline-title">
+                            Proposal Diupload
+                        </div>
+
+                        <div class="timeline-time">
+                            {{ proposal.waktu_pengajuan|date:"d F Y" }}
+                            •
+                            {{ proposal.waktu_pengajuan|time:"H:i" }} WITA
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+
+                        <div class="timeline-title">
+                            Terakhir Diperbarui
+                        </div>
+
+                        <div class="timeline-time">
+                            {{ proposal.waktu_update|date:"d F Y" }}
+                            •
+                            {{ proposal.waktu_update|time:"H:i" }} WITA
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+
+                        <div class="timeline-title">
+                            Review Dosen Capstone
+                        </div>
+
+                        <div class="timeline-time">
+
+                            {% if proposal.waktu_peninjauan %}
+                                {{ proposal.waktu_peninjauan|date:"d F Y" }}
+                                •
+                                {{ proposal.waktu_peninjauan|time:"H:i" }} WITA
+                            {% else %}
+                                <span class="text-warning">
+                                    Belum Direview
+                                </span>
+                            {% endif %}
+
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ANGGOTA TIM -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="bi bi-people-fill text-primary"></i>
+                    Anggota Tim Capstone
+                </h6>
+            </div>
+
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="60">No</th>
+                            <th>NIM</th>
+                            <th>Nama Mahasiswa</th>
+                            <th width="120">Peran</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for anggota in anggota_tim %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ anggota.mahasiswa.nim }}</td>
+                            <td>{{ anggota.mahasiswa.user.get_full_name }}</td>
+                            <td>
+                                {% if anggota.role == 'ketua' %}
+                                    <span class="badge bg-primary">
+                                        <i class="bi bi-star-fill"></i> Ketua
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        Anggota
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-3">
+                                Tidak ada anggota tim.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- FILE PROPOSAL -->
+        {% if proposal.file %}
+
+            <div class="mb-3">
+                <strong>Nama File :</strong><br>
+                {{ proposal.file.name }}
+            </div>
+
+            {% if proposal.file.url|lower|slice:"-4:" == ".pdf" %}
+
+                <iframe
+                    src="{{ request.scheme }}://{{ request.get_host }}{{ proposal.file.url }}"
+                    class="preview-frame">
+                </iframe>
+
+            {% else %}
+
+                <div class="alert alert-warning text-center">
+                    Preview hanya tersedia untuk file PDF.
+                </div>
+
+            {% endif %}
+
+            <div class="text-end mt-3">
+                <a href="{{ proposal.file.url }}"
+                class="btn btn-outline-primary rounded-pill">
+                    <i class="bi bi-download"></i>
+                    Download Proposal
+                </a>
+            </div>
+
+        {% else %}
+
+            <div class="alert alert-secondary">
+                Proposal belum diupload.
+            </div>
+
+        {% endif %}
+
+        <!-- FORM -->
+        {% if proposal.status_cp == "DITERIMA" %}
+
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle-fill"></i>
+            Proposal telah <strong>disetujui</strong>. Status tidak dapat diubah lagi.
+        </div>
+
+        {% else %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <textarea name="keterangan" rows="4"
+                placeholder="Tulis catatan review untuk mahasiswa..."></textarea>
+
+            <div class="actions mt-3">
+
+                <button class="btn-action approve" name="action" value="DITERIMA">
+                    ✔ Terima
+                </button>
+
+                <button class="btn-action revisi" name="action" value="REVISI">
+                    ✎ Revisi
+                </button>
+
+                <button class="btn-action reject" name="action" value="DITOLAK">
+                    ✖ Tolak
+                </button>
+
+            </div>
+
+        </form>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

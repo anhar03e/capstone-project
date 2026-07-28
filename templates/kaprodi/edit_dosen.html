@@ -1,0 +1,236 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Edit Dosen{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+
+body{
+    background:#f5f7fb;
+}
+
+/* HEADER */
+
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:22px;
+    border-radius:16px;
+    margin-bottom:25px;
+}
+
+/* CARD */
+
+.card-modern{
+    border:none;
+    border-radius:16px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+}
+
+/* FORM */
+
+.form-label{
+    font-weight:600;
+    color:#374151;
+}
+
+.form-control,
+.form-select{
+    border-radius:10px;
+    padding:10px 14px;
+    border:1px solid #d1d5db;
+}
+
+.form-control:focus,
+.form-select:focus{
+    border-color:#2563eb;
+    box-shadow:0 0 0 .2rem rgba(37,99,235,.15);
+}
+
+.form-check-input{
+    transform:scale(1.15);
+    margin-top:.3rem;
+}
+
+</style>
+
+<!-- HEADER -->
+
+<div class="page-header">
+
+    <h4 class="mb-1">
+        Edit Dosen 
+    </h4>
+
+    <div>
+        Perbarui informasi data dosen
+    </div>
+
+</div>
+
+<!-- CARD -->
+
+<div class="card card-modern">
+
+    <div class="card-header bg-white">
+
+        <h5 class="mb-0 fw-bold">
+
+            <i class="bi bi-person-workspace me-2"></i>
+
+            Form Edit Dosen
+
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            <div class="row">
+
+                <!-- Nama -->
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+
+                        Nama Lengkap
+
+                    </label>
+
+                    {{ form.nama_lengkap }}
+
+                </div>
+
+                <!-- NIP -->
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+
+                        NIP
+
+                    </label>
+
+                    {{ form.nip }}
+
+                </div>
+
+                <!-- Email -->
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+
+                        Email
+
+                    </label>
+
+                    {{ form.email }}
+
+                </div>
+
+                <!-- Role -->
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+
+                        Role
+
+                    </label>
+
+                    {{ form.role }}
+
+                </div>
+
+                <!-- Program Studi -->
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+
+                        Program Studi
+
+                    </label>
+
+                    {{ form.prodi }}
+
+                </div>
+
+                <!-- Bidang Keahlian -->
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+
+                        Bidang Keahlian
+
+                    </label>
+
+                    {{ form.bidang_keahlian }}
+
+                </div>
+
+                <!-- Status -->
+
+                <div class="col-md-12 mb-3">
+
+                    <div class="form-check">
+
+                        {{ form.status_aktif }}
+
+                        <label class="form-check-label ms-2">
+
+                            Dosen Aktif
+
+                        </label>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <hr>
+
+            <div class="d-flex gap-2">
+
+                <button
+                    type="submit"
+                    class="btn btn-primary rounded-pill">
+
+                    <i class="bi bi-check-circle me-1"></i>
+
+                    Simpan Perubahan
+
+                </button>
+
+                <a
+                    href="{% url 'capstone_system:kaprodi_dosen' %}"
+                    class="btn btn-secondary rounded-pill">
+
+                    <i class="bi bi-arrow-left me-1"></i>
+
+                    Kembali
+
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

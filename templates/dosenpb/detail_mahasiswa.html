@@ -1,0 +1,226 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Detail Mahasiswa{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_dosenpb.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+.dashboard-content {
+    background: #f5f7fb;
+}
+
+/* HEADER SAMA DASHBOARD */
+.page-header {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    padding: 20px;
+    border-radius: 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px rgba(37,99,235,0.2);
+}
+
+/* CARD */
+.card-modern {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    background: #fff;
+}
+
+/* TABLE STYLE */
+.table thead {
+    background: #2563eb;
+    color: white;
+}
+
+.table {
+    font-size: 14px;
+}
+
+/* BADGE */
+.badge {
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+/* BUTTON */
+.btn-primary {
+    background: #2563eb;
+    border: none;
+    border-radius: 10px;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.btn-success {
+    border-radius: 10px;
+}
+
+.btn-danger {
+    border-radius: 10px;
+}
+
+.btn-warning {
+    border-radius: 10px;
+}
+</style>
+
+<div class="page-header">
+    <h4 class="mb-1">Detail Mahasiswa</h4>
+    <small>Informasi lengkap mahasiswa bimbingan</small>
+</div>
+
+<div class="row g-4">
+
+    <!-- DATA MAHASISWA -->
+    <div class="col-md-6">
+        <div class="card card-modern p-4">
+
+            <h6 class="mb-3">Informasi Mahasiswa</h6>
+
+            <div class="mb-3">
+                <div class="info-label">NIM</div>
+                <div class="fw-semibold">{{ mahasiswa.nim }}</div>
+            </div>
+
+            <div class="mb-3">
+                <div class="info-label">Nama</div>
+                <div class="fw-semibold">
+                    {% if mahasiswa.user.get_full_name %}
+                        {{ mahasiswa.user.get_full_name }}
+                    {% else %}
+                        <span class="text-muted">Nama belum diisi</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <div class="info-label">Kelas</div>
+                <div class="fw-semibold">{{ mahasiswa.kelas }}</div>
+            </div>
+
+            <div class="mb-3">
+                <div class="info-label">Email</div>
+                <div class="fw-semibold">
+                    {% if mahasiswa.user.email %}
+                        {{ mahasiswa.user.email }}
+                    {% else %}
+                        <span class="text-muted">Email belum tersedia</span>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- RESUME -->
+    <div class="col-md-6">
+        <div class="card card-modern p-4">
+
+            <h6 class="mb-3">Resume Mahasiswa</h6>
+
+            {% if resume %}
+
+                <div class="mb-3">
+                    <div class="info-label">Judul Resume</div>
+                    <div class="fw-semibold">
+                        {{ resume.judul_proposal|default:"-" }}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="info-label">Mitra</div>
+                    <div class="fw-semibold">
+                        {{ resume.mitra|default:"-" }}
+                    </div>
+                </div>
+
+                {% if resume.file_resume %}
+
+                    {% if resume.file_resume.url|lower|slice:"-4:" == ".pdf" %}
+                        <iframe src="{{ resume.file_resume.url }}"
+                                width="100%" height="350px"
+                                style="border-radius:10px; border:1px solid #ddd;">
+                        </iframe>
+
+                    {% elif resume.file_resume.url|lower|slice:"-5:" == ".docx" or resume.file_resume.url|lower|slice:"-4:" == ".doc" %}
+                        
+                        {% if "localhost" in request.get_host %}
+                            <div class="text-muted text-center">
+                                Preview Word tidak tersedia di localhost
+                            </div>
+                        {% else %}
+                            <iframe src="https://docs.google.com/gview?url={{ request.scheme }}://{{ request.get_host }}{{ resume.file_resume.url }}&embedded=true"
+                                    width="100%" height="350px"
+                                    style="border-radius:10px; border:1px solid #ddd;">
+                            </iframe>
+                        {% endif %}
+
+                    {% else %}
+                        <div class="text-muted text-center">
+                            Preview tidak tersedia
+                        </div>
+                    {% endif %}
+
+                    <a href="{{ resume.file_resume.url }}"
+                       target="_blank"
+                       class="btn btn-success w-100 mt-3 rounded-pill">
+                        Download Resume
+                    </a>
+
+                {% else %}
+                    <div class="text-muted text-center">
+                        File resume belum diupload
+                    </div>
+                {% endif %}
+
+            {% else %}
+                <div class="text-muted text-center">
+                    Mahasiswa belum upload resume
+                </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+<!-- ================= STATUS ================= -->
+<div class="mt-4">
+    <div class="card card-modern p-3">
+
+        <h6 class="mb-3">Status Pengajuan</h6>
+
+        <span class="badge 
+            {% if pengajuan.status == 'DISETUJUI' %}bg-success
+            {% elif pengajuan.status == 'DITOLAK' %}bg-danger
+            {% elif pengajuan.status == 'REVISI' %}bg-warning
+            {% else %}bg-secondary{% endif %}">
+            {{ pengajuan.status }}
+        </span>
+
+        {% if pengajuan.catatan_dosen %}
+            <div class="alert alert-warning mt-3">
+                <strong>Catatan Dosen:</strong><br>
+                {{ pengajuan.catatan_dosen }}
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+<!-- ================= BACK ================= -->
+<div class="mt-4">
+    <a href="{% url 'capstone_system:dosenpb_pengajuan' %}"
+       class="btn btn-secondary rounded-pill">
+        ← Kembali
+    </a>
+</div>
+
+{% endblock %}

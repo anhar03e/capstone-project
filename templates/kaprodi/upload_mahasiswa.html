@@ -1,0 +1,335 @@
+<!-- capstone_system/templates/kaprodi/upload_mahasiswa.html -->
+
+{% extends "dashboard/base_dashboard.html" %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white py-3">
+        <h5 class="mb-0">
+            <i class="bi bi-upload text-primary"></i> 
+            Upload Data Mahasiswa via Excel
+        </h5>
+    </div>
+    <div class="card-body">
+        
+        <!-- Alert Container untuk notifikasi -->
+        <div id="alertContainer"></div>
+        
+        <!-- Panduan Upload -->
+        <div class="alert alert-info">
+            <div class="d-flex align-items-start">
+                <i class="bi bi-info-circle fs-4 me-3"></i>
+                <div>
+                    <h6 class="mb-2">📋 Panduan Upload:</h6>
+                    <ol class="mb-0">
+                        <li><strong>Download template</strong> Excel terlebih dahulu</li>
+                        <li><strong>Isi data</strong> mahasiswa sesuai format (NIM, Nama, Kelas, Angkatan)</li>
+                        <li><strong>Upload file</strong> dengan format .xlsx atau .xls (maks 2MB)</li>
+                        <li><strong>Password default</strong> untuk mahasiswa adalah <code>NIM</code></li>
+                        <li><strong>Status default</strong> mahasiswa adalah <span class="badge bg-success">AKTIF</span></li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Download Template -->
+        <div class="mb-4">
+            <a href="{% url 'capstone_system:kaprodi_download_template' %}" 
+               class="btn btn-success">
+                <i class="bi bi-download"></i> Download Template Excel
+            </a>
+            <span class="text-muted ms-2">
+                <i class="bi bi-file-earmark-excel"></i> template_mahasiswa.xlsx
+            </span>
+        </div>
+        
+        <hr>
+        
+        <!-- Form Upload -->
+        <form id="uploadForm" 
+              action="{% url 'capstone_system:kaprodi_upload_mahasiswa_process' %}" 
+              method="POST" 
+              enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label for="fileInput" class="form-label fw-bold">
+                        <i class="bi bi-file-earmark-excel"></i> Pilih File Excel
+                    </label>
+                    <input type="file" 
+                           class="form-control form-control-lg" 
+                           id="fileInput" 
+                           name="file" 
+                           accept=".xlsx,.xls"
+                           required>
+                    <small class="text-muted">
+                        Format: .xlsx atau .xls | Maksimal 2MB
+                    </small>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary btn-lg w-100" id="submitBtn">
+                        <i class="bi bi-upload"></i> Upload
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mt-3">
+                <a href="{% url 'capstone_system:kaprodi_mahasiswa' %}" 
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Kembali ke Daftar Mahasiswa
+                </a>
+            </div>
+        </form>
+        
+        <!-- Progress Bar -->
+        <div id="progressContainer" style="display: none;" class="mt-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="progress" style="height: 30px;">
+                        <div id="progressBar" 
+                             class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: 0%; line-height: 30px; font-size: 14px; font-weight: bold;">
+                            0%
+                        </div>
+                    </div>
+                    <p id="statusText" class="mt-2 text-center text-muted mb-0">
+                        <i class="bi bi-hourglass-split"></i> Memproses data...
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Result Container -->
+        <div id="resultContainer" style="display: none;" class="mt-4"></div>
+        
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const uploadForm = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('fileInput');
+    const submitBtn = document.getElementById('submitBtn');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const statusText = document.getElementById('statusText');
+    const resultContainer = document.getElementById('resultContainer');
+    const alertContainer = document.getElementById('alertContainer');
+    
+    // Submit form via AJAX
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Reset
+        alertContainer.innerHTML = '';
+        resultContainer.style.display = 'none';
+        resultContainer.innerHTML = '';
+        progressBar.className = 'progress-bar progress-bar-striped progress-bar-animated';
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+        
+        const formData = new FormData(this);
+        
+        // Disable button
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Mengupload...';
+        
+        // Show progress
+        progressContainer.style.display = 'block';
+        statusText.innerHTML = '<i class="bi bi-hourglass-split"></i> Mengupload file...';
+        
+        // AJAX request
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                progressBar.style.width = percentComplete + '%';
+                progressBar.textContent = percentComplete + '%';
+                
+                if (percentComplete < 100) {
+                    statusText.innerHTML = `<i class="bi bi-hourglass-split"></i> Mengupload file... ${percentComplete}%`;
+                } else {
+                    statusText.innerHTML = '<i class="bi bi-hourglass-split"></i> Memproses data...';
+                }
+            }
+        });
+        
+        xhr.onload = function() {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-upload"></i> Upload';
+            
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    
+                    if (response.success) {
+                        // Success
+                        progressBar.style.width = '100%';
+                        progressBar.textContent = '100%';
+                        progressBar.className = 'progress-bar progress-bar-striped bg-success';
+                        statusText.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i> Upload berhasil!';
+                        
+                        // Show result
+                        let resultHtml = `
+                            <div class="alert alert-success">
+                                <h5><i class="bi bi-check-circle-fill"></i> ${response.message}</h5>
+                                <div class="row mt-3">
+                                    <div class="col-md-4">
+                                        <div class="border rounded p-2 text-center">
+                                            <small class="text-muted">Total Data</small>
+                                            <h5 class="mb-0">${response.data.total_rows}</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="border rounded p-2 text-center">
+                                            <small class="text-muted">Berhasil</small>
+                                            <h5 class="mb-0 text-success">${response.data.success_count}</h5>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="border rounded p-2 text-center">
+                                            <small class="text-muted">Gagal</small>
+                                            <h5 class="mb-0 text-danger">${response.data.errors ? response.data.errors.length : 0}</h5>
+                                        </div>
+                                    </div>
+                                </div>
+                        `;
+                        
+                        if (response.data.errors && response.data.errors.length > 0) {
+                            resultHtml += `
+                                <hr>
+                                <h6 class="text-warning"><i class="bi bi-exclamation-triangle-fill"></i> Gagal import (${response.data.errors.length}):</h6>
+                                <ul class="text-danger" style="max-height: 200px; overflow-y: auto;">
+                            `;
+                            response.data.errors.forEach(function(error) {
+                                resultHtml += `<li>${error}</li>`;
+                            });
+                            resultHtml += `</ul>`;
+                        }
+                        
+                        // Show imported data preview
+                        if (response.data.data && response.data.data.length > 0) {
+                            resultHtml += `
+                                <hr>
+                                <h6><i class="bi bi-list-ul"></i> Data berhasil diimport (${response.data.data.length}):</h6>
+                                <div style="max-height: 250px; overflow-y: auto;">
+                                    <table class="table table-sm table-bordered table-hover">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>NIM</th>
+                                                <th>Nama</th>
+                                                <th>Kelas</th>
+                                                <th>Angkatan</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                            `;
+                            response.data.data.forEach(function(item, index) {
+                                resultHtml += `
+                                    <tr>
+                                        <td>${index + 1}</td>
+                                        <td><code>${item.nim}</code></td>
+                                        <td>${item.nama}</td>
+                                        <td><span class="badge bg-primary">${item.kelas}</span></td>
+                                        <td><span class="badge bg-secondary">${item.angkatan}</span></td>
+                                    </tr>
+                                `;
+                            });
+                            resultHtml += `
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `;
+                        }
+                        
+                        resultHtml += `
+                                <hr>
+                                <a href="{% url 'capstone_system:kaprodi_mahasiswa' %}" class="btn btn-primary">
+                                    <i class="bi bi-list"></i> Lihat Data Mahasiswa
+                                </a>
+                                <button onclick="location.reload()" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-repeat"></i> Upload Lagi
+                                </button>
+                            </div>
+                        `;
+                        
+                        resultContainer.innerHTML = resultHtml;
+                        resultContainer.style.display = 'block';
+                        
+                        // Reset file input
+                        fileInput.value = '';
+                        
+                    } else {
+                        // Error from server
+                        progressBar.className = 'progress-bar progress-bar-striped bg-danger';
+                        statusText.innerHTML = `<i class="bi bi-exclamation-circle-fill text-danger"></i> ${response.message}`;
+                        
+                        alertContainer.innerHTML = `
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="bi bi-exclamation-circle-fill"></i> ${response.message}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        `;
+                    }
+                } catch (e) {
+                    alertContainer.innerHTML = `
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-circle-fill"></i> Terjadi kesalahan parsing response
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `;
+                }
+            } else {
+                // HTTP Error
+                progressBar.className = 'progress-bar progress-bar-striped bg-danger';
+                statusText.innerHTML = '<i class="bi bi-exclamation-circle-fill text-danger"></i> Terjadi kesalahan pada server';
+                
+                let errorMsg = 'Terjadi kesalahan saat mengupload file';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.message) {
+                        errorMsg = response.message;
+                    }
+                } catch (e) {}
+                
+                alertContainer.innerHTML = `
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-circle-fill"></i> ${errorMsg}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `;
+            }
+        };
+        
+        xhr.onerror = function() {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-upload"></i> Upload';
+            progressBar.className = 'progress-bar progress-bar-striped bg-danger';
+            statusText.innerHTML = '<i class="bi bi-exclamation-circle-fill text-danger"></i> Gagal terhubung ke server';
+            
+            alertContainer.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="bi bi-exclamation-circle-fill"></i> Gagal terhubung ke server. Periksa koneksi internet Anda.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        };
+        
+        xhr.open('POST', uploadForm.action);
+        xhr.send(formData);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,254 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Data Dosen{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+body{
+    background:#f5f7fb;
+}
+
+/* HEADER SIAKAD */
+.page-header{
+    background:linear-gradient(135deg,#0d6efd,#4f8cff);
+    color:white;
+    padding:24px;
+    border-radius:16px;
+    margin-bottom:20px;
+}
+
+/* CARD */
+.card-modern{
+    border:none;
+    border-radius:15px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+    background:#fff;
+}
+
+/* TABLE */
+.table-modern{
+    margin-bottom:0;
+}
+
+.table-modern thead{
+    background:#f8f9fa;
+}
+
+.table-modern th{
+    border:none;
+    font-weight:600;
+}
+
+.table-modern td{
+    vertical-align:middle;
+}
+
+/* AVATAR */
+.avatar{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:#0d6efd;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+}
+
+/* FILTER */
+.filter-box input,
+.filter-box select{
+    border-radius:10px;
+}
+
+/* BUTTON */
+.btn-modern{
+    border-radius:10px;
+}
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+    <h4 class="mb-1">Data Dosen </h4>
+    <div class="opacity-75">
+        Monitoring seluruh dosen yang terdaftar pada sistem
+    </div>
+</div>
+
+<!-- SUMMARY -->
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card card-modern p-3">
+            <small class="text-muted">Total Dosen</small>
+            <h3 class="mb-0 mt-2">{{ total_dosen }}</h3>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN CARD -->
+<div class="card card-modern">
+
+    <!-- HEADER -->
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <b>Daftar Dosen</b>
+
+        <a href="{% url 'capstone_system:tambah_dosen' %}"
+           class="btn btn-primary btn-modern">
+            <i class="bi bi-plus-circle"></i>
+            Tambah Dosen
+        </a>
+    </div>
+
+    <!-- FILTER -->
+    <div class="card-body filter-box">
+
+        <form method="get">
+            <div class="row g-2">
+
+                <div class="col-md-5">
+                    <input type="text"
+                           name="q"
+                           class="form-control"
+                           placeholder="Cari Nama / NIP..."
+                           value="{{ keyword }}">
+                </div>
+
+                <div class="col-md-4">
+                    <select name="status" class="form-select">
+                        <option value="">Semua Status</option>
+                        <option value="AKTIF" {% if status_filter == 'AKTIF' %}selected{% endif %}>
+                            Aktif
+                        </option>
+                        <option value="NONAKTIF" {% if status_filter == 'NONAKTIF' %}selected{% endif %}>
+                            Nonaktif
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <button class="btn btn-primary w-100 btn-modern">
+                        <i class="bi bi-search"></i>
+                        Filter
+                    </button>
+                </div>
+
+            </div>
+        </form>
+
+    </div>
+
+    <!-- TABLE -->
+    <div class="card-body p-0">
+
+        <div class="table-responsive">
+
+            <table class="table table-modern align-middle">
+
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Nama Dosen</th>
+                        <th>NIP</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                {% for dosen in dosen_list %}
+
+                    <tr>
+
+                        <td>{{ forloop.counter }}</td>
+
+                        <!-- NAMA -->
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="avatar">
+                                    {{ dosen.user.first_name|first|upper }}
+                                </div>
+                                <div>
+                                    <b>{{ dosen.user.get_full_name }}</b>
+                                </div>
+                            </div>
+                        </td>
+
+                        <td>{{ dosen.nip }}</td>
+
+                        <td>{{ dosen.user.email }}</td>
+
+                        <td>
+                            {% if dosen.status_aktif == "AKTIF" %}
+                                <span class="badge bg-success">Aktif</span>
+                            {% else %}
+                                <span class="badge bg-danger">Nonaktif</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="d-flex gap-1">
+
+                        <!-- Edit -->
+                        <a href="{% url 'capstone_system:edit_dosen' dosen.id %}"
+                        class="btn btn-sm btn-outline-warning"
+                        title="Edit">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+
+                        <!-- Aktif / Nonaktif -->
+                        {% if dosen.status_aktif == "AKTIF" %}
+                            <a href="{% url 'capstone_system:nonaktifkan_dosen' dosen.id %}"
+                            class="btn btn-sm btn-outline-danger"
+                            title="Nonaktifkan"
+                            onclick="return confirm('Nonaktifkan dosen ini?')">
+                                <i class="bi bi-lock"></i>
+                            </a>
+                        {% else %}
+                            <a href="{% url 'capstone_system:aktifkan_dosen' dosen.id %}"
+                            class="btn btn-sm btn-outline-success"
+                            title="Aktifkan"
+                            onclick="return confirm('Aktifkan kembali dosen ini?')">
+                                <i class="bi bi-unlock"></i>
+                            </a>
+                        {% endif %}
+
+                        <!-- Delete -->
+                        <a href="{% url 'capstone_system:hapus_dosen' dosen.id %}"
+                        class="btn btn-sm btn-outline-danger"
+                        title="Hapus"
+                        onclick="return confirm('Yakin ingin menghapus dosen ini? Data yang dihapus tidak dapat dikembalikan.')">
+                            <i class="bi bi-trash"></i>
+                        </a>
+
+                    </td>
+
+                    </tr>
+
+                {% empty %}
+
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            Belum ada data dosen
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

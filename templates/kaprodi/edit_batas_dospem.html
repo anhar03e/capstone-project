@@ -1,0 +1,199 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Edit Batas Dosen Pembimbing{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+
+body{
+    background:#f5f7fb;
+}
+
+/* HEADER */
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:22px;
+    border-radius:16px;
+    margin-bottom:25px;
+}
+
+/* CARD */
+.card-modern{
+    border:none;
+    border-radius:16px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+}
+
+/* FORM */
+.form-label{
+    font-weight:600;
+    color:#374151;
+}
+
+.form-control,
+.form-select{
+    border-radius:10px;
+    padding:10px 14px;
+}
+
+.info-box{
+    background:#f8fafc;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    padding:15px;
+}
+
+</style>
+
+<!-- HEADER -->
+
+<div class="page-header">
+
+    <h4 class="mb-1">
+        Edit Kuota Dosen Pembimbing
+    </h4>
+
+    <div>
+        Atur batas maksimum mahasiswa bimbingan.
+    </div>
+
+</div>
+
+<div class="card card-modern">
+
+    <div class="card-header bg-white">
+
+        <h5 class="mb-0 fw-bold">
+            <i class="bi bi-person-workspace me-2"></i>
+            Form Kuota Dosen Pembimbing
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            <div class="info-box mb-4">
+
+                <div class="row">
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Nama Dosen
+                        </label>
+
+                        <input
+                            type="text"
+                            class="form-control"
+                            value="{{ dospem.dosen.user.get_full_name }}"
+                            readonly>
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            NIP
+                        </label>
+
+                        <input
+                            type="text"
+                            class="form-control"
+                            value="{{ dospem.dosen.nip }}"
+                            readonly>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="row">
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Mahasiswa Saat Ini
+                    </label>
+
+                    <input
+                        type="text"
+                        class="form-control"
+                        value="{{ dospem.jumlah_bimbingan }}"
+                        readonly>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Batas Bimbingan
+                    </label>
+
+                    <input
+                        type="number"
+                        name="batas_bimbingan"
+                        class="form-control"
+                        min="{{ dospem.jumlah_bimbingan }}"
+                        value="{{ dospem.batas_bimbingan }}"
+                        required>
+
+                    <small class="text-muted">
+                        Minimal {{ dospem.jumlah_bimbingan }}
+                    </small>
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+                        Status
+                    </label>
+
+                    <input
+                        type="text"
+                        class="form-control"
+                        value="{{ dospem.status }}"
+                        readonly>
+
+                </div>
+
+            </div>
+
+            <hr>
+
+            <button
+                type="submit"
+                class="btn btn-primary rounded-pill">
+
+                <i class="bi bi-check-circle"></i>
+                Simpan Perubahan
+
+            </button>
+
+            <a
+                href="{% url 'capstone_system:kaprodi_dospem' %}"
+                class="btn btn-secondary rounded-pill">
+
+                <i class="bi bi-arrow-left"></i>
+                Kembali
+
+            </a>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

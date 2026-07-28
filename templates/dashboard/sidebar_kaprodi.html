@@ -1,0 +1,171 @@
+<div class="sidebar" id="sidebar">
+
+    <!-- ================= HEADER ================= -->
+    <div class="text-center mb-3 p-2">
+
+        <div class="fw-bold text-white fs-5">
+            <i class="bi bi-mortarboard-fill me-1"></i>
+            <span class="menu-text">Capstone</span>
+        </div>
+
+        <small class="menu-text text-white-50">
+            Kaprodi Portal
+        </small>
+
+        <!-- COLLAPSE -->
+        <div class="mt-3">
+            <button class="btn btn-sm btn-light text-primary d-none d-md-inline rounded-3"
+                    onclick="collapseSidebar()">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- ================= MENU ================= -->
+    <ul class="nav flex-column gap-1 px-2">
+
+        <li>
+            <a href="{% url 'capstone_system:kaprodi_home' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'kaprodi_home' %}active{% endif %}">
+                <i class="bi bi-grid-fill"></i>
+                <span class="menu-text">Dashboard</span>
+            </a>
+        </li>
+
+        <small class="text-white-50 px-2 mt-3 mb-2 menu-text fw-semibold">
+            MENU UTAMA
+        </small>
+
+        <li>
+            <a href="{% url 'capstone_system:kaprodi_mahasiswa' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'kaprodi_mahasiswa' %}active{% endif %}">
+                <i class="bi bi-mortarboard-fill"></i>
+                <span class="menu-text">Mahasiswa</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'capstone_system:kaprodi_upload_mahasiswa' %}">
+                <i class="bi bi-upload"></i> Upload Mahasiswa
+            </a>
+        </li>
+
+        <li>
+            <a href="{% url 'capstone_system:arsip_mahasiswa' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'arsip_mahasiswa' %}active{% endif %}">
+                <i class="bi bi-archive"></i>
+                <span class="menu-text">Arsip Mahasiswa</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="{% url 'capstone_system:kaprodi_dosen' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'kaprodi_dosen' %}active{% endif %}">
+                <i class="bi bi-person-badge-fill"></i>
+                <span class="menu-text">Dosen</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="{% url 'capstone_system:kaprodi_dospem' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'kaprodi_dospem' %}active{% endif %}">
+                <i class="bi bi-journal-check"></i>
+                <span class="menu-text">Dosen Pembimbing</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="{% url 'capstone_system:kaprodi_dosencp' %}"
+            class="nav-link {% if request.resolver_match.url_name == 'kaprodi_dosencp' %}active{% endif %}">
+                <i class="bi bi-person-workspace"></i>
+                <span class="menu-text">Dosen Capstone</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="{% url 'capstone_system:kaprodi_tim' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'kaprodi_tim' %}active{% endif %}">
+                <i class="bi bi-people-fill"></i>
+                <span class="menu-text">Tim</span>
+            </a>
+        </li>
+
+        <!-- <li>
+            <a href="{% url 'capstone_system:kaprodi_resume' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'kaprodi_resume' %}active{% endif %}">
+                <i class="bi bi-file-earmark-check-fill"></i>
+                <span class="menu-text">Resume</span>
+            </a>
+        </li> -->
+
+        <!-- <li>
+            <a href="{% url 'capstone_system:kaprodi_proposal' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'kaprodi_proposal' %}active{% endif %}">
+                <i class="bi bi-file-earmark-text-fill"></i>
+                <span class="menu-text">Proposal</span>
+            </a>
+        </li> -->
+
+        <li>
+            <a href="{% url 'capstone_system:kaprodi_pengajuan' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'kaprodi_pengajuan' %}active{% endif %}">
+                <i class="bi bi-envelope-paper-fill"></i>
+                <span class="menu-text">Pengajuan</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="{% url 'capstone_system:kaprodi_monitoring' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'kaprodi_monitoring' %}active{% endif %}">
+                <i class="bi bi-graph-up-arrow"></i>
+                <span class="menu-text">Monitoring</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="{% url 'capstone_system:kaprodi_laporan' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'kaprodi_laporan' %}active{% endif %}">
+                <i class="bi bi-file-bar-graph-fill"></i>
+                <span class="menu-text">Laporan</span>
+            </a>
+        </li>
+
+        <small class="text-white-50 px-2 mt-4 mb-2 menu-text fw-semibold">
+            AKUN
+        </small>
+
+        <li>
+            <a href="{% url 'capstone_system:kaprodi_profile' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'kaprodi_profile' %}active{% endif %}">
+                <i class="bi bi-person-circle"></i>
+                <span class="menu-text">Profil</span>
+            </a>
+        </li>
+
+    </ul>
+
+    <!-- ================= FOOTER ================= -->
+    <div class="mt-auto p-3 border-top border-light border-opacity-25">
+
+        <div class="text-center mb-3 menu-text">
+
+            <small class="text-white d-block fw-semibold">
+                {{ request.user.get_full_name }}
+            </small>
+
+            <small class="text-white-50">
+                Ketua Program Studi
+            </small>
+
+        </div>
+
+        <a href="{% url 'capstone_system:logout' %}"
+           class="btn btn-danger w-100 rounded-3 fw-semibold">
+            <i class="bi bi-box-arrow-right"></i>
+            <span class="menu-text">Logout</span>
+        </a>
+
+    </div>
+
+</div>

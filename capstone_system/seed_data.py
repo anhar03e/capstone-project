@@ -1,0 +1,322 @@
+from capstone_system.models import (
+    User, Mahasiswa, Dosen, DosenCP, DosenPembimbing
+)
+from django.db import transaction
+
+DEFAULT_PASSWORD = 'password123'
+
+# =========================
+# FUNGSI BANTU
+# =========================
+def split_name(full_name):
+    if not full_name:
+        return '', ''
+    full_name = full_name.strip()
+    parts = full_name.split()
+    if len(parts) > 1:
+        return parts[0], ' '.join(parts[1:])
+    return full_name, ''
+
+def get_kelas_angkatan(nim):
+    nim_int = int(nim)
+    if 236151001 <= nim_int <= 236151030:
+        return '5A', '2023'
+    elif 236151031 <= nim_int <= 236151060:
+        return '5B', '2023'
+    elif 236151061 <= nim_int <= 236151088:
+        return '5C', '2023'
+    elif 236151089 <= nim_int <= 236152018:
+        return '5D', '2023'
+    elif 236152019 <= nim_int <= 236152046:
+        return '5E', '2023'
+    return 'TI', '2023'
+
+# =========================
+# DATA MAHASISWA (VERTIKAL MURNI)
+# =========================
+
+# KELAS 5A
+data_5a = [
+    ('M. Zakki Nabilah', '236151001'),
+    ('Enriko Danu Raharja', '236151002'),
+    ('Cintania Annisa', '236151003'),
+    ('Muhammad Ramdhan', '236151004'),
+    ('Raihan Ramadhan', '236151005'),
+    ('Muhammad Yusuf Rachman', '236151006'),
+    ('Alvin Putra Pratama Siswanto', '236151007'),
+    ('Davi Boy Sandy', '236151008'),
+    ('Agus Hariyanto', '236151009'),
+    ('Ziddan Ilmy Nazzarin', '236151011'),
+    ('Sendy Ramadani', '236151012'),
+    ('Amanda Anastasya', '236151013'),
+    ('Muhammad Tsany Fulviansyah', '236151014'),
+    ('Muhammad Rizqi Ramadani', '236151015'),
+    ('Putri Syifa Nabilah', '236151016'),
+    ('Abdul Azis Ramadhani', '236151017'),
+    ('Putri Aprillia', '236151018'),
+    ('Rengga Saputra', '236151019'),
+    ('Muhammad Fikri Permana', '236151020'),
+    ('Novi Fitriana', '236151021'),
+    ('Rossa Yustika Sari', '236151022'),
+    ('M. Fachri Hardinata', '236151023'),
+    ('Nabina Nazwa Tuzahra', '236151024'),
+    ('Rusdianto', '236151025'),
+    ('Gairil Farhan', '236151026'),
+    ('Nazifah Butsainah', '236151027'),
+    ('Hery Ihsan Fadhilah', '236151028'),
+    ('Alvina Dwi Febriyanti', '236151029'),
+    ('Diky Prabowo', '236151030'),
+]
+
+# KELAS 5B
+data_5b = [
+    ('Allgiant ONeill Feltony Asywal', '226151051'),
+    ('Muhammad Riski Ferdiansyah', '226151052'),
+    ('Michael Viktor', '236151031'),
+    ('Dimas Alfareza', '236151032'),
+    ('Fajar Azani', '236151033'),
+    ('Ilham Nur Septiawan', '236151034'),
+    ('Febrian', '236151035'),
+    ('Syaiful', '236151036'),
+    ('Muhammad Rifqi Fayyadh', '236151037'),
+    ('Amin Fajarrun Muflikh', '236151038'),
+    ('Abdullah Farizi Manullang', '236151039'),
+    ('Wanda Nikolaus Ribu Ruing', '236151040'),
+    ('Aldino Tegar Zhahrolla', '236151041'),
+    ('Farid Al Mudzakir', '236151042'),
+    ('Muhammad Fadjar Merdeka', '236151043'),
+    ('Aulya Andrianti', '236151044'),
+    ('Rivaldi Nazar Fannisyam', '236151045'),
+    ('Aurelia Amanda', '236151046'),
+    ('Anatasya Dwi Rima Rechiyono', '236151047'),
+    ('Nur Nailah Fauziah', '236151048'),
+    ('Adli Faturahman', '236151049'),
+    ('Obrey Jemiapayo Tarigan', '236151050'),
+    ('Citra Amanda Devita', '236151051'),
+    ('Akhmad Ziqri Ibnu Fauzan', '236151052'),
+    ('Afrizan Maulana Rymantono', '236151053'),
+    ('Delima Gultom', '236151054'),
+    ('Wahyu Mukti', '236151055'),
+    ('Rio Septianto', '236151056'),
+    ('Muhammad Farid Rany', '236151057'),
+    ('Vivid Ockta Hasiana Tumanggor', '236151058'),
+    ('Toni Firdaus', '236151059'),
+    ('Salsa Apriana Dwi Putri', '236151060'),
+]
+
+# KELAS 5C
+data_5c = [
+    ('Gusti Alta Pradana', '236151061'),
+    ('Metta Septiani Dharmawan Soesilo', '236151062'),
+    ('Muhammad Seftianur', '236151063'),
+    ('Ajid Haqi Rahmani', '236151064'),
+    ('Welly Setia Rahman', '236151065'),
+    ('M.Rajib', '236151066'),
+    ('Raihan Akbar Syaibani', '236151067'),
+    ('Muh.Yudi Setiawan', '236151068'),
+    ('M. Rizky Arisandy', '236151069'),
+    ('Shofi Zulfatur Riski', '236151070'),
+    ('Muhammad Rian', '236151071'),
+    ('Santika Thaymbola', '236151072'),
+    ('Muhammad Ridwan Aris', '236151073'),
+    ('Adriansyah Amir', '236151074'),
+    ('Hafiz', '236151075'),
+    ('Popi Hidayah', '236151076'),
+    ('Delviano Sari Bunna', '236151077'),
+    ('Desy Mawarti', '236151078'),
+    ('Gian Inggit Juniarsono', '236151079'),
+    ('Septhia Sufendi', '236151080'),
+    ('Mohammad Ozy', '236151081'),
+    ('Muhammad Roja Nur Ramadhan', '236151082'),
+    ('Ilham Mukti', '236151083'),
+    ('Junaidi', '236151084'),
+    ('Muhammad Reza Ramadhan', '236151085'),
+    ('Achmad Affandi', '236151086'),
+    ('Muhammad Faiz Rahman', '236151087'),
+    ('Mahpudin', '236151088'),
+]
+
+# KELAS 5D
+data_5d = [
+    ('Adam Refaldi', '236151089'),
+    ('Abdul Mughni', '236151090'),
+    ('Gusty Erlana Aldiansyah', '236151091'),
+    ('Inaya Smoi Kusuma', '236151092'),
+    ('Arya Putra Pradana', '236151093'),
+    ('Muhammad Zidhan Nur Fauzi', '236151094'),
+    ('Fitria Eky Wulandari', '236151095'),
+    ('Rizkiansyah', '236151096'),
+    ('Pretty N Simanjuntak', '236151097'),
+    ('Editya Nur Pratama', '236151098'),
+    ('Indah', '236151099'),
+    ('Lina', '236151100'),
+    ('Muhammad Fahlevy Miasya Rangkuti', '236152001'),
+    ('Ariella Elsa Nabila', '236152002'),
+    ('Abdul Wahab Syahranie', '236152003'),
+    ('Erwin Dwi Wahyudi', '236152004'),
+    ('Sri Evandayani', '236152005'),
+    ('M Dai Bahtiar', '236152006'),
+    ('Muhammad Setiady Saputra', '236152007'),
+    ('Ade Nugraha', '236152008'),
+    ('Laode Nur Nayanda', '236152009'),
+    ('Agis Adityo Vangka', '236152010'),
+    ('Dedi Hidayanto', '236152011'),
+    ('Muhammad Hamdan Rusli', '236152012'),
+    ('Muhammad Syaifullah', '236152013'),
+    ('Helsiani Patola', '236152014'),
+    ('Dhimas Kevin Putera Ar Roofi', '236152015'),
+    ('Mulyana Eka Sapitri', '236152016'),
+    ('Rasyid Sudiro', '236152017'),
+    ('Muhammad Rasyid', '236152018'),
+]
+
+# KELAS 5E
+data_5e = [
+    ('Yudistari', '236152019'),
+    ('Immanuel Bagas Tri Pamungkas', '236152020'),
+    ('Anhar', '236152021'),
+    ('Rendy Jonathan Aritonang', '236152022'),
+    ('Mohammad Fajar Musyafak', '236152023'),
+    ('Muhammad Mayzaq Maulana Ibrahim', '236152024'),
+    ('Dika Ridho Fahlevi', '236152025'),
+    ('Andika Handy Nugroho', '236152026'),
+    ('Abdul Rano Aldinno Paputungan', '236152027'),
+    ('Divink Gigatus Utomo', '236152028'),
+    ('Elang Densa Air Langga', '236152029'),
+    ('Dela Syahrah Maulida', '236152030'),
+    ('Nur Aini', '236152031'),
+    ('William Facry', '236152032'),
+    ('Hanifian Firdaussesa', '236152033'),
+    ('M Rifky Ichwan', '236152034'),
+    ('Apriyadi Putra Mingkala', '236152035'),
+    ('Ridho Miftahul Huda', '236152036'),
+    ('Nazar Anugrah Rachmaddani', '236152037'),
+    ('Muhammad Alvin Oktafianda', '236152038'),
+    ('Brilian Satria Pamungkas', '236152039'),
+    ('Angga Dwi Prastyo', '236152040'),
+    ('Andara Nalasari', '236152041'),
+    ('Candra Ramadani', '236152042'),
+    ('Tiar Al Farizi Yanwar', '236152043'),
+    ('Jelita Zhaqila Rahman', '236152044'),
+    ('Mohammad Ilham Arifin', '236152045'),
+    ('Febrian Exelsis Mongi', '236152046'),
+]
+
+mahasiswa_data = data_5a + data_5b + data_5c + data_5d + data_5e
+
+# =========================
+# DATA DOSEN (VERTIKAL MURNI)
+# =========================
+dosen_data = [
+    ('199609262024061003', 'Aam Shodiqul Munir M.Kom', 'KAPRODI', 'Pengolahan Citra Digital', False, True),
+    ('196910231998021001', 'Achmad Fanany Onnilita Gaffar ST MT', 'DOSENCP', 'Kecerdasan Buatan', False, True),
+    ('198003222002122001', 'Asrina Astagani ST MT', 'DOSENPB', 'Statistik Probabilistik', False, True),
+    ('197812102002122011', 'Bedi Suprapty S.Kom M.Kom', 'DOSENPB', 'Pemrograman Tingkat Lanjut', False, True),
+    ('199409292024061001', 'Fajerin Biabdillah M.Kom', 'DOSENCP', 'Mobile Computing', True, True),
+    ('199011122024062001', 'Fransisca Angelia Sebayang M.Kom', 'DOSENCP', 'Administrasi Basis Data', True, True),
+    ('199508112024061001', 'Muhammad Taufiq Sumadi M.Tr.Kom', 'DOSENCP', 'Struktur Data', True, True),
+    ('197502132008011007', 'Mulyanto S.Kom M.Cs', 'DOSENPB', 'Pemodelan Dan Simulasi', False, True),
+    ('197808232003121001', 'Rheo Malani S.Kom M.Kom', 'DOSENPB', 'K3', False, True),
+]
+
+# =========================
+# INSERT DATA
+# =========================
+def insert_data():
+    with transaction.atomic():
+        print(f"=== INSERT {len(mahasiswa_data)} MAHASISWA ===")
+
+        for nama, nim in mahasiswa_data:
+            kelas, angkatan = get_kelas_angkatan(nim)
+            first, last = split_name(nama)
+
+            user, created = User.objects.get_or_create(
+                username=nim,
+                defaults={
+                    'first_name': first,
+                    'last_name': last,
+                    'email': f'{nim}@polnes.ac.id',
+                    'role': 'MAHASISWA',
+                    'is_active': True
+                }
+            )
+
+            if created:
+                user.set_password(DEFAULT_PASSWORD)
+
+            # Sinkronkan data user
+            user.first_name = first
+            user.last_name = last
+            user.email = f'{nim}@polnes.ac.id'
+            user.role = 'MAHASISWA'
+            user.is_active = True
+            user.save()
+
+            Mahasiswa.objects.get_or_create(
+                user=user,
+                defaults={
+                    'nim': nim,
+                    'kelas': kelas,
+                    'angkatan': angkatan
+                }
+            )
+
+        print(f"=== INSERT {len(dosen_data)} DOSEN ===")
+
+        for nip, nama, role, bidang, cp, pb in dosen_data:
+            first, last = split_name(nama)
+
+            user, created = User.objects.get_or_create(
+                username=nip,
+                defaults={
+                    'first_name': first,
+                    'last_name': last,
+                    'email': f'{nip}@polnes.ac.id',
+                    'role': role,
+                    'is_active': True
+                }
+            )
+
+            if created:
+                user.set_password(DEFAULT_PASSWORD)
+
+            # Sinkronkan data user
+            user.first_name = first
+            user.last_name = last
+            user.email = f'{nip}@polnes.ac.id'
+            user.role = role
+            user.is_active = True
+            user.save()
+
+            dosen, _ = Dosen.objects.get_or_create(
+                user=user,
+                defaults={
+                    'nip': nip,
+                    'bidang_keahlian': bidang,
+                    'status_aktif': True
+                }
+            )
+
+            # Sinkronkan data dosen
+            dosen.nip = nip
+            dosen.bidang_keahlian = bidang
+            dosen.status_aktif = True
+            dosen.save()
+
+            # =========================
+            # Dosen Capstone (CP)
+            # =========================
+            if cp:
+                DosenCP.objects.get_or_create(dosen=dosen)
+            else:
+                DosenCP.objects.filter(dosen=dosen).delete()
+
+            # =========================
+            # Dosen Pembimbing (PB)
+            # =========================
+            if pb:
+                DosenPembimbing.objects.get_or_create(dosen=dosen)
+            else:
+                DosenPembimbing.objects.filter(dosen=dosen).delete()
+
+        print("✅ SELESAI SEMUA DATA")

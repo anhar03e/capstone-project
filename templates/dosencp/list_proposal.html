@@ -1,0 +1,201 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Review Proposal{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_dosencp.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+/* ================= PAGE BACKGROUND ================= */
+body {
+    background: #f4f7fc;
+}
+
+/* ================= HEADER (SIKAD BLUE) ================= */
+.page-header {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    padding: 18px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px rgba(37,99,235,0.2);
+}
+
+/* ================= CARD ================= */
+.card-modern {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.06);
+    overflow: hidden;
+    background: #fff;
+}
+
+/* ================= TABLE ================= */
+.table th {
+    font-size: 13px;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+/* ================= BADGE ================= */
+.badge-status{
+    display:inline-block;
+    padding:7px 16px;
+    border-radius:50px;
+    font-size:13px;
+    font-weight:600;
+    min-width:110px;
+    text-align:center;
+}
+
+/* Belum Review */
+.badge-pending{
+    background:#e7f1ff;
+    color:#0d6efd;
+}
+
+/* Diterima */
+.badge-diterima{
+    background:#198754;
+    color:#fff;
+}
+
+/* Revisi */
+.badge-revisi{
+    background:#fff3cd;
+    color:#b45309;
+}
+
+/* Ditolak */
+.badge-ditolak{
+    background:#dc3545;
+    color:#fff;
+}
+
+/* ================= BUTTON ================= */
+.btn-detail {
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+}
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+    <h4 class="mb-1">Daftar Proposal Capstone</h4>
+    <small>Review proposal mahasiswa</small>
+</div>
+
+<!-- TABLE -->
+<div class="card card-modern">
+    <div class="table-responsive">
+
+        <table class="table mb-0">
+
+            <thead>
+                <tr>
+                    <th>Judul</th>
+                    <th>Tim</th>
+                    <th>Status CP</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+
+           <tbody>
+
+            {% for proposal in proposals %}
+
+            <tr>
+
+                <!-- Judul -->
+                <td class="fw-semibold">
+                    {{ proposal.judul }}
+                </td>
+
+                <!-- Tim -->
+                <td>
+                    {% if proposal.tim %}
+                        {{ proposal.tim.nama_tim }}
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+
+                <!-- Status CP -->
+                <td>
+
+                    {% if proposal.status_cp == "BELUM_REVIEW" %}
+
+                        <span class="badge-status badge-pending">
+                            Belum Review
+                        </span>
+
+                    {% elif proposal.status_cp == "SEDANG_REVIEW" %}
+
+                        <span class="badge-status badge-pending">
+                            Sedang Review
+                        </span>
+
+                    {% elif proposal.status_cp == "DITERIMA" %}
+
+                        <span class="badge-status badge-diterima">
+                            Diterima
+                        </span>
+
+                    {% elif proposal.status_cp == "REVISI" %}
+
+                        <span class="badge-status badge-revisi">
+                            Revisi
+                        </span>
+
+                    {% elif proposal.status_cp == "DITOLAK" %}
+
+                        <span class="badge-status badge-ditolak">
+                            Ditolak
+                        </span>
+
+                    {% else %}
+
+                        <span class="badge-status badge-pending">
+                            Belum Review
+                        </span>
+
+                    {% endif %}
+
+                </td>
+
+                <!-- Aksi -->
+                <td>
+                    <a href="{% url 'capstone_system:dosencp_detail_proposal' proposal.id %}"
+                    class="btn btn-outline-primary btn-detail">
+                        Detail
+                    </a>
+                </td>
+
+            </tr>
+
+            {% empty %}
+
+            <tr>
+                <td colspan="4" class="text-center text-muted py-4">
+                    Belum ada proposal
+                </td>
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+        </table>
+
+    </div>
+</div>
+
+{% endblock %}

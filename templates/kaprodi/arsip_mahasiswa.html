@@ -1,0 +1,493 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Arsip Mahasiswa{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+body{
+    background:#f5f7fb;
+}
+
+/* HEADER SIAKAD STYLE */
+.page-header{
+    background:linear-gradient(135deg,#0d6efd,#4f8cff);
+    color:white;
+    padding:24px;
+    border-radius:16px;
+    margin-bottom:20px;
+}
+
+/* CARD SIAKAD */
+.card-modern{
+    border:none;
+    border-radius:15px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+    background:#fff;
+}
+
+/* TABLE */
+.table-modern{
+    margin-bottom:0;
+}
+
+.table-modern thead{
+    background:#f8f9fa;
+}
+
+.table-modern th{
+    border:none;
+    font-weight:600;
+}
+
+.table-modern td{
+    vertical-align:middle;
+}
+
+/* AVATAR */
+.avatar{
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:#0d6efd;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+}
+
+/* FILTER BOX */
+.filter-box input{
+    border-radius:10px;
+}
+
+.filter-box button{
+    border-radius:10px;
+}
+
+/* ACTION BAR ARSIP */
+.action-bar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:15px 20px;
+    border-bottom:1px solid #eee;
+    flex-wrap:wrap;
+    gap:10px;
+}
+
+/* BUTTON ACTION */
+.btn-action{
+    border-radius:10px;
+    padding:8px 20px;
+}
+
+/* STATUS ARSIP */
+.badge-arsip{
+    background:#6c757d;
+    color:white;
+    padding:6px 12px;
+    border-radius:20px;
+    font-size:12px;
+}
+
+/* CHECKBOX */
+.form-check-input{
+    cursor:pointer;
+    width:18px;
+    height:18px;
+}
+
+/* ANIMASI BUTTON */
+.btn-success:hover{
+    transform:scale(1.02);
+    transition:all 0.2s;
+}
+
+/* STAT CARD */
+.stat-card{
+    padding:20px;
+}
+
+.stat-card small{
+    color:#6c757d;
+    display:block;
+}
+
+.stat-card h3{
+    margin-top:8px;
+    margin-bottom:0;
+    font-weight:700;
+    color:#0d6efd;
+}
+
+/* BADGE COUNT */
+.badge-count{
+    background:#e9ecef;
+    color:#495057;
+    padding:4px 12px;
+    border-radius:20px;
+    font-size:13px;
+}
+
+/* SELECTED COUNT */
+.selected-count{
+    color:#0d6efd;
+    font-weight:600;
+}
+
+/* RESPONSIVE */
+@media (max-width:768px){
+    .action-bar{
+        flex-direction:column;
+        align-items:stretch;
+    }
+    .action-bar .btn-group{
+        flex-wrap:wrap;
+    }
+}
+</style>
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+    <h4 class="mb-1">
+        <i class="bi bi-archive"></i> Arsip Mahasiswa
+    </h4>
+    <div class="opacity-75">
+        Data mahasiswa yang sudah diarsipkan oleh sistem
+    </div>
+</div>
+
+<!-- ================= STATISTIK ================= -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card card-modern stat-card">
+            <small><i class="bi bi-archive"></i> Total Arsip Mahasiswa</small>
+            <h3>{{ total_arsip }}</h3>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-modern stat-card">
+            <small><i class="bi bi-clock-history"></i> Periode Arsip</small>
+            <h6 class="mt-2 text-muted">Semua Angkatan</h6>
+        </div>
+    </div>
+</div>
+
+<!-- ================= MAIN CARD ================= -->
+<div class="card card-modern">
+
+    <!-- ============ FILTER ============ -->
+    <div class="card-body filter-box border-bottom">
+
+        <form method="get">
+            <div class="row g-2">
+
+                <div class="col-md-9">
+                    <input type="text"
+                           name="q"
+                           class="form-control"
+                           placeholder="Cari Nama / NIM..."
+                           value="{{ keyword }}">
+                </div>
+
+                <div class="col-md-3">
+                    <button class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                </div>
+
+            </div>
+        </form>
+
+    </div>
+
+    <!-- ============ ACTION BAR ============ -->
+    <div class="action-bar">
+
+        <div class="d-flex align-items-center gap-3">
+            <span class="badge-count">
+                <i class="bi bi-people"></i> {{ mahasiswa_list|length }} Mahasiswa
+            </span>
+            <span class="selected-count" id="selectedCount">
+                <i class="bi bi-check-circle"></i> Terpilih: <span id="selectedCountNumber">0</span>
+            </span>
+        </div>
+
+        <div class="btn-group" role="group">
+
+            <!-- Tombol Kembalikan Semua (yang dipilih) -->
+            <button type="button"
+                    class="btn btn-success btn-action"
+                    id="btnKembalikanSemua"
+                    onclick="kembalikanSemua()"
+                    disabled>
+                <i class="bi bi-arrow-counterclockwise"></i> Kembalikan Semua
+            </button>
+
+            <!-- Tombol Refresh -->
+            <a href="{% url 'capstone_system:arsip_mahasiswa' %}"
+               class="btn btn-outline-secondary btn-action">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </a>
+
+            <!-- Tombol Kembali ke Daftar Mahasiswa -->
+            <a href="{% url 'capstone_system:kaprodi_mahasiswa' %}"
+               class="btn btn-outline-primary btn-action">
+                <i class="bi bi-list"></i> Daftar Mahasiswa
+            </a>
+
+        </div>
+
+    </div>
+
+    <!-- ============ TABLE ============ -->
+    <div class="card-body p-0">
+
+        <form id="formKembalikanArsip"
+              method="POST"
+              action="{% url 'capstone_system:kembalikan_semua_arsip' %}">
+
+            {% csrf_token %}
+
+            <div class="table-responsive">
+
+                <table class="table table-modern align-middle">
+
+                    <thead>
+                        <tr>
+                            <th width="50" class="text-center">
+                                <input type="checkbox"
+                                       id="checkAll"
+                                       class="form-check-input"
+                                       onchange="toggleAllCheckbox(this)">
+                            </th>
+                            <th>No</th>
+                            <th>Mahasiswa</th>
+                            <th>NIM</th>
+                            <th>Angkatan</th>
+                            <th>Email</th>
+                            <th>Dosen Pembimbing</th>
+                            <th>Status</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for mhs in mahasiswa_list %}
+
+                        <tr>
+                            <td class="text-center">
+                                <input type="checkbox"
+                                       class="form-check-input check-item"
+                                       name="mahasiswa_ids"
+                                       value="{{ mhs.id }}"
+                                       onchange="updateSelectedCount()">
+                            </td>
+
+                            <td>{{ forloop.counter }}</td>
+
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar">
+                                        {{ mhs.user.first_name|first|upper }}
+                                    </div>
+                                    <div>
+                                        <b>{{ mhs.user.get_full_name }}</b>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td>{{ mhs.nim }}</td>
+
+                            <td>{{ mhs.angkatan }}</td>
+
+                            <td>{{ mhs.user.email }}</td>
+
+                            <td>
+                                {% if mhs.dosen_pembimbing %}
+                                    {{ mhs.dosen_pembimbing }}
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        Belum Dipilih
+                                    </span>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-archive"></i> ARSIP
+                                </span>
+                            </td>
+
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+
+                                    <!-- Tombol Detail -->
+                                    <a href="{% url 'capstone_system:detail_mahasiswa' mhs.id %}"
+                                       class="btn btn-sm btn-outline-primary"
+                                       title="Detail">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+
+                                    <!-- 🔥 TOMBOL EDIT DENGAN NEXT -->
+                                    <a href="{% url 'capstone_system:edit_mahasiswa' mhs.id %}?next={{ request.path }}"
+                                       class="btn btn-sm btn-outline-warning"
+                                       title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+
+                                    <!-- Tombol Kembalikan (SATU) -->
+                                    <a href="{% url 'capstone_system:kembalikan_dari_arsip' mhs.id %}"
+                                       class="btn btn-sm btn-outline-success"
+                                       onclick="return confirm('Kembalikan {{ mhs.user.get_full_name }} dari arsip?')"
+                                       title="Kembalikan dari Arsip">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                    </a>
+
+                                </div>
+                            </td>
+
+                        </tr>
+
+                        {% empty %}
+
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                                <h5>Belum ada data arsip mahasiswa</h5>
+                                <small>Tidak ada mahasiswa yang diarsipkan</small>
+                            </td>
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </form>
+
+    </div>
+
+    <!-- ============ FOOTER ============ -->
+    <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center">
+        <small class="text-muted">
+            <i class="bi bi-info-circle"></i>
+            Centang mahasiswa yang ingin dikembalikan, lalu klik "Kembalikan Semua"
+        </small>
+        <span class="text-muted">
+            Total: <b>{{ mahasiswa_list|length }}</b> data
+        </span>
+    </div>
+
+</div>
+
+<!-- ================= JAVASCRIPT ================= -->
+<script>
+// =========================================================
+// TOGGLE ALL CHECKBOX
+// =========================================================
+function toggleAllCheckbox(master) {
+    const checkboxes = document.querySelectorAll('.check-item');
+    checkboxes.forEach(cb => {
+        cb.checked = master.checked;
+    });
+    updateSelectedCount();
+}
+
+// =========================================================
+// UPDATE SELECTED COUNT
+// =========================================================
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.check-item:checked');
+    const count = checkboxes.length;
+    document.getElementById('selectedCountNumber').textContent = count;
+    
+    // Enable/disable tombol Kembalikan Semua
+    const btnKembalikan = document.getElementById('btnKembalikanSemua');
+    if (count > 0) {
+        btnKembalikan.disabled = false;
+        btnKembalikan.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i> Kembalikan ' + count + ' Mahasiswa';
+    } else {
+        btnKembalikan.disabled = true;
+        btnKembalikan.innerHTML = '<i class="bi bi-arrow-counterclockwise"></i> Kembalikan Semua';
+    }
+    
+    // Update status checkbox master
+    const master = document.getElementById('checkAll');
+    const total = document.querySelectorAll('.check-item').length;
+    if (total > 0 && count === total) {
+        master.checked = true;
+        master.indeterminate = false;
+    } else if (count > 0 && count < total) {
+        master.checked = false;
+        master.indeterminate = true;
+    } else {
+        master.checked = false;
+        master.indeterminate = false;
+    }
+}
+
+// =========================================================
+// KEMBALIKAN SEMUA (FUNGSI UTAMA)
+// =========================================================
+function kembalikanSemua() {
+    const checkboxes = document.querySelectorAll('.check-item:checked');
+    
+    if (checkboxes.length === 0) {
+        alert('Pilih minimal satu mahasiswa terlebih dahulu!');
+        return;
+    }
+    
+    const count = checkboxes.length;
+    const confirmMessage = count + ' mahasiswa akan dikembalikan dari arsip. Lanjutkan?';
+    
+    if (confirm(confirmMessage)) {
+        document.getElementById('formKembalikanArsip').submit();
+    }
+}
+
+// =========================================================
+// INISIALISASI (SAAT LOAD)
+// =========================================================
+document.addEventListener('DOMContentLoaded', function() {
+    updateSelectedCount();
+});
+
+// =========================================================
+// KEYBOARD SHORTCUT: Ctrl+A untuk select all
+// =========================================================
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'a') {
+        const target = e.target;
+        // Hanya jika tidak sedang fokus di input
+        if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            const master = document.getElementById('checkAll');
+            master.checked = !master.checked;
+            toggleAllCheckbox(master);
+        }
+    }
+});
+
+// =========================================================
+// AUTO-SUBMIT DENGAN ENTER DI FILTER
+// =========================================================
+document.querySelector('.filter-box input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        this.closest('form').submit();
+    }
+});
+</script>
+
+{% endblock %}

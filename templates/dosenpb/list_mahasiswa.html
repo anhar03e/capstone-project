@@ -1,0 +1,176 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Mahasiswa Bimbingan{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_dosenpb.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+
+/* ================= HEADER ================= */
+.page-header{
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    padding: 20px;
+    border-radius: 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px rgba(37,99,235,0.2);
+}
+
+/* ================= CARD ================= */
+.card-modern{
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    transition: .2s;
+    background: #fff;
+}
+
+.card-modern:hover{
+    transform: translateY(-3px);
+}
+
+/* ================= ICON ================= */
+.icon-box{
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+/* ================= TEXT ================= */
+.text-muted{
+    font-size: 13px;
+    color: #6b7280 !important;
+}
+
+/* ================= SEARCH ================= */
+.form-control{
+    border-radius: 12px;
+    min-height: 44px;
+    box-shadow: none !important;
+}
+
+/* ================= BADGE ================= */
+.badge{
+    border-radius: 8px;
+    padding: 6px 10px;
+}
+
+</style>
+
+<!-- HEADER -->
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+    <div>
+        <h4 class="mb-1">Mahasiswa Bimbingan</h4>
+        <small>Daftar mahasiswa yang Anda bimbing</small>
+    </div>
+
+    <div>
+        <span class="badge bg-light text-dark">
+            Total: {{ mahasiswa_list|length }}
+        </span>
+    </div>
+
+</div>
+
+<!-- SEARCH -->
+<form method="get" class="mb-3">
+    <input type="text"
+           id="searchInput"
+           name="q"
+           value="{{ query|default:'' }}"
+           class="form-control"
+           placeholder="Cari mahasiswa (NIM / Nama / Kelas)...">
+</form>
+
+<!-- LIST -->
+<div class="row g-3" id="mahasiswaContainer">
+
+    {% for mahasiswa in mahasiswa_list %}
+    <div class="col-12 col-md-6 col-lg-4 mahasiswa-item">
+
+        <div class="card card-modern p-3 h-100">
+
+            <!-- TOP -->
+            <div class="d-flex align-items-center mb-3">
+
+                <div class="icon-box bg-primary text-white me-3">
+                    <i class="bi bi-person"></i>
+                </div>
+
+                <div>
+
+                    <div class="fw-semibold nama">
+                        {{ mahasiswa.user.get_full_name }}
+                    </div>
+
+                    <small class="text-muted nim">
+                        {{ mahasiswa.nim }}
+                    </small>
+
+                </div>
+
+            </div>
+
+            <!-- INFO -->
+            <div class="mb-2">
+                <small class="text-muted">Kelas</small>
+                <div class="fw-semibold kelas">
+                    {{ mahasiswa.kelas }}
+                </div>
+            </div>
+
+            <!-- ACTION -->
+            <a href="{% url 'capstone_system:dosenpb_detail_mahasiswa' mahasiswa.id %}"
+               class="btn btn-primary w-100 rounded-pill">
+                Lihat Detail
+            </a>
+
+        </div>
+
+    </div>
+
+    {% empty %}
+    <div class="col-12">
+        <div class="card card-modern p-4 text-center">
+            <i class="bi bi-emoji-frown fs-1 text-muted mb-2"></i>
+            <div class="text-muted">Belum ada mahasiswa bimbingan</div>
+        </div>
+    </div>
+    {% endfor %}
+
+</div>
+
+<!-- SEARCH SCRIPT -->
+<script>
+document.getElementById("searchInput").addEventListener("keyup", function() {
+
+    let value = this.value.toLowerCase();
+    let items = document.querySelectorAll(".mahasiswa-item");
+
+    items.forEach(item => {
+
+        let nama = item.querySelector(".nama").textContent.toLowerCase();
+        let nim = item.querySelector(".nim").textContent.toLowerCase();
+        let kelas = item.querySelector(".kelas").textContent.toLowerCase();
+
+        if (nama.includes(value) || nim.includes(value) || kelas.includes(value)) {
+            item.style.display = "";
+        } else {
+            item.style.display = "none";
+        }
+
+    });
+
+});
+</script>
+
+{% endblock %}

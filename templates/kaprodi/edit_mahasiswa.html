@@ -1,0 +1,166 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Edit Mahasiswa{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+body{
+    background:#f5f7fb;
+}
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:22px;
+    border-radius:16px;
+    margin-bottom:25px;
+}
+.card-modern{
+    border:none;
+    border-radius:16px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+}
+.form-label{
+    font-weight:600;
+    color:#374151;
+}
+.form-control,
+.form-select{
+    border-radius:10px;
+    padding:10px 14px;
+    border:1px solid #d1d5db;
+}
+.form-control:focus,
+.form-select:focus{
+    border-color:#2563eb;
+    box-shadow:0 0 0 .2rem rgba(37,99,235,.15);
+}
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-1">Edit Mahasiswa 🎓</h4>
+            <div>Perbarui informasi data mahasiswa</div>
+        </div>
+    </div>
+</div>
+
+<!-- CARD -->
+<div class="card card-modern">
+    <div class="card-header bg-white">
+        <h5 class="mb-0 fw-bold">
+            <i class="bi bi-person-lines-fill me-2"></i>
+            Form Edit Mahasiswa
+        </h5>
+    </div>
+    <div class="card-body">
+
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- 🔥 HIDDEN INPUT UNTUK NEXT URL -->
+            <input type="hidden" name="next" value="{{ next_url|default:'' }}">
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nama Lengkap</label>
+                    <input type="text" name="nama" class="form-control"
+                           value="{{ mahasiswa.user.first_name }}" required>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control"
+                           value="{{ mahasiswa.user.email }}" required>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">NIM</label>
+                    <input type="text" name="nim" class="form-control"
+                           value="{{ mahasiswa.nim }}" required>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Kelas</label>
+                    <input type="text" name="kelas" class="form-control"
+                           value="{{ mahasiswa.kelas }}" required>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Angkatan</label>
+                    <input type="text" name="angkatan" class="form-control"
+                           value="{{ mahasiswa.angkatan }}" required>
+                </div>
+
+                <!-- 🔥 KATEGORI - BISA DIUBAH OLEH KAPRODI -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Kategori</label>
+                    <select name="kategori" class="form-select">
+                        <option value="">-- Pilih Kategori --</option>
+                        <option value="EPD" 
+                            {% if mahasiswa.kategori_tim == "EPD" or mahasiswa.kategori == "EPD" %}selected{% endif %}>
+                            EPD
+                        </option>
+                        <option value="SM" 
+                            {% if mahasiswa.kategori_tim == "SM" or mahasiswa.kategori == "SM" %}selected{% endif %}>
+                            SM
+                        </option>
+                    </select>
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i> 
+                        {% if mahasiswa.kategori_tim %}
+                            Kategori saat ini: <strong>{{ mahasiswa.kategori_tim }}</strong> (dari tim)
+                        {% else %}
+                            Kategori diambil dari tim yang diikuti
+                        {% endif %}
+                    </small>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Status Mahasiswa</label>
+                    <select name="status" class="form-select">
+                        <option value="AKTIF" {% if mahasiswa.status == "AKTIF" %}selected{% endif %}>Aktif</option>
+                        <option value="NONAKTIF" {% if mahasiswa.status == "NONAKTIF" %}selected{% endif %}>Nonaktif</option>
+                        <option value="ARSIP" {% if mahasiswa.status == "ARSIP" %}selected{% endif %}>Arsip</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Dosen Pembimbing</label>
+                    <select name="dosen_pembimbing" class="form-select">
+                        <option value="">Belum Ada Pembimbing</option>
+                        {% for dospem in dospem_list %}
+                        <option value="{{ dospem.id }}" {% if mahasiswa.dosen_pembimbing_id == dospem.id %}selected{% endif %}>
+                            {{ dospem.dosen.user.get_full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary rounded-pill">
+                    <i class="bi bi-check-circle me-1"></i> Simpan Perubahan
+                </button>
+
+                <!-- 🔥 TOMBOL KEMBALI PAKAI NEXT_URL -->
+                <a href="{{ next_url|default:'/' }}"
+                   class="btn btn-secondary rounded-pill">
+                    <i class="bi bi-arrow-left me-1"></i> Kembali
+                </a>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}

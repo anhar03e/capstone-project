@@ -1,0 +1,354 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Detail Resume{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+body {
+    background: #f5f7fb;
+}
+
+/* HEADER */
+.page-header {
+    background: linear-gradient(135deg, #0d6efd, #0dcaf0);
+    color: white;
+    padding: 22px 24px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+}
+
+/* CARD */
+.card-modern {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .06);
+    background: white;
+    overflow: hidden;
+}
+
+.card-header {
+    background: white;
+    border-bottom: 1px solid #eef2f7;
+    font-weight: 600;
+    padding: 14px 20px;
+}
+
+/* INFO ROW */
+.info-label {
+    font-size: 12px;
+    color: #6c757d;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.info-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.info-value .badge {
+    font-size: 13px;
+    padding: 5px 14px;
+}
+
+/* FILE PREVIEW */
+.file-preview {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f8f9fa;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+}
+
+.file-preview i {
+    font-size: 28px;
+    color: #dc3545;
+}
+
+.file-preview .file-name {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.file-preview .file-size {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* CATATAN */
+.catatan-box {
+    background: #f8f9fa;
+    border-left: 4px solid #0d6efd;
+    padding: 16px 20px;
+    border-radius: 8px;
+}
+
+.catatan-box p {
+    margin-bottom: 0;
+    color: #1f2937;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+/* TIMELINE */
+.timeline-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.timeline-item:last-child {
+    border-bottom: none;
+}
+
+.timeline-item .icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.timeline-item .icon.bg-success {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+.timeline-item .icon.bg-warning {
+    background: #fff3cd;
+    color: #664d03;
+}
+.timeline-item .icon.bg-danger {
+    background: #f8d7da;
+    color: #842029;
+}
+.timeline-item .icon.bg-info {
+    background: #cff4fc;
+    color: #055160;
+}
+.timeline-item .icon.bg-secondary {
+    background: #e9ecef;
+    color: #41464b;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .page-header {
+        padding: 14px 16px;
+    }
+    .page-header h4 {
+        font-size: 16px;
+    }
+    .info-value {
+        font-size: 14px;
+    }
+    .file-preview {
+        flex-wrap: wrap;
+    }
+}
+</style>
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+    <div class="d-flex flex-wrap justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-0">
+                <i class="bi bi-file-earmark-pdf me-2"></i> Detail Resume
+            </h4>
+            <small class="text-white-50">Informasi lengkap resume capstone</small>
+        </div>
+        <div class="mt-2 mt-sm-0">
+            <!-- TOMBOL KEMBALI KE MONITORING -->
+            <a href="{% url 'capstone_system:kaprodi_monitoring' %}" class="btn btn-light btn-sm">
+                <i class="bi bi-arrow-left"></i> Kembali ke Monitoring
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- ================= DETAIL RESUME ================= -->
+<div class="card card-modern">
+    <div class="card-header">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Informasi Resume
+    </div>
+    <div class="card-body">
+
+        <div class="row g-4">
+
+            <!-- Judul Proposal -->
+            <div class="col-12">
+                <div class="info-label">Judul Proposal</div>
+                <div class="info-value">{{ resume.proposal.judul|default:"-" }}</div>
+            </div>
+
+            <!-- Sub Judul -->
+            <div class="col-md-6">
+                <div class="info-label">Sub Judul</div>
+                <div class="info-value">{{ resume.sub_judul|default:"-" }}</div>
+            </div>
+
+            <!-- Tim -->
+            <div class="col-md-6">
+                <div class="info-label">Tim Capstone</div>
+                <div class="info-value">{{ resume.tim.nama_tim|default:"-" }}</div>
+            </div>
+
+            <!-- Mahasiswa -->
+            <div class="col-md-4">
+                <div class="info-label">Mahasiswa</div>
+                <div class="info-value">{{ resume.mahasiswa.user.get_full_name|default:"-" }}</div>
+            </div>
+
+            <!-- NIM -->
+            <div class="col-md-4">
+                <div class="info-label">NIM</div>
+                <div class="info-value"><code>{{ resume.mahasiswa.nim|default:"-" }}</code></div>
+            </div>
+
+            <!-- Status -->
+            <div class="col-md-4">
+                <div class="info-label">Status Resume</div>
+                <div class="info-value">
+                    {% if resume.status == 'DISETUJUI' %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Disetujui</span>
+                    {% elif resume.status == 'REVISI' %}
+                        <span class="badge bg-warning text-dark"><i class="bi bi-pencil"></i> Revisi</span>
+                    {% elif resume.status == 'DITOLAK' %}
+                        <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Ditolak</span>
+                    {% elif resume.status == 'BELUM_REVIEW' %}
+                        <span class="badge bg-secondary"><i class="bi bi-clock"></i> Belum Review</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ resume.status|default:"Belum Ada" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Tanggal Pengajuan -->
+            <div class="col-md-6">
+                <div class="info-label">Tanggal Pengajuan</div>
+                <div class="info-value">
+                    <i class="bi bi-calendar3 me-1 text-muted"></i>
+                    {{ resume.waktu_pengajuan|date:"d F Y H:i"|default:"-" }}
+                </div>
+            </div>
+
+            <!-- Tanggal Review -->
+            <div class="col-md-6">
+                <div class="info-label">Tanggal Review</div>
+                <div class="info-value">
+                    <i class="bi bi-clock-history me-1 text-muted"></i>
+                    {{ resume.waktu_peninjauan|date:"d F Y H:i"|default:"Belum direview" }}
+                </div>
+            </div>
+
+            <!-- Dosen Pembimbing -->
+            <div class="col-md-12">
+                <div class="info-label">Dosen Pembimbing</div>
+                <div class="info-value">
+                    {% if resume.dosen_pembimbing %}
+                        <i class="bi bi-person-check text-success me-1"></i>
+                        {{ resume.dosen_pembimbing }}
+                    {% else %}
+                        <span class="text-muted">Belum ada dosen pembimbing</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Catatan Review -->
+            {% if resume.catatan %}
+            <div class="col-12">
+                <div class="info-label">Catatan Review</div>
+                <div class="catatan-box">
+                    <p>{{ resume.catatan|linebreaks }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- File Resume -->
+            {% if resume.file_resume %}
+            <div class="col-12">
+                <div class="info-label">Dokumen Resume</div>
+                <div class="file-preview">
+                    <i class="bi bi-file-earmark-pdf"></i>
+                    <div>
+                        <div class="file-name">{{ resume.file_resume.name|cut:"resume/" }}</div>
+                        <div class="file-size">
+                            <i class="bi bi-file-earmark me-1"></i>
+                            PDF Document
+                        </div>
+                    </div>
+                    <a href="{{ resume.file_resume.url }}" target="_blank" class="btn btn-primary btn-sm ms-auto">
+                        <i class="bi bi-eye"></i> Lihat
+                    </a>
+                    <a href="{{ resume.file_resume.url }}" download class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-download"></i>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+    </div>
+</div>
+
+<!-- ================= RIWAYAT FEEDBACK ================= -->
+{% if riwayat_feedback %}
+<div class="card card-modern mt-4">
+    <div class="card-header">
+        <i class="bi bi-clock-history me-1"></i> Riwayat Feedback
+    </div>
+    <div class="card-body">
+        {% for feedback in riwayat_feedback %}
+        <div class="timeline-item">
+            <div class="icon 
+                {% if feedback.status == 'DISETUJUI' %}bg-success
+                {% elif feedback.status == 'REVISI' %}bg-warning
+                {% elif feedback.status == 'DITOLAK' %}bg-danger
+                {% else %}bg-secondary{% endif %}">
+                <i class="bi 
+                    {% if feedback.status == 'DISETUJUI' %}bi-check-lg
+                    {% elif feedback.status == 'REVISI' %}bi-pencil
+                    {% elif feedback.status == 'DITOLAK' %}bi-x-lg
+                    {% else %}bi-clock{% endif %}">
+                </i>
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex flex-wrap justify-content-between align-items-center">
+                    <div>
+                        <span class="fw-semibold">{{ feedback.dosen.user.get_full_name|default:"Dosen" }}</span>
+                        <span class="badge 
+                            {% if feedback.status == 'DISETUJUI' %}bg-success
+                            {% elif feedback.status == 'REVISI' %}bg-warning text-dark
+                            {% elif feedback.status == 'DITOLAK' %}bg-danger
+                            {% else %}bg-secondary{% endif %} ms-2">
+                            {{ feedback.status }}
+                        </span>
+                    </div>
+                    <small class="text-muted">{{ feedback.created_at|date:"d F Y H:i" }}</small>
+                </div>
+                {% if feedback.catatan %}
+                <p class="mb-0 mt-1 text-muted" style="font-size:13px;">{{ feedback.catatan }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,210 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Dashboard Dosen Pembimbing{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_dosenpb.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+
+/* ================= HEADER ================= */
+.dashboard-header{
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    padding: 20px;
+    border-radius: 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px rgba(37,99,235,0.2);
+}
+
+/* ================= CARD ================= */
+.card-modern{
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    transition: .2s;
+    background: #fff;
+}
+
+.card-modern:hover{
+    transform: translateY(-3px);
+}
+
+/* ================= ICON BOX ================= */
+.icon-box{
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+/* ================= TEXT ================= */
+.text-muted{
+    font-size: 13px;
+    color: #6b7280 !important;
+}
+
+/* ================= BADGE ================= */
+.badge{
+    border-radius: 8px;
+    padding: 6px 10px;
+}
+
+</style>
+
+<!-- HEADER -->
+<div class="dashboard-header">
+    <h4 class="mb-1">Dashboard Dosen Pembimbing</h4>
+    <div>Selamat datang, <b>{{ user.get_full_name|default:user.username }}</b></div>
+    <small>Kelola mahasiswa bimbingan dan jadwal konsultasi</small>
+</div>
+
+<!-- SUMMARY -->
+<div class="row g-3 mb-4">
+
+    <div class="col-12 col-md-4">
+        <div class="card card-modern p-3 h-100">
+            <small class="text-muted">Total Mahasiswa</small>
+            <div class="mt-2 fw-bold fs-4">
+                {{ jumlah_mahasiswa }}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <div class="card card-modern p-3 h-100">
+            <small class="text-muted">Jadwal Hari Ini</small>
+            <div class="mt-2 fw-bold fs-4">
+                {{ jadwal_hari_ini|length }}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <div class="card card-modern p-3 h-100">
+            <small class="text-muted">Slot Tersedia</small>
+            <div class="mt-2 fw-bold fs-4">
+                {{ jadwal_tersedia }}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- JADWAL -->
+<div class="card card-modern mb-4">
+
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <b>Jadwal Hari Ini</b>
+
+        <a href="{% url 'capstone_system:dosenpb_schedule' %}"
+           class="btn btn-outline-primary btn-sm rounded-pill">
+            Kelola Jadwal
+        </a>
+    </div>
+
+    <div class="card-body">
+
+        {% if jadwal_hari_ini %}
+
+            <ul class="list-group list-group-flush">
+
+                {% for j in jadwal_hari_ini %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+
+                    <div>
+                        <b>{{ j.jam_mulai }} - {{ j.jam_selesai }}</b><br>
+                        <small class="text-muted">
+                            {% if j.penuh %}
+                                <span class="text-danger">Sudah penuh</span>
+                            {% else %}
+                                Sisa slot: {{ j.sisa_kuota }}
+                            {% endif %}
+                        </small>
+                    </div>
+
+                    {% if j.penuh %}
+                        <span class="badge bg-danger">Penuh</span>
+                    {% else %}
+                        <span class="badge bg-success">Tersedia</span>
+                    {% endif %}
+
+                </li>
+                {% endfor %}
+
+            </ul>
+
+        {% else %}
+            <div class="text-muted text-center">
+                Belum ada jadwal hari ini
+            </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<!-- QUICK ACTION -->
+<h5 class="mb-3">Aksi Cepat</h5>
+
+<div class="row g-3">
+
+    <div class="col-12 col-md-4">
+        <div class="card card-modern p-4 text-center h-100">
+
+            <div class="icon-box bg-primary text-white mx-auto mb-3">
+                <i class="bi bi-people-fill"></i>
+            </div>
+
+            <h6>Mahasiswa Bimbingan</h6>
+
+            <a href="{% url 'capstone_system:dosenpb_list_mahasiswa' %}"
+               class="btn btn-primary w-100 rounded-pill mt-2">
+                Lihat
+            </a>
+
+        </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <div class="card card-modern p-4 text-center h-100">
+
+            <div class="icon-box bg-success text-white mx-auto mb-3">
+                <i class="bi bi-calendar-check"></i>
+            </div>
+
+            <h6>Atur Jadwal</h6>
+
+            <a href="{% url 'capstone_system:dosenpb_schedule' %}"
+               class="btn btn-success w-100 rounded-pill mt-2">
+                Kelola
+            </a>
+
+        </div>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <div class="card card-modern p-4 text-center h-100">
+
+            <div class="icon-box bg-warning text-white mx-auto mb-3">
+                <i class="bi bi-person-circle"></i>
+            </div>
+
+            <h6>Profil</h6>
+
+            <a href="{% url 'capstone_system:dosenpb_profile' %}"
+               class="btn btn-warning w-100 rounded-pill mt-2">
+                Edit
+            </a>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

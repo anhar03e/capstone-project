@@ -1,0 +1,106 @@
+<div class="sidebar" id="sidebar">
+
+    <!-- ================= HEADER ================= -->
+    <div class="text-center mb-3 p-2">
+
+        <div class="fw-bold text-white fs-5">
+            <i class="bi bi-mortarboard-fill me-1"></i>
+            <span class="menu-text">Capstone</span>
+        </div>
+
+        <small class="menu-text text-white-50">
+            Dosen Pembimbing Portal
+        </small>
+
+        <!-- COLLAPSE -->
+        <div class="mt-3">
+            <button class="btn btn-sm btn-light text-primary d-none d-md-inline rounded-3"
+                    onclick="collapseSidebar()">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- ================= MENU ================= -->
+    <ul class="nav flex-column gap-1 px-2">
+
+        <!-- DASHBOARD -->
+        <li>
+            <a href="{% url 'capstone_system:dosenpb_home' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'dosenpb_home' %}active{% endif %}">
+                <i class="bi bi-grid-fill"></i>
+                <span class="menu-text">Dashboard</span>
+            </a>
+        </li>
+
+        <small class="text-white-50 px-2 mt-3 mb-2 menu-text fw-semibold">
+            MENU UTAMA
+        </small>
+
+        <!-- DAFTAR MAHASISWA -->
+        <li>
+            <a href="{% url 'capstone_system:dosenpb_list_mahasiswa' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'dosenpb_list_mahasiswa' %}active{% endif %}">
+                <i class="bi bi-people-fill"></i>
+                <span class="menu-text">Daftar Mahasiswa</span>
+            </a>
+        </li>
+
+        <!-- PENGAJUAN DOSPEM -->
+        <li>
+            <a href="{% url 'capstone_system:dosenpb_pengajuan' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'dosenpb_pengajuan' %}active{% endif %}">
+                <i class="bi bi-file-text-fill"></i>
+                <span class="menu-text">Pengajuan Dospem</span>
+            </a>
+        </li>
+
+        <!-- JADWAL -->
+        <li>
+            <a href="{% url 'capstone_system:dosenpb_schedule' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'dosenpb_schedule' %}active{% endif %}">
+                <i class="bi bi-calendar-check-fill"></i>
+                <span class="menu-text">Jadwal Konsultasi</span>
+            </a>
+        </li>
+
+        <small class="text-white-50 px-2 mt-4 mb-2 menu-text fw-semibold">
+            AKUN
+        </small>
+
+        <!-- PROFILE -->
+        <li>
+            <a href="{% url 'capstone_system:dosenpb_profile' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'dosenpb_profile' %}active{% endif %}">
+                <i class="bi bi-person-circle"></i>
+                <span class="menu-text">Profil</span>
+            </a>
+        </li>
+
+    </ul>
+
+    <!-- ================= FOOTER ================= -->
+    <div class="mt-auto p-3 border-top border-light border-opacity-25">
+
+        <div class="text-center mb-3 menu-text">
+
+            <small class="text-white d-block fw-semibold">
+                {{ request.user.get_full_name }}
+            </small>
+
+            <small class="text-white-50">
+                Dosen Pembimbing
+            </small>
+
+        </div>
+
+        <a href="{% url 'capstone_system:logout' %}"
+           class="btn btn-danger w-100 rounded-3 fw-semibold">
+            <i class="bi bi-box-arrow-right"></i>
+            <span class="menu-text">Logout</span>
+        </a>
+
+    </div>
+
+</div>

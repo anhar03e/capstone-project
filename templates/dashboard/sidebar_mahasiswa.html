@@ -1,0 +1,137 @@
+<div class="sidebar" id="sidebar">
+
+    <!-- ================= HEADER ================= -->
+    <div class="text-center mb-3 p-2">
+
+        <div class="fw-bold text-white fs-5">
+            <i class="bi bi-mortarboard-fill me-1"></i>
+            <span class="menu-text">Capstone</span>
+        </div>
+
+        <small class="menu-text text-white-50">
+            Mahasiswa Portal
+        </small>
+
+        <!-- COLLAPSE -->
+        <div class="mt-3">
+            <button class="btn btn-sm btn-light text-primary d-none d-md-inline rounded-3"
+                    onclick="collapseSidebar()">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- ================= MENU ================= -->
+    <ul class="nav flex-column gap-1 px-2">
+
+        <!-- DASHBOARD -->
+        <li>
+            <a href="{% url 'capstone_system:mahasiswa_home' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'mahasiswa_home' %}active{% endif %}">
+                <i class="bi bi-grid-fill"></i>
+                <span class="menu-text">Dashboard</span>
+            </a>
+        </li>
+
+        <small class="text-white-50 px-2 mt-3 mb-2 menu-text fw-semibold">
+            MENU UTAMA
+        </small>
+
+        {% if not anggota_tim or is_ketua %}
+
+        <!-- BUAT TIM -->
+        <li>
+            <a href="{% url 'capstone_system:buat_tim' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'buat_tim' %}active{% endif %}">
+                <i class="bi bi-people-fill"></i>
+                <span class="menu-text">Buat Tim</span>
+            </a>
+        </li>
+
+        {% endif %}
+
+        <!-- UNDANGAN TIM -->
+        <li>
+            <a href="{% url 'capstone_system:undangan_tim' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'undangan_tim' %}active{% endif %}">
+                <i class="bi bi-envelope-open"></i>
+                <span class="menu-text">Undangan Tim</span>
+            </a>
+        </li>
+
+        <!-- PROPOSAL -->
+        <li>
+            <a href="{% url 'capstone_system:upload_proposal' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'upload_proposal' %}active{% endif %}">
+                <i class="bi bi-upload"></i>
+                <span class="menu-text">Proposal</span>
+            </a>
+        </li>
+
+        <!-- RESUME -->
+        <li>
+            <a href="{% url 'capstone_system:upload_resume' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'upload_resume' %}active{% endif %}">
+                <i class="bi bi-file-earmark-person"></i>
+                <span class="menu-text">Resume</span>
+            </a>
+        </li>
+
+        <!-- JADWAL -->
+        <li>
+            <a href="{% url 'capstone_system:mahasiswa_jadwal' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'mahasiswa_jadwal' %}active{% endif %}">
+                <i class="bi bi-calendar-check"></i>
+                <span class="menu-text">Bimbingan</span>
+            </a>
+        </li>
+
+        <!-- STATUS -->
+        <li>
+            <a href="{% url 'capstone_system:cek_status' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'cek_status' %}active{% endif %}">
+                <i class="bi bi-clipboard-check"></i>
+                <span class="menu-text">Tracking Status</span>
+            </a>
+        </li>
+
+        <small class="text-white-50 px-2 mt-4 mb-2 menu-text fw-semibold">
+            AKUN
+        </small>
+
+        <!-- PROFILE -->
+        <li>
+            <a href="{% url 'capstone_system:mahasiswa_profile' %}"
+               class="nav-link {% if request.resolver_match.url_name == 'mahasiswa_profile' %}active{% endif %}">
+                <i class="bi bi-person-circle"></i>
+                <span class="menu-text">Profil</span>
+            </a>
+        </li>
+
+    </ul>
+
+    <!-- ================= FOOTER ================= -->
+    <div class="mt-auto p-3 border-top border-light border-opacity-25">
+
+        <div class="text-center mb-3 menu-text">
+
+            <small class="text-white d-block fw-semibold">
+                {{ request.user.get_full_name }}
+            </small>
+
+            <small class="text-white-50">
+                Mahasiswa
+            </small>
+
+        </div>
+
+        <a href="{% url 'capstone_system:logout' %}"
+            class="btn btn-danger w-100 rounded-3 fw-semibold">
+                <i class="bi bi-box-arrow-right"></i>
+                <span class="menu-text">Logout</span>
+        </a>
+
+    </div>
+
+</div>
