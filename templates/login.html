@@ -279,7 +279,7 @@ a:hover{
                 >
 
                 <i
-                    class="bi bi-eye toggle-password"
+                    class="bi bi-eye-slash toggle-password"
                     onclick="togglePassword()">
                 </i>
 
@@ -330,15 +330,15 @@ function togglePassword(){
 
         input.type = "text";
 
-        icon.classList.remove("bi-eye");
-        icon.classList.add("bi-eye-slash");
+        icon.classList.remove("bi-eye-slash");
+        icon.classList.add("bi-eye");
 
     }else{
 
         input.type = "password";
 
-        icon.classList.remove("bi-eye-slash");
-        icon.classList.add("bi-eye");
+        icon.classList.remove("bi-eye");
+        icon.classList.add("bi-eye-slash");
 
     }
 

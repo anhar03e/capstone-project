@@ -208,7 +208,8 @@ class CustomPasswordResetView(PasswordResetView):
     Custom Password Reset View dengan debug logging untuk memastikan email terkirim
     """
     template_name = 'auth/password_reset.html'
-    email_template_name = 'auth/password_reset_email.html'
+    email_template_name = 'auth/password_reset_email.txt'
+    html_email_template_name = 'auth/password_reset_email.html'
     subject_template_name = 'auth/password_reset_subject.txt'
     success_url = reverse_lazy('capstone_system:password_reset_done')
 
@@ -246,7 +247,17 @@ class CustomPasswordResetView(PasswordResetView):
         # Kirim email
         try:
             # Panggil parent method untuk mengirim email
-            response = super().form_valid(form)
+            form.save(
+                request=self.request,
+                use_https=True,
+                domain_override="tbzc4sn6-8000.asse.devtunnels.ms", # Ganti dengan domain Anda
+                email_template_name=self.email_template_name,
+                html_email_template_name=self.html_email_template_name,
+                subject_template_name=self.subject_template_name,
+                from_email=None,
+            )
+
+            response = redirect(self.get_success_url())
             
             print("✅ EMAIL RESET PASSWORD BERHASIL DIKIRIM!")
             print(f"📧 Dikirim ke: {email}")

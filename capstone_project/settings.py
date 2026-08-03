@@ -4,7 +4,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-$%pv!2m&f&6_9&3q$k%w*-lu13)i_c5az9-^2+30(*m=b=3y4#'
 DEBUG = True
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "astrology-outbound-stand.ngrok-free.dev",
+    "tbzc4sn6-8000.asse.devtunnels.ms"
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://astrology-outbound-stand.ngrok-free.dev",
+    "https://tbzc4sn6-8000.asse.devtunnels.ms"
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -94,7 +104,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'anhar03e@gmail.com'
 EMAIL_HOST_PASSWORD = 'ygbfhrftaoggnalq'
 
-DEFAULT_FROM_EMAIL = 'Capstone Project <emailanda@gmail.com>'
+DEFAULT_FROM_EMAIL = 'TIM Capstone Project <emailanda@gmail.com>'
 
 
 # ==============================
