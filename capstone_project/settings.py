@@ -5,15 +5,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-$%pv!2m&f&6_9&3q$k%w*-lu13)i_c5az9-^2+30(*m=b=3y4#'
 DEBUG = True
 ALLOWED_HOSTS = [
+
     "127.0.0.1",
     "localhost",
-    "astrology-outbound-stand.ngrok-free.dev",
-    "tbzc4sn6-8000.asse.devtunnels.ms"
+    "capstone.tipolnes.com",
+    "capstone-project.tipolnes.com",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://astrology-outbound-stand.ngrok-free.dev",
-    "https://tbzc4sn6-8000.asse.devtunnels.ms"
+
+        "https://capstone.tipolnes.com",
+        "https://capstone-project.tipolnes.com",
 ]
 
 INSTALLED_APPS = [
@@ -29,6 +31,7 @@ INSTALLED_APPS = [
 ]
 
 AUTH_USER_MODEL = 'capstone_system.User'
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -85,7 +88,10 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_DIRS = [
+        BASE_DIR / "static",
+]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
