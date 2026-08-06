@@ -179,6 +179,58 @@ body{
     flex:1;
 }
 
+/* ================= WARNING MINIMAL ANGGOTA ================= */
+#minAnggotaWarning {
+    color: #dc3545;
+    font-weight: 500;
+}
+
+#minAnggotaWarning i {
+    margin-right: 3px;
+}
+
+/* ================= EMPTY STATE ANGGOTA ================= */
+.empty-anggota {
+    text-align: center;
+    padding: 20px;
+    border: 2px dashed #e5e7eb;
+    border-radius: 12px;
+    background: #fafbfc;
+}
+
+.empty-anggota i {
+    font-size: 32px;
+    color: #9ca3af;
+}
+
+.empty-anggota .text-muted {
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.empty-anggota .text-danger {
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 576px) {
+    .table-item {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .row-kategori {
+        flex-direction: column;
+    }
+    
+    .ketua-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}
+
 </style>
 
 <!-- ================= HEADER ================= -->
@@ -190,17 +242,17 @@ body{
             <i class="bi bi-people"></i> Buat Tim Capstone 
         {% endif %}
     </h5>
-    <small>Pilih kategori, nama tim, dan undang anggota</small>
+    <small>Pilih kategori, nama tim, dan undang anggota (minimal 1 anggota tambahan)</small>
 </div>
 
-<form method="POST">
+<form method="POST" id="formBuatTim">
 {% csrf_token %}
 
 <div class="card card-modern">
 <div class="card-body">
 
     <!-- ========================================================= -->
-    <!-- PILIH KATEGORI KETUA (WAJIB) - UKURAN SEDANG              -->
+    <!-- PILIH KATEGORI KETUA (WAJIB)                              -->
     <!-- ========================================================= -->
     <div class="mb-3">
         <label class="fw-semibold mb-1" style="font-size:14px;">
@@ -262,6 +314,9 @@ body{
                placeholder="Masukkan nama tim..."
                value="{% if tim %}{{ tim.nama_tim }}{% endif %}"
                required>
+        <small class="text-muted" style="font-size:12px;">
+            <i class="bi bi-info-circle"></i> Contoh: Tim Inovatif, Tim Kreatif, dll.
+        </small>
     </div>
 
     <hr>
@@ -306,11 +361,14 @@ body{
     <h6 class="fw-semibold" style="font-size:14px;">
         <i class="bi bi-person-plus"></i> Undang Anggota Tim
     </h6>
-    <small class="text-muted" style="font-size:12px;">Cari berdasarkan nama atau NIM (maksimal 4 anggota tambahan)</small>
+    <small class="text-muted" style="font-size:12px;">
+        Cari berdasarkan nama atau NIM (minimal 1, maksimal 4 anggota tambahan)
+    </small>
 
     <input id="search"
            class="search-box mt-2"
-           placeholder="Ketik nama atau NIM...">
+           placeholder="Ketik nama atau NIM..."
+           autocomplete="off">
 
     <div id="result" class="result-box"></div>
 
@@ -322,15 +380,23 @@ body{
     <h6 class="fw-semibold" style="font-size:14px;">
         <i class="bi bi-people"></i> Anggota Tim
         <span class="badge bg-secondary" id="totalAnggota" style="font-size:12px;">0</span>
-        <small class="text-muted" style="font-size:12px;">(Maksimal 4 anggota tambahan)</small>
+        <small class="text-muted" style="font-size:12px;">
+            (Minimal 1, Maksimal 4 anggota tambahan)
+        </small>
+        <span id="minAnggotaWarning" style="display:none;">
+            <i class="bi bi-exclamation-triangle"></i> Minimal 1 anggota!
+        </span>
     </h6>
 
-    <div id="anggota_list"></div>
+    <div id="anggota_list">
+        <!-- Akan diisi oleh JavaScript -->
+    </div>
 
 </div>
 </div>
 
-<button class="btn btn-primary w-100 mt-3" onclick="return validasiForm()">
+<!-- ================= BUTTON SUBMIT ================= -->
+<button type="submit" class="btn btn-primary w-100 mt-3" style="padding:12px; font-size:16px; font-weight:600;">
     {% if edit_mode %}
         <i class="bi bi-pencil-square"></i> Update Tim
     {% else %}
@@ -409,57 +475,78 @@ document.addEventListener('DOMContentLoaded', function() {
 // =========================================================
 // SEARCH MAHASISWA
 // =========================================================
+let searchTimeout;
 document.getElementById("search").addEventListener("keyup", function(){
 
-    let q = this.value;
+    let q = this.value.trim();
 
     if(q.length < 1){
         document.getElementById("result").innerHTML = "";
         return;
     }
 
-    fetch(`/search-mahasiswa/?q=${q}`)
-    .then(r => r.json())
-    .then(data => {
+    // Debounce untuk menghindari terlalu banyak request
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        fetch(`/search-mahasiswa/?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(data => {
 
-        let html = "";
+            let html = "";
 
-        data.forEach(m => {
+            if (data.length === 0) {
+                html = `
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-search fs-4 d-block mb-1"></i>
+                        <span style="font-size:13px;">Tidak ada mahasiswa ditemukan</span>
+                    </div>
+                `;
+            } else {
+                data.forEach(m => {
+                    // Cek apakah sudah ada di anggota
+                    let sudahAda = anggota.some(a => a.id === m.id);
+                    
+                    html += `
+                    <div class="table-item">
 
-            html += `
-            <div class="table-item">
+                        <div>
+                            <b>${m.nama}</b><br>
+                            <small class="text-muted">${m.nim}</small>
+                        </div>
 
-                <div>
-                    <b>${m.nama}</b><br>
-                    <small class="text-muted">${m.nim}</small>
-                </div>
+                        <div>
+                            <select id="kat_${m.id}" class="form-select form-select-sm" ${sudahAda ? 'disabled' : ''}>
+                                <option value="EPD">EPD</option>
+                                <option value="SM">SM</option>
+                            </select>
+                        </div>
 
-                <div>
-                    <select id="kat_${m.id}" class="form-select form-select-sm">
-                        <option value="EPD">EPD</option>
-                        <option value="SM">SM</option>
-                    </select>
-                </div>
+                        <div>
+                            <button type="button"
+                                    class="btn ${sudahAda ? 'btn-secondary' : 'btn-primary'} btn-sm"
+                                    onclick="add('${m.id}','${m.nama}')"
+                                    ${sudahAda ? 'disabled' : ''}>
+                                <i class="bi ${sudahAda ? 'bi-check' : 'bi-plus-lg'}"></i> 
+                                ${sudahAda ? 'Sudah' : 'Undang'}
+                            </button>
+                        </div>
 
-                <div>
-                    <button type="button"
-                            class="btn btn-primary btn-sm"
-                            onclick="add('${m.id}','${m.nama}')">
-                        <i class="bi bi-plus-lg"></i> Undang
-                    </button>
-                </div>
+                    </div>`;
+                });
+            }
 
-            </div>`;
+            document.getElementById("result").innerHTML = html;
+
+        })
+        .catch(error => {
+            console.error('Error:', error);
         });
-
-        document.getElementById("result").innerHTML = html;
-
-    });
+    }, 300);
 
 });
 
 // =========================================================
-// 🔥 ADD ANGGOTA - PAKAI KATEGORI DARI DROPDOWN
+// ADD ANGGOTA - PAKAI KATEGORI DARI DROPDOWN
 // =========================================================
 function add(id, name){
 
@@ -467,6 +554,7 @@ function add(id, name){
     let kategoriTim = document.getElementById('kategoriInput').value;
     if (!kategoriTim) {
         alert('⚠️ Pilih kategori terlebih dahulu!');
+        document.getElementById('kategoriEPD').scrollIntoView({ behavior: 'smooth' });
         return;
     }
 
@@ -480,40 +568,49 @@ function add(id, name){
         return;
     }
 
-    // 🔥🔥🔥 PERBAIKI: Ambil kategori dari DROPDOWN, BUKAN dari tim!
+    // Ambil kategori dari dropdown
     let kategoriAnggota = document.getElementById("kat_" + id).value;
     
-    // 🔥 PAKAI KATEGORI DARI DROPDOWN
+    // Tambahkan anggota
     anggota.push({ 
         id, 
         name, 
-        kategori: kategoriAnggota  // ✅ PAKAI DARI DROPDOWN!
+        kategori: kategoriAnggota
     });
     render();
+    
+    // Kosongkan search dan result
+    document.getElementById("search").value = "";
+    document.getElementById("result").innerHTML = "";
 }
 
 // =========================================================
-// RENDER ANGGOTA
+// RENDER ANGGOTA (DIPERBAIKI)
 // =========================================================
 function render(){
 
     let box = document.getElementById("anggota_list");
+    let warning = document.getElementById("minAnggotaWarning");
 
     if(anggota.length === 0){
         box.innerHTML = `
-            <div class="text-center text-muted py-3">
-                <i class="bi bi-person-plus fs-2 d-block mb-1"></i>
-                <span style="font-size:13px;">Belum ada anggota tambahan</span>
+            <div class="empty-anggota">
+                <i class="bi bi-person-plus"></i>
+                <div class="text-muted">Belum ada anggota tambahan</div>
+                <div class="text-danger">
+                    <i class="bi bi-exclamation-circle"></i> Minimal tambah 1 anggota!
+                </div>
             </div>
         `;
         document.getElementById("totalAnggota").textContent = "0";
+        if (warning) warning.style.display = 'inline';
         return;
     }
 
     let html = "";
     let kategoriTim = document.getElementById('kategoriInput').value;
 
-    anggota.forEach((a,index)=>{
+    anggota.forEach((a, index)=>{
 
         let badgeKategori = a.kategori === 'EPD' ? 'bg-primary' : 'bg-success';
 
@@ -523,7 +620,7 @@ function render(){
             <div>
                 <div class="member-name">
                     ${a.name}
-                    <span class="badge bg-secondary" style="font-size:11px;">Anggota</span>
+                    <span class="badge bg-secondary" style="font-size:11px;">Anggota ${index + 1}</span>
                 </div>
                 <div class="member-detail">
                     <span class="badge ${badgeKategori}" style="font-size:11px;">${a.kategori}</span>
@@ -547,6 +644,7 @@ function render(){
 
     box.innerHTML = html;
     document.getElementById("totalAnggota").textContent = anggota.length;
+    if (warning) warning.style.display = 'none';
 }
 
 // =========================================================
@@ -560,7 +658,7 @@ function hapus(index){
 }
 
 // =========================================================
-// VALIDASI FORM SEBELUM SUBMIT
+// VALIDASI FORM SEBELUM SUBMIT (DIPERBAIKI)
 // =========================================================
 function validasiForm() {
     // Cek kategori
@@ -580,13 +678,45 @@ function validasiForm() {
         return false;
     }
     
+    // 🔥 VALIDASI MINIMAL ANGGOTA
+    if (anggota.length < 1) {
+        alert('⚠️ Tim harus terdiri dari minimal 2 orang (Ketua + 1 Anggota)!');
+        document.getElementById('search').focus();
+        document.getElementById('minAnggotaWarning').style.display = 'inline';
+        document.getElementById('minAnggotaWarning').scrollIntoView({ behavior: 'smooth' });
+        return false;
+    }
+    
     return true;
 }
 
 // =========================================================
+// HOOK VALIDASI SEBELUM SUBMIT
+// =========================================================
+document.getElementById('formBuatTim').addEventListener('submit', function(e) {
+    if (!validasiForm()) {
+        e.preventDefault();
+    }
+});
+
+// =========================================================
 // RENDER AWAL
 // =========================================================
-render();
+document.addEventListener('DOMContentLoaded', function() {
+    render();
+});
+
+// =========================================================
+// TAMBAHKAN FUNGSI UNTUK CLEAR SEARCH SAAT KLIK LUAR
+// =========================================================
+document.addEventListener('click', function(e) {
+    let search = document.getElementById('search');
+    let result = document.getElementById('result');
+    
+    if (!search.contains(e.target) && !result.contains(e.target)) {
+        result.innerHTML = '';
+    }
+});
 
 </script>
 

@@ -91,6 +91,17 @@ body{
 /* STAT CARD */
 .stat-card{
     padding:20px;
+    transition: all 0.2s ease;
+    cursor: default;
+}
+
+.stat-card:last-child {
+    cursor: pointer;
+}
+
+.stat-card:last-child:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
 }
 
 .stat-card small{
@@ -98,11 +109,27 @@ body{
     display:block;
 }
 
+.stat-card small i {
+    font-size: 12px;
+}
+
 .stat-card h3{
     margin-top:8px;
     margin-bottom:0;
     font-weight:700;
     color:#2563eb;
+}
+
+.stat-card .text-success {
+    color: #059669 !important;
+}
+
+.stat-card .text-danger {
+    color: #dc2626 !important;
+}
+
+.stat-card .text-secondary {
+    color: #6b7280 !important;
 }
 
 /* FILTER */
@@ -129,13 +156,43 @@ body{
     color: #065f46;
 }
 
+/* BADGE STATUS */
+.badge-status {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.badge-status i {
+    margin-right: 4px;
+}
+
+/* EMPTY STATE */
+.empty-state {
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.empty-state i {
+    font-size: 48px;
+    color: #d1d5db;
+    display: block;
+    margin-bottom: 15px;
+}
+
+.empty-state h5 {
+    color: #6b7280;
+    font-weight: 500;
+}
+
 </style>
 
 <!-- ================= HEADER ================= -->
 <div class="page-header">
 
     <h4 class="mb-1">
-        Data Mahasiswa 🎓
+        Data Mahasiswa 
     </h4>
 
     <div>
@@ -169,8 +226,9 @@ body{
     </div>
 
     <div class="col-md-3">
-        <div class="card card-modern stat-card">
-            <small>Arsip</small>
+        <!-- Menggunakan URL langsung / hardcoded -->
+        <div class="card card-modern stat-card" onclick="window.location='/kaprodi/arsip-mahasiswa/'">
+            <small>Arsip <i class="bi bi-box-arrow-up-right" style="font-size:10px;"></i></small>
             <h3 class="text-secondary">{{ total_mahasiswa_arsip }}</h3>
         </div>
     </div>
@@ -187,6 +245,11 @@ body{
         </span>
 
         <div class="d-flex gap-2">
+
+            <!-- Menggunakan URL langsung / hardcoded -->
+            <a href="/kaprodi/arsip-mahasiswa/" class="btn btn-outline-secondary">
+                <i class="bi bi-archive"></i> Lihat Arsip
+            </a>
 
             <button
                 type="submit"
@@ -290,7 +353,7 @@ body{
 
 </div>
 
-<!-- ================= DAFTAR MAHASASISWA ================= -->
+<!-- ================= DAFTAR MAHASISWA ================= -->
 <div class="card card-modern">
 
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -354,7 +417,8 @@ body{
                                     type="checkbox"
                                     class="form-check-input check-item"
                                     name="mahasiswa"
-                                    value="{{ mhs.id }}">
+                                    value="{{ mhs.id }}"
+                                    {% if mhs.status == 'ARSIP' %}disabled{% endif %}>
 
                             </td>
 
@@ -405,20 +469,20 @@ body{
 
                                 {% if mhs.status == 'AKTIF' %}
 
-                                    <span class="badge bg-success">
-                                        Aktif
+                                    <span class="badge bg-success badge-status">
+                                        <i class="bi bi-check-circle"></i> Aktif
                                     </span>
 
                                 {% elif mhs.status == 'NONAKTIF' %}
 
-                                    <span class="badge bg-danger">
-                                        Nonaktif
+                                    <span class="badge bg-danger badge-status">
+                                        <i class="bi bi-x-circle"></i> Nonaktif
                                     </span>
 
-                                {% else %}
+                                {% elif mhs.status == 'ARSIP' %}
 
-                                    <span class="badge bg-dark">
-                                        Arsip
+                                    <span class="badge bg-secondary badge-status">
+                                        <i class="bi bi-archive"></i> Arsip
                                     </span>
 
                                 {% endif %}
@@ -453,8 +517,7 @@ body{
 
                                     </a>
 
-                                    <!-- 🔥 TOMBOL EDIT DENGAN NEXT -->
-                                    <a href="{% url 'capstone_system:edit_mahasiswa' mhs.id %}?next={{ request.path }}"
+                                    <a href="{% url 'capstone_system:edit_mahasiswa' mhs.id %}"
                                        class="btn btn-sm btn-outline-warning"
                                        title="Edit">
 
@@ -536,12 +599,43 @@ const checkAll = document.getElementById("checkAll");
 
 checkAll.addEventListener("change", function () {
 
-    document.querySelectorAll(".check-item").forEach(function(item){
+    document.querySelectorAll(".check-item:not(:disabled)").forEach(function(item){
 
         item.checked = checkAll.checked;
 
     });
 
+});
+
+// Auto uncheck all jika ada item yang tidak dicentang
+document.querySelectorAll(".check-item").forEach(function(item){
+
+    item.addEventListener("change", function() {
+
+        if (!this.checked) {
+            checkAll.checked = false;
+        }
+
+        const allChecked = document.querySelectorAll(".check-item:not(:disabled)").length > 0 &&
+                           document.querySelectorAll(".check-item:not(:disabled):checked").length === 
+                           document.querySelectorAll(".check-item:not(:disabled)").length;
+
+        if (allChecked) {
+            checkAll.checked = true;
+        }
+
+    });
+
+});
+
+// Validasi minimal 1 mahasiswa dipilih
+document.getElementById('formArsip').addEventListener('submit', function(e) {
+    const checked = document.querySelectorAll('.check-item:checked');
+    if (checked.length === 0) {
+        e.preventDefault();
+        alert('⚠️ Silakan pilih minimal satu mahasiswa yang akan diarsipkan!');
+        return false;
+    }
 });
 </script>
 

@@ -48,17 +48,18 @@ body{
     vertical-align:middle;
 }
 
-/* AVATAR */
+/* AVATAR - DIPERBAIKI SAMA DENGAN LIST MAHASISWA */
 .avatar{
     width:42px;
     height:42px;
     border-radius:50%;
-    background:#0d6efd;
+    background:#2563eb;
     color:white;
     display:flex;
     align-items:center;
     justify-content:center;
-    font-weight:bold;
+    font-weight:600;
+    flex-shrink:0;
 }
 
 /* FILTER BOX */
@@ -81,7 +82,7 @@ body{
     gap:10px;
 }
 
-/* BUTTON ACTION */
+/* BUTTON ACTION - TETAP SAMA */
 .btn-action{
     border-radius:10px;
     padding:8px 20px;
@@ -139,6 +140,24 @@ body{
 .selected-count{
     color:#0d6efd;
     font-weight:600;
+}
+
+/* BADGE KATEGORI */
+.badge-kategori {
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.badge-kategori.epd {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.badge-kategori.sm {
+    background: #d1fae5;
+    color: #065f46;
 }
 
 /* RESPONSIVE */
@@ -271,9 +290,10 @@ body{
                             <th>Mahasiswa</th>
                             <th>NIM</th>
                             <th>Angkatan</th>
+                            <th>Kategori</th>
                             <th>Email</th>
-                            <th>Dosen Pembimbing</th>
                             <th>Status</th>
+                            <th>Dosen Pembimbing</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -293,13 +313,15 @@ body{
 
                             <td>{{ forloop.counter }}</td>
 
+                            <!-- ===== INI BAGIAN YANG DIPERBAIKI ===== -->
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="avatar">
                                         {{ mhs.user.first_name|first|upper }}
                                     </div>
                                     <div>
-                                        <b>{{ mhs.user.get_full_name }}</b>
+                                        <div class="fw-semibold">{{ mhs.user.get_full_name }}</div>
+                                        <small class="text-muted">Mahasiswa</small>
                                     </div>
                                 </div>
                             </td>
@@ -308,7 +330,24 @@ body{
 
                             <td>{{ mhs.angkatan }}</td>
 
+                            <td>
+                                {% if mhs.kategori %}
+                                    <span class="badge-kategori 
+                                        {% if mhs.kategori == 'EPD' %}epd{% else %}sm{% endif %}">
+                                        {{ mhs.kategori }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+
                             <td>{{ mhs.user.email }}</td>
+
+                            <td>
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-archive"></i> ARSIP
+                                </span>
+                            </td>
 
                             <td>
                                 {% if mhs.dosen_pembimbing %}
@@ -320,12 +359,7 @@ body{
                                 {% endif %}
                             </td>
 
-                            <td>
-                                <span class="badge bg-secondary">
-                                    <i class="bi bi-archive"></i> ARSIP
-                                </span>
-                            </td>
-
+                            <!-- ===== TOMBOL TETAP SAMA ===== -->
                             <td class="text-center">
                                 <div class="btn-group" role="group">
 
@@ -336,8 +370,8 @@ body{
                                         <i class="bi bi-eye"></i>
                                     </a>
 
-                                    <!-- 🔥 TOMBOL EDIT DENGAN NEXT -->
-                                    <a href="{% url 'capstone_system:edit_mahasiswa' mhs.id %}?next={{ request.path }}"
+                                    <!-- Tombol Edit -->
+                                    <a href="{% url 'capstone_system:edit_mahasiswa' mhs.id %}"
                                        class="btn btn-sm btn-outline-warning"
                                        title="Edit">
                                         <i class="bi bi-pencil"></i>
@@ -359,7 +393,7 @@ body{
                         {% empty %}
 
                         <tr>
-                            <td colspan="9" class="text-center py-5 text-muted">
+                            <td colspan="10" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-1 d-block mb-3"></i>
                                 <h5>Belum ada data arsip mahasiswa</h5>
                                 <small>Tidak ada mahasiswa yang diarsipkan</small>

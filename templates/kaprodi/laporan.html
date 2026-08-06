@@ -64,12 +64,11 @@ body{
 }
 </style>
 
-<!-- HEADER -->
-
+<!-- ================= HEADER ================= -->
 <div class="page-header">
 
     <h4 class="mb-1">
-        Laporan Sistem 
+        <i class="bi bi-file-text"></i> Laporan Sistem
     </h4>
 
     <div>
@@ -78,8 +77,31 @@ body{
 
 </div>
 
-<!-- SUMMARY -->
+<!-- ================= KETERANGAN ================= -->
+<div class="card card-modern mb-4">
 
+    <div class="card-header bg-white">
+
+        <b><i class="bi bi-info-circle"></i> Keterangan</b>
+
+    </div>
+
+    <div class="card-body">
+
+        <p class="mb-0">
+
+            Halaman laporan digunakan oleh Kaprodi untuk memantau seluruh
+            aktivitas Capstone Project. Informasi yang ditampilkan meliputi
+            jumlah mahasiswa, dosen, dosen pembimbing, dosen CP, tim capstone, 
+            proposal, dan resume yang telah dikelola dalam sistem.
+
+        </p>
+
+    </div>
+
+</div>
+
+<!-- ================= SUMMARY / STATISTIK ================= -->
 <div class="row mb-4 g-3">
 
     <div class="col-md-3">
@@ -118,6 +140,90 @@ body{
 
                 <div>
 
+                    <small>Total Dosen</small>
+
+                    <h2 class="mb-0">
+                        {{ total_dosen }}
+                    </h2>
+
+                </div>
+
+                <div class="icon-box">
+
+                    <i class="bi bi-person-badge-fill"></i>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="stat-card bg-info">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <div>
+
+                    <small>Dosen Pembimbing</small>
+
+                    <h2 class="mb-0">
+                        {{ total_dospem }}
+                    </h2>
+
+                </div>
+
+                <div class="icon-box">
+
+                    <i class="bi bi-person-workspace"></i>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="stat-card bg-secondary">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <div>
+
+                    <small>Dosen CP</small>
+
+                    <h2 class="mb-0">
+                        {{ total_dosen_cp }}
+                    </h2>
+
+                </div>
+
+                <div class="icon-box">
+
+                    <i class="bi bi-person-check-fill"></i>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="stat-card bg-warning">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <div>
+
                     <small>Total Tim</small>
 
                     <h2 class="mb-0">
@@ -140,7 +246,7 @@ body{
 
     <div class="col-md-3">
 
-        <div class="stat-card bg-warning">
+        <div class="stat-card bg-danger">
 
             <div class="d-flex justify-content-between align-items-center">
 
@@ -168,7 +274,7 @@ body{
 
     <div class="col-md-3">
 
-        <div class="stat-card bg-danger">
+        <div class="stat-card bg-dark">
 
             <div class="d-flex justify-content-between align-items-center">
 
@@ -196,13 +302,12 @@ body{
 
 </div>
 
-<!-- RINGKASAN -->
-
+<!-- ================= RINGKASAN SISTEM ================= -->
 <div class="card card-modern mb-4">
 
     <div class="card-header bg-white">
 
-        <b>Ringkasan Sistem</b>
+        <b><i class="bi bi-list-ul"></i> Ringkasan Sistem</b>
 
     </div>
 
@@ -222,6 +327,14 @@ body{
 
                 <tr>
 
+                    <th>Jumlah Dosen</th>
+
+                    <td>{{ total_dosen }}</td>
+
+                </tr>
+
+                <tr>
+
                     <th>Jumlah Dosen Pembimbing</th>
 
                     <td>{{ total_dospem }}</td>
@@ -230,9 +343,9 @@ body{
 
                 <tr>
 
-                    <th>Dosen Aktif Membimbing</th>
+                    <th>Jumlah Dosen CP</th>
 
-                    <td>{{ total_dospem_aktif }}</td>
+                    <td>{{ total_dosen_cp }}</td>
 
                 </tr>
 
@@ -263,31 +376,6 @@ body{
             </tbody>
 
         </table>
-
-    </div>
-
-</div>
-
-<!-- KETERANGAN -->
-
-<div class="card card-modern">
-
-    <div class="card-header bg-white">
-
-        <b>Keterangan</b>
-
-    </div>
-
-    <div class="card-body">
-
-        <p class="mb-0">
-
-            Halaman laporan digunakan oleh Kaprodi untuk memantau seluruh
-            aktivitas Capstone Project. Informasi yang ditampilkan meliputi
-            jumlah mahasiswa, dosen pembimbing, tim capstone, proposal, dan
-            resume yang telah dikelola dalam sistem.
-
-        </p>
 
     </div>
 

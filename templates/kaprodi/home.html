@@ -70,7 +70,6 @@ body{
 </div>
 
 <!-- STATISTIK -->
-<!-- STATISTIK -->
 <div class="row g-3 mb-4">
 
     <!-- Mahasiswa -->
@@ -141,54 +140,46 @@ body{
 
 </div>
 
-<!-- MENU -->
+<!-- MENU CEPAT -->
 <div class="section-title">Menu Cepat</div>
 
 <div class="row g-3">
 
-<div class="col-md-4">
-    <div class="card card-modern p-4 text-center">
-        <div class="icon-box bg-primary text-white mx-auto mb-3">
-            <i class="bi bi-file-earmark-text"></i>
+    <!-- Menu 1: Kelola Proposal -->
+    <div class="col-md-4">
+        <div class="card card-modern p-4 text-center">
+            <div class="icon-box bg-primary text-white mx-auto mb-3">
+                <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <h6>Kelola Proposal</h6>
+            <a href="{% url 'capstone_system:kaprodi_proposal' %}"
+               class="btn btn-primary rounded-pill w-100">Buka</a>
         </div>
-        <h6>Kelola Proposal</h6>
-        <a href="{% url 'capstone_system:kaprodi_proposal' %}"
-           class="btn btn-primary rounded-pill w-100">Buka</a>
     </div>
-</div>
 
-<div class="col-md-4">
-    <div class="card card-modern p-4 text-center">
-        <div class="icon-box bg-primary text-white mx-auto mb-3">
-            <i class="bi bi-file-earmark-check"></i>
+    <!-- Menu 2: Kelola Resume -->
+    <div class="col-md-4">
+        <div class="card card-modern p-4 text-center">
+            <div class="icon-box bg-primary text-white mx-auto mb-3">
+                <i class="bi bi-file-earmark-check"></i>
+            </div>
+            <h6>Kelola Resume</h6>
+            <a href="{% url 'capstone_system:kaprodi_resume' %}"
+               class="btn btn-primary rounded-pill w-100">Buka</a>
         </div>
-        <h6>Kelola Resume</h6>
-        <a href="{% url 'capstone_system:kaprodi_resume' %}"
-           class="btn btn-primary rounded-pill w-100">Buka</a>
     </div>
-</div>
 
-<div class="col-md-4">
-    <div class="card card-modern p-4 text-center">
-        <div class="icon-box bg-primary text-white mx-auto mb-3">
-            <i class="bi bi-graph-up-arrow"></i>
-        
-</div>
-
-</div>
-
-<!-- RINGKASAN -->
-<div class="section-title">Ringkasan Sistem</div>
-
-<div class="card card-modern p-4">
-
-<ul class="mb-0">
-    <li>Total Proposal Capstone: <b>{{ total_proposal }}</b></li>
-    <li>Total Resume: <b>{{ total_resume }}</b></li>
-    <li>Total Mahasiswa: <b>{{ total_mahasiswa }}</b></li>
-    <li>Total Dosen Pembimbing: <b>{{ total_dospem }}</b></li>
-    <li>Total Tim Capstone: <b>{{ total_tim }}</b></li>
-</ul>
+    <!-- Menu 3: Monitoring -->
+    <div class="col-md-4">
+        <div class="card card-modern p-4 text-center">
+            <div class="icon-box bg-primary text-white mx-auto mb-3">
+                <i class="bi bi-graph-up-arrow"></i>
+            </div>
+            <h6>Monitoring</h6>
+            <a href="{% url 'capstone_system:kaprodi_monitoring' %}"
+               class="btn btn-primary rounded-pill w-100">Buka</a>
+        </div>
+    </div>
 
 </div>
 

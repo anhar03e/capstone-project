@@ -58,13 +58,17 @@ def kaprodi_list_mahasiswa(request):
     if not has_access:
         return response
 
+    # 🔥 PERBAIKI: Ambil hanya AKTIF dan NONAKTIF, KECUALI ARSIP (kecuali difilter)
     mahasiswa_list = Mahasiswa.objects.select_related(
         'user', 'dosen_pembimbing'
-    ).all()
+    ).exclude(status="ARSIP")  # 🔥 EXCLUDE ARSIP SECARA DEFAULT
 
     status = request.GET.get('status')
     if status:
         mahasiswa_list = mahasiswa_list.filter(status=status)
+    else:
+        # Jika tidak ada filter status, tampilkan AKTIF dan NONAKTIF saja
+        mahasiswa_list = mahasiswa_list.filter(status__in=['AKTIF', 'NONAKTIF'])
 
     angkatan = request.GET.get('angkatan')
     if angkatan:
@@ -976,19 +980,21 @@ def kaprodi_laporan(request):
         return response
 
     total_mahasiswa = Mahasiswa.objects.count()
+    total_dosen = Dosen.objects.count()  # TAMBAHKAN
+    total_dospem = DosenPembimbing.objects.count()
+    total_dosen_cp = DosenCP.objects.count()  # TAMBAHKAN
     total_tim = Tim.objects.count()
     total_proposal = ProposalCapstone.objects.count()
     total_resume = Resume.objects.count()
-    total_dospem = DosenPembimbing.objects.count()
-    total_dospem_aktif = Mahasiswa.objects.filter(dosen_pembimbing__isnull=False).values('dosen_pembimbing').distinct().count()
 
     return render(request, 'kaprodi/laporan.html', {
         'total_mahasiswa': total_mahasiswa,
+        'total_dosen': total_dosen,  # TAMBAHKAN
+        'total_dospem': total_dospem,
+        'total_dosen_cp': total_dosen_cp,  # TAMBAHKAN
         'total_tim': total_tim,
         'total_proposal': total_proposal,
         'total_resume': total_resume,
-        'total_dospem': total_dospem,
-        'total_dospem_aktif': total_dospem_aktif,
     })
 
 
