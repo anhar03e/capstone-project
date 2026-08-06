@@ -121,19 +121,19 @@ class DosenForm(forms.ModelForm):
             self.fields['email'].initial = user.email
             self.fields['role'].initial = user.role
 
-    # def save(self, commit=True):
-    #     dosen = super().save(commit=False)
+    def save(self, commit=True):
+        dosen = super().save(commit=False)
 
-    #     user = dosen.user
-    #     user.first_name = self.cleaned_data['nama_lengkap']
-    #     user.email = self.cleaned_data['email']
-    #     user.role = self.cleaned_data['role']
+        user = dosen.user
+        user.first_name = self.cleaned_data['nama_lengkap']
+        user.email = self.cleaned_data['email']
+        user.role = self.cleaned_data['role']
 
-    #     if commit:
-    #         user.save()
-    #         dosen.save()
+        if commit:
+            user.save()
+            dosen.save()
 
-    #     return dosen
+        return dosen
 
 
 # =========================================================
