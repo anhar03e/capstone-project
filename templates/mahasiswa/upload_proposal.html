@@ -234,7 +234,93 @@ body{
     color: #dc3545;
 }
 
+/* ================= LOADING OVERLAY ================= */
+.loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.loading-overlay.show {
+    display: flex;
+}
+
+.loading-overlay .spinner-box {
+    background: white;
+    padding: 40px 50px;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+}
+
+.loading-overlay .spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid #e5e7eb;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 15px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-overlay .loading-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 8px;
+}
+
+.loading-overlay .loading-subtitle {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.loading-overlay .progress-bar-container {
+    width: 100%;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    margin-top: 15px;
+    overflow: hidden;
+}
+
+.loading-overlay .progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #2563eb, #1d4ed8);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
 </style>
+
+<!-- ================= LOADING OVERLAY ================= -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner-box">
+        <div class="spinner"></div>
+        <div class="loading-title">⏳ Sedang Mengupload...</div>
+        <div class="loading-subtitle">Mohon tunggu, proses upload sedang berjalan</div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div style="margin-top: 12px; font-size: 13px; color: #6b7280;">
+            <span id="progressText">0%</span>
+        </div>
+    </div>
+</div>
 
 <!-- ================= HEADER ================= -->
 <div class="page-header">
@@ -543,11 +629,11 @@ body{
                     <div id="fileFeedback" class="file-info"></div>
                 </div>
                 <small class="text-muted">
-                    📄 Format: PDF | Maksimal: 10MB
+                    📄 Format: PDF | Maksimal: 5MB
                 </small>
             </div>
 
-            <button class="btn btn-success w-100" type="submit">
+            <button class="btn btn-success w-100" type="submit" id="submitBtn">
                 <i class="bi bi-cloud-upload"></i> Upload Ulang Proposal
             </button>
 
@@ -584,16 +670,16 @@ body{
                 </div>
                 {% if proposal %}
                 <small class="text-muted">
-                    Kosongkan jika tidak ingin mengganti file | 📄 Format: PDF | Maksimal: 10MB
+                    Kosongkan jika tidak ingin mengganti file | 📄 Format: PDF | Maksimal: 5MB
                 </small>
                 {% else %}
                 <small class="text-muted">
-                    📄 Format: PDF | Maksimal: 10MB
+                    📄 Format: PDF | Maksimal: 5MB
                 </small>
                 {% endif %}
             </div>
 
-            <button class="btn btn-success w-100" type="submit">
+            <button class="btn btn-success w-100" type="submit" id="submitBtn">
                 {% if proposal %}
                     <i class="bi bi-pencil"></i> Update Proposal
                 {% else %}
@@ -617,14 +703,21 @@ body{
 {% endif %}
 
 <!-- ========================================================= -->
-<!-- JAVASCRIPT VALIDASI FILE PDF & MAX 10MB -->
+<!-- JAVASCRIPT VALIDASI FILE PDF & MAX 5MB + LOADING STATE -->
 <!-- ========================================================= -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('proposalForm');
     const fileInput = document.querySelector('input[name="file"]');
     const fileFeedback = document.getElementById('fileFeedback');
+    const submitBtn = document.getElementById('submitBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
 
+    // =========================================================
+    // VALIDASI FILE SAAT DIPILIH
+    // =========================================================
     if (fileInput && fileFeedback) {
         fileInput.addEventListener('change', function() {
             const file = this.files[0];
@@ -637,7 +730,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (file) {
                 let isValid = true;
                 let errorMessage = '';
-                let successMessage = '';
                 
                 // 1. Cek ekstensi file
                 const ext = file.name.split('.').pop().toLowerCase();
@@ -646,10 +738,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     errorMessage = '⚠️ Hanya file PDF yang diperbolehkan! Ekstensi: .' + ext;
                 }
                 
-                // 2. Cek ukuran file (maks 10MB)
-                if (isValid && file.size > 10 * 1024 * 1024) {
+                // 2. Cek ukuran file (maks 5MB = 5 * 1024 * 1024 bytes)
+                if (isValid && file.size > 5 * 1024 * 1024) {
                     isValid = false;
-                    errorMessage = '⚠️ Ukuran file maksimal 10MB! (File Anda: ' + (file.size / (1024 * 1024)).toFixed(2) + 'MB)';
+                    errorMessage = '⚠️ Ukuran file maksimal 5MB! (File Anda: ' + (file.size / (1024 * 1024)).toFixed(2) + 'MB)';
                 }
                 
                 // 3. Tampilkan feedback
@@ -657,20 +749,29 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.classList.add('is-invalid');
                     fileFeedback.textContent = errorMessage;
                     fileFeedback.className = 'file-info invalid';
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.5';
                 } else {
                     fileFeedback.textContent = '✅ File valid: ' + file.name + ' (' + (file.size / (1024 * 1024)).toFixed(2) + 'MB)';
                     fileFeedback.className = 'file-info valid';
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
                 }
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
             }
         });
     }
 
-    // Validasi sebelum submit
+    // =========================================================
+    // LOADING STATE SAAT SUBMIT
+    // =========================================================
     if (form) {
         form.addEventListener('submit', function(e) {
             const file = fileInput ? fileInput.files[0] : null;
             
-            // Jika file ada, validasi
+            // Jika file ada, validasi sebelum submit
             if (file) {
                 const ext = file.name.split('.').pop().toLowerCase();
                 if (ext !== 'pdf') {
@@ -680,15 +781,48 @@ document.addEventListener('DOMContentLoaded', function() {
                     return false;
                 }
                 
-                if (file.size > 10 * 1024 * 1024) {
+                if (file.size > 5 * 1024 * 1024) {
                     e.preventDefault();
-                    alert('⚠️ Ukuran file maksimal 10MB! (File Anda: ' + (file.size / (1024 * 1024)).toFixed(2) + 'MB)');
+                    alert('⚠️ Ukuran file maksimal 5MB! (File Anda: ' + (file.size / (1024 * 1024)).toFixed(2) + 'MB)');
                     fileInput.focus();
                     return false;
                 }
             }
             
-            // Jika tidak ada file dan required, biarkan validasi HTML berjalan
+            // Jika file valid atau tidak ada file (edit tanpa ganti file)
+            // Tampilkan loading overlay
+            if (file || !fileInput || !fileInput.files[0]) {
+                e.preventDefault(); // Stop default submit dulu
+                
+                // Tampilkan loading
+                loadingOverlay.classList.add('show');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Mengupload...';
+                
+                // Simulasi progress (0% - 100%)
+                let progress = 0;
+                const interval = setInterval(function() {
+                    // Random progress antara 0-90% (90% untuk simulasi)
+                    if (progress < 90) {
+                        progress += Math.random() * 10 + 1;
+                        if (progress > 90) progress = 90;
+                        progressBar.style.width = progress + '%';
+                        progressText.textContent = Math.round(progress) + '%';
+                    }
+                }, 200);
+                
+                // Submit form setelah delay (simulasi upload)
+                setTimeout(function() {
+                    // Progress ke 100%
+                    progressBar.style.width = '100%';
+                    progressText.textContent = '100%';
+                    
+                    setTimeout(function() {
+                        // Submit form
+                        form.submit();
+                    }, 500);
+                }, 1500);
+            }
         });
     }
 });

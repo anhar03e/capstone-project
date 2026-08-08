@@ -9,16 +9,16 @@ import os
 
 
 # =========================================================
-# FUNGSI VALIDASI FILE PDF (BARU)
+# FUNGSI VALIDASI FILE PDF
 # =========================================================
 def validate_pdf_file(value):
-    """Validasi file harus PDF dan maksimal 10MB"""
+    """Validasi file harus PDF dan maksimal 5MB"""
     ext = os.path.splitext(value.name)[1].lower()
     if ext != '.pdf':
         raise ValidationError('Hanya file PDF yang diperbolehkan.')
     
-    if value.size > 10 * 1024 * 1024:  # 10MB
-        raise ValidationError('Ukuran file maksimal 10MB.')
+    if value.size > 5 * 1024 * 1024:  # 5MB
+        raise ValidationError('Ukuran file maksimal 5MB.')
 
 
 # =========================================================
@@ -27,13 +27,14 @@ def validate_pdf_file(value):
 class UserForm(UserChangeForm):
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'role']
+        fields = ['username', 'first_name', 'last_name', 'email', 'role', 'is_active']
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'role': forms.Select(attrs={'class': 'form-select'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
 
@@ -58,6 +59,9 @@ class CustomUserCreationForm(UserCreationForm):
         }
 
 
+# =========================================================
+# MAHASISWA FORM
+# =========================================================
 class MahasiswaForm(forms.ModelForm):
 
     user = forms.ModelChoiceField(
@@ -68,18 +72,19 @@ class MahasiswaForm(forms.ModelForm):
 
     class Meta:
         model = Mahasiswa
-        fields = ['user', 'nim', 'kelas', 'angkatan']
+        fields = ['user', 'nim', 'kelas', 'angkatan', 'status', 'kategori']
         widgets = {
             'nim': forms.TextInput(attrs={'class': 'form-control'}),
             'kelas': forms.TextInput(attrs={'class': 'form-control'}),
             'angkatan': forms.TextInput(attrs={'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+            'kategori': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.fields['user'].queryset = User.objects.filter(role='MAHASISWA')
-
         self.fields['user'].label_from_instance = lambda obj: f"{obj.get_full_name()} ({obj.username})"
 
 
@@ -125,6 +130,11 @@ class DosenForm(forms.ModelForm):
             'bidang_keahlian',
             'status_aktif',
         ]
+        widgets = {
+            'nip': forms.TextInput(attrs={'class': 'form-control'}),
+            'bidang_keahlian': forms.TextInput(attrs={'class': 'form-control'}),
+            'status_aktif': forms.Select(attrs={'class': 'form-select'}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -134,6 +144,32 @@ class DosenForm(forms.ModelForm):
             self.fields['nama_lengkap'].initial = user.first_name
             self.fields['email'].initial = user.email
             self.fields['role'].initial = user.role
+
+    def save(self, commit=True):
+        """Override save untuk update user data"""
+        dosen = super().save(commit=False)
+        
+        # Update user data
+        user = dosen.user
+        user.first_name = self.cleaned_data['nama_lengkap']
+        user.email = self.cleaned_data['email']
+        user.role = self.cleaned_data['role']
+        
+        if commit:
+            user.save()
+            dosen.save()
+            
+            # Auto create DosenCP atau DosenPembimbing berdasarkan role
+            if user.role == 'DOSENCP':
+                DosenCP.objects.get_or_create(dosen=dosen, defaults={'tugas': 'Reviewer Capstone'})
+                # Hapus DosenPembimbing jika ada
+                DosenPembimbing.objects.filter(dosen=dosen).delete()
+            elif user.role == 'DOSENPB':
+                DosenPembimbing.objects.get_or_create(dosen=dosen)
+                # Hapus DosenCP jika ada
+                DosenCP.objects.filter(dosen=dosen).delete()
+        
+        return dosen
 
 
 # =========================================================
@@ -168,7 +204,7 @@ class DosenPembimbingForm(forms.ModelForm):
 
 
 # =========================================================
-# PROPOSAL CAPSTONE FORM (DIPERBAIKI - TAMBAH VALIDASI PDF)
+# PROPOSAL CAPSTONE FORM (VALIDASI 5MB)
 # =========================================================
 class ProposalForm(forms.ModelForm):
     class Meta:
@@ -185,7 +221,7 @@ class ProposalForm(forms.ModelForm):
         }
 
     def clean_file(self):
-        """Validasi file PDF maksimal 10MB"""
+        """Validasi file PDF maksimal 5MB"""
         file = self.cleaned_data.get('file')
         if file:
             validate_pdf_file(file)
@@ -193,7 +229,7 @@ class ProposalForm(forms.ModelForm):
 
 
 # =========================================================
-# RESUME FORM (DIPERBAIKI - TAMBAH VALIDASI PDF)
+# RESUME FORM (VALIDASI 5MB)
 # =========================================================
 class ResumeForm(forms.ModelForm):
     class Meta:
@@ -208,7 +244,7 @@ class ResumeForm(forms.ModelForm):
         }
 
     def clean_file_resume(self):
-        """Validasi file PDF maksimal 10MB"""
+        """Validasi file PDF maksimal 5MB"""
         file = self.cleaned_data.get('file_resume')
         if file:
             validate_pdf_file(file)
@@ -237,7 +273,7 @@ class PengajuanDospemForm(forms.ModelForm):
 class JadwalForm(forms.ModelForm):
     class Meta:
         model = JadwalKonsultasi
-        fields = ['tanggal', 'jam_mulai', 'jam_selesai']
+        fields = ['tanggal', 'jam_mulai', 'jam_selesai', 'kuota']
         widgets = {
             'tanggal': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'jam_mulai': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
