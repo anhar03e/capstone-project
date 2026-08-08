@@ -1,4 +1,4 @@
-# views/base.py - COMPLETE FIXED VERSION
+# views/base.py - COMPLETE FIXED VERSION WITH MULTI-ROLE
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.http import HttpResponse, JsonResponse
@@ -51,32 +51,86 @@ from ..forms import DosenForm, UserForm, JadwalForm, ProposalForm, ResumeForm
 logger = logging.getLogger(__name__)
 
 # =========================================================
-# ROLE CHECKER HELPER
+# ROLE CHECKER HELPER (DENGAN MULTI-ROLE)
 # =========================================================
 def check_role(request, allowed_roles, redirect_to=None):
     """
     Cek apakah user memiliki role yang diizinkan.
+    Support multi-role: cek active_role atau semua roles.
     Returns: (has_access, redirect_response)
     """
     if not request.user.is_authenticated:
         messages.error(request, 'Silakan login terlebih dahulu.')
         return False, redirect('capstone_system:login')
     
-    if request.user.role not in allowed_roles:
+    # DEBUG
+    print("=" * 60)
+    print(f"🔍 CHECK_ROLE - User: {request.user.username}")
+    print(f"   Allowed Roles: {allowed_roles}")
+    
+    # AMBIL active_role jika ada
+    active_role = request.user.get_active_role()
+    print(f"   Active Role: {active_role}")
+    
+    # Jika active_role tidak ada, cek semua roles
+    if active_role:
+        user_roles = [active_role]
+    else:
+        user_roles = request.user.get_all_roles()
+    
+    # Jika user tidak punya roles sama sekali, cek field role (backward compatibility)
+    if not user_roles:
+        user_roles = [request.user.role] if request.user.role else []
+    
+    print(f"   User Roles: {user_roles}")
+    
+    # Cek apakah ada role yang cocok
+    has_access = any(role in user_roles for role in allowed_roles)
+    print(f"   Has Access: {has_access}")
+    print("=" * 60)
+    
+    if not has_access:
         messages.error(request, 'Anda tidak memiliki akses ke halaman ini.')
         
         if not redirect_to:
+            # Redirect berdasarkan role yang tersedia
+            first_role = user_roles[0] if user_roles else None
             role_redirects = {
                 'MAHASISWA': 'capstone_system:mahasiswa_home',
                 'DOSENCP': 'capstone_system:dosencp_home',
                 'DOSENPB': 'capstone_system:dosenpb_home',
                 'KAPRODI': 'capstone_system:kaprodi_home',
             }
-            redirect_to = role_redirects.get(request.user.role, 'capstone_system:login')
+            redirect_to = role_redirects.get(first_role, 'capstone_system:login')
         
         return False, redirect(redirect_to)
     
     return True, None
+
+
+# =========================================================
+# HELPER MULTI-ROLE (TAMBAHAN)
+# =========================================================
+def get_available_roles(user):
+    """Mendapatkan semua role yang tersedia untuk user"""
+    roles = user.get_all_roles()
+    if not roles and user.role:
+        roles = [user.role]
+    return roles
+
+
+def get_active_role(user):
+    """Mendapatkan role yang sedang aktif"""
+    return user.get_active_role()
+
+
+def switch_user_role(request, role_name):
+    """Switch role user"""
+    if request.user.has_role(role_name):
+        request.user.switch_role(role_name)
+        return True
+    return False
+
 
 # =========================================================
 # HELPER
@@ -107,6 +161,7 @@ def get_dosen_pb(user):
         )
     except DosenPembimbing.DoesNotExist:
         return None
+
 
 # =========================================================
 # CUSTOM AUTHENTICATION FORM - FIXED
@@ -200,6 +255,7 @@ class CustomAuthenticationForm(AuthenticationForm):
         # Lanjutkan ke authenticate
         return super().clean()
 
+
 # =========================================================
 # CUSTOM PASSWORD RESET VIEW WITH DEBUG LOG
 # =========================================================
@@ -232,7 +288,6 @@ class CustomPasswordResetView(PasswordResetView):
             print(f"✅ User ditemukan:")
             print(f"   - Username: {user.username}")
             print(f"   - Nama: {user.get_full_name()}")
-            print(f"   - Role: {user.role}")
             print(f"   - Active: {user.is_active}")
             print("=" * 70)
         except User.DoesNotExist:
@@ -348,8 +403,9 @@ class CustomPasswordResetView(PasswordResetView):
             print("=" * 70)
             raise
 
+
 # =========================================================
-# LOGIN & LOGOUT
+# LOGIN & LOGOUT (DENGAN MULTI-ROLE)
 # =========================================================
 class CustomLoginView(LoginView):
 
@@ -358,6 +414,14 @@ class CustomLoginView(LoginView):
 
     def form_valid(self, form):
         user = form.get_user()
+        
+        # DEBUG
+        print("=" * 60)
+        print(f"🔐 LOGIN SUCCESS - User: {user.username}")
+        print(f"   Roles: {user.get_all_roles()}")
+        print(f"   Active Role before: {user.get_active_role()}")
+        print("=" * 60)
+        
         response = super().form_valid(form)
         current_session = self.request.session.session_key
 
@@ -398,16 +462,45 @@ class CustomLoginView(LoginView):
         if not user.is_password_changed:
             return reverse_lazy('capstone_system:force_change_password')
 
-        if user.role == 'MAHASISWA':
-            return reverse_lazy('capstone_system:mahasiswa_home')
-        elif user.role == 'DOSENCP':
-            return reverse_lazy('capstone_system:dosencp_home')
-        elif user.role == 'DOSENPB':
-            return reverse_lazy('capstone_system:dosenpb_home')
-        elif user.role == 'KAPRODI':
-            return reverse_lazy('capstone_system:kaprodi_home')
+        # CEK MULTI-ROLE
+        user_roles = user.get_all_roles()
+        
+        print("=" * 60)
+        print(f"🚀 GET_SUCCESS_URL - User: {user.username}")
+        print(f"   Roles: {user_roles}")
+        print(f"   Active Role: {user.get_active_role()}")
+        print(f"   is_password_changed: {user.is_password_changed}")
+        print("=" * 60)
+        
+        # Jika user punya multiple roles, arahkan ke halaman pilih role
+        if len(user_roles) > 1:
+            print("   ➡️ Redirect ke choose_role (multi-role)")
+            return reverse_lazy('capstone_system:choose_role')
+        
+        # Jika hanya 1 role, langsung redirect sesuai role
+        # Cek dari active_role dulu
+        active_role = user.get_active_role()
+        if active_role:
+            role = active_role
+        else:
+            # Backward compatibility: cek field role
+            role = user.role
+        
+        # Jika tidak ada role, coba ambil dari all_roles
+        if not role and user_roles:
+            role = user_roles[0]
+            user.switch_role(role)
+        
+        print(f"   ➡️ Redirect ke role: {role}")
+        
+        role_redirects = {
+            'MAHASISWA': 'capstone_system:mahasiswa_home',
+            'DOSENCP': 'capstone_system:dosencp_home',
+            'DOSENPB': 'capstone_system:dosenpb_home',
+            'KAPRODI': 'capstone_system:kaprodi_home',
+        }
+        return reverse_lazy(role_redirects.get(role, 'capstone_system:home'))
 
-        return reverse_lazy('capstone_system:home')
 
 # =========================================================
 # FORCE CHANGE PASSWORD
@@ -445,18 +538,22 @@ def force_change_password(request):
 
         messages.success(request, "Password berhasil diperbarui.")
 
-        if user.role == 'MAHASISWA':
-            return redirect('capstone_system:mahasiswa_home')
-        elif user.role == 'DOSENCP':
-            return redirect('capstone_system:dosencp_home')
-        elif user.role == 'DOSENPB':
-            return redirect('capstone_system:dosenpb_home')
-        elif user.role == 'KAPRODI':
-            return redirect('capstone_system:kaprodi_home')
-
-        return redirect('capstone_system:home')
+        # CEK MULTI-ROLE
+        user_roles = user.get_all_roles()
+        if len(user_roles) > 1:
+            return redirect('capstone_system:choose_role')
+        
+        active_role = user.get_active_role() or user.role
+        role_redirects = {
+            'MAHASISWA': 'capstone_system:mahasiswa_home',
+            'DOSENCP': 'capstone_system:dosencp_home',
+            'DOSENPB': 'capstone_system:dosenpb_home',
+            'KAPRODI': 'capstone_system:kaprodi_home',
+        }
+        return redirect(role_redirects.get(active_role, 'capstone_system:home'))
 
     return render(request, 'auth/force_change_password.html')
+
 
 # =========================================================
 # LOGOUT
@@ -470,20 +567,135 @@ def logout_view(request):
     messages.info(request, "Anda berhasil logout.")
     return redirect('capstone_system:login')
 
+
 # =========================================================
-# HOME
+# HOME (DENGAN MULTI-ROLE)
 # =========================================================
 @login_required
 def home(request):
     user = request.user
 
-    if user.role == 'MAHASISWA':
-        return redirect('capstone_system:mahasiswa_home')
-    elif user.role == 'DOSENCP':
-        return redirect('capstone_system:dosencp_home')
-    elif user.role == 'DOSENPB':
-        return redirect('capstone_system:dosenpb_home')
-    elif user.role == 'KAPRODI':
-        return redirect('capstone_system:kaprodi_home')
+    # CEK MULTI-ROLE
+    user_roles = user.get_all_roles()
+    
+    if len(user_roles) > 1:
+        return redirect('capstone_system:choose_role')
+    
+    active_role = user.get_active_role() or user.role
+    
+    if not active_role and user_roles:
+        active_role = user_roles[0]
+        user.switch_role(active_role)
 
-    return redirect('capstone_system:login')
+    role_redirects = {
+        'MAHASISWA': 'capstone_system:mahasiswa_home',
+        'DOSENCP': 'capstone_system:dosencp_home',
+        'DOSENPB': 'capstone_system:dosenpb_home',
+        'KAPRODI': 'capstone_system:kaprodi_home',
+    }
+    return redirect(role_redirects.get(active_role, 'capstone_system:login'))
+
+
+# =========================================================
+# CHOOSE ROLE (HALAMAN PILIH ROLE UNTUK MULTI-ROLE)
+# =========================================================
+@login_required
+def choose_role(request):
+    """
+    Halaman untuk memilih role (jika user memiliki multiple role)
+    """
+    user = request.user
+    roles = user.get_all_roles()
+    
+    print("=" * 60)
+    print(f"🎯 CHOOSE_ROLE - User: {user.username}")
+    print(f"   All Roles: {roles}")
+    print(f"   Active Role before: {user.get_active_role()}")
+    print("=" * 60)
+    
+    # Jika hanya 1 role, langsung redirect
+    if len(roles) == 1:
+        user.switch_role(roles[0])
+        print(f"   ➡️ Only 1 role, redirect to: {roles[0]}")
+        role_redirects = {
+            'MAHASISWA': 'capstone_system:mahasiswa_home',
+            'DOSENCP': 'capstone_system:dosencp_home',
+            'DOSENPB': 'capstone_system:dosenpb_home',
+            'KAPRODI': 'capstone_system:kaprodi_home',
+        }
+        return redirect(role_redirects.get(roles[0], 'capstone_system:home'))
+    
+    # Jika tidak ada role, redirect ke home
+    if not roles:
+        messages.warning(request, "Anda tidak memiliki role. Silakan hubungi administrator.")
+        return redirect('capstone_system:home')
+    
+    if request.method == 'POST':
+        role = request.POST.get('role')
+        print(f"   📝 POST - Selected role: {role}")
+        if role in roles:
+            user.switch_role(role)
+            print(f"   ✅ Switched to: {user.get_active_role()}")
+            
+            # Redirect berdasarkan role
+            role_redirects = {
+                'MAHASISWA': 'capstone_system:mahasiswa_home',
+                'DOSENCP': 'capstone_system:dosencp_home',
+                'DOSENPB': 'capstone_system:dosenpb_home',
+                'KAPRODI': 'capstone_system:kaprodi_home',
+            }
+            return redirect(role_redirects.get(role, 'capstone_system:home'))
+        else:
+            messages.error(request, "Role tidak valid.")
+    
+    context = {
+        'roles': roles,
+        'user': user,
+    }
+    return render(request, 'auth/choose_role.html', context)
+
+# views/base.py - Tambahkan fungsi ini
+
+# =========================================================
+# SWITCH ROLE (TANPA LOGOUT)
+# =========================================================
+@login_required
+def switch_role(request):
+    """
+    Halaman untuk mengganti role tanpa logout
+    """
+    user = request.user
+    roles = user.get_all_roles()
+    
+    # Jika hanya 1 role, redirect ke home
+    if len(roles) <= 1:
+        messages.info(request, "Anda hanya memiliki 1 role, tidak perlu switch role.")
+        return redirect('capstone_system:home')
+    
+    if request.method == 'POST':
+        role = request.POST.get('role')
+        if role in roles:
+            user.switch_role(role)
+            
+            # Redirect berdasarkan role yang dipilih
+            role_redirects = {
+                'MAHASISWA': 'capstone_system:mahasiswa_home',
+                'DOSENCP': 'capstone_system:dosencp_home',
+                'DOSENPB': 'capstone_system:dosenpb_home',
+                'KAPRODI': 'capstone_system:kaprodi_home',
+            }
+            
+            messages.success(
+                request, 
+                f"✅ Berhasil beralih ke role: {role}"
+            )
+            return redirect(role_redirects.get(role, 'capstone_system:home'))
+        else:
+            messages.error(request, "Role tidak valid.")
+    
+    context = {
+        'roles': roles,
+        'user': user,
+        'current_role': user.get_active_role() or user.role,
+    }
+    return render(request, 'auth/switch_role.html', context)

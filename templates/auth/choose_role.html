@@ -1,0 +1,507 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Pilih Role{% endblock %}
+
+<!-- ========================================================= -->
+<!-- MATIKAN SIDEBAR DENGAN OVERRIDE -->
+<!-- ========================================================= -->
+{% block sidebar %}
+<!-- SIDEBAR DI-NONAKTIFKAN -->
+<style>
+    .sidebar { 
+        display: none !important; 
+    }
+    .dashboard-content { 
+        margin-left: 0 !important; 
+        width: 100% !important; 
+        max-width: 100% !important;
+        padding: 25px !important;
+    }
+    .toggle-btn { 
+        display: none !important; 
+    }
+    .sidebar-overlay { 
+        display: none !important; 
+    }
+    body { 
+        background: #f4f6f9 !important; 
+    }
+</style>
+{% endblock %}
+
+<!-- ========================================================= -->
+<!-- KONTEN UTAMA -->
+<!-- ========================================================= -->
+{% block dashboard_content %}
+
+<style>
+
+/* ================= GLOBAL ================= */
+body{
+    background:#f4f6f9;
+    margin:0;
+}
+
+/* ================= HEADER ================= */
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:28px 30px;
+    border-radius:16px;
+    margin-bottom:25px;
+    box-shadow:0 8px 25px rgba(37,99,235,.2);
+    position:relative;
+    overflow:hidden;
+}
+
+.page-header::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+}
+
+.page-header .header-icon {
+    font-size: 24px;
+    margin-right: 10px;
+}
+
+.page-header h4 {
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.page-header p {
+    opacity: 0.9;
+    font-weight: 300;
+    margin-bottom: 0;
+}
+
+.page-header p strong {
+    font-weight: 600;
+}
+
+.page-header .role-count {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    margin-left: 8px;
+}
+
+/* ================= ROLE GRID ================= */
+.role-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-top: 10px;
+}
+
+/* ================= ROLE CARD ================= */
+.role-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 35px 25px 30px;
+    text-align: center;
+    transition: all 0.35s ease;
+    cursor: pointer;
+    border: 2px solid #eef2f7;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    position: relative;
+    overflow: hidden;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.role-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #2563eb, #7c3aed);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.role-card:hover::before {
+    opacity: 1;
+}
+
+.role-card:hover {
+    border-color: #2563eb;
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px rgba(37, 99, 235, 0.12);
+}
+
+.role-card:active {
+    transform: scale(0.97);
+}
+
+/* ===== ICON WRAPPER ===== */
+.role-card .role-icon-wrapper {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    font-size: 32px;
+    transition: all 0.3s ease;
+}
+
+.role-card:hover .role-icon-wrapper {
+    transform: scale(1.08);
+}
+
+/* Warna icon per role */
+.role-icon-wrapper.kaprodi {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.role-icon-wrapper.dosencp {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.role-icon-wrapper.dosenpb {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.role-icon-wrapper.mahasiswa {
+    background: #fce4ec;
+    color: #dc2626;
+}
+
+/* ===== ROLE NAME ===== */
+.role-card .role-name {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+}
+
+/* ===== ROLE DESCRIPTION ===== */
+.role-card .role-desc {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 14px;
+    line-height: 1.5;
+}
+
+/* ===== ROLE BADGE ===== */
+.role-card .role-badge {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 20px;
+    border-radius: 25px;
+    background: #f3f4f6;
+    color: #4b5563;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.role-card:hover .role-badge {
+    background: #2563eb;
+    color: white;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.role-card .role-badge i {
+    font-size: 14px;
+}
+
+/* ===== DIVIDER ===== */
+.role-divider {
+    width: 40px;
+    height: 2px;
+    background: #e5e7eb;
+    margin: 0 auto 10px;
+    border-radius: 2px;
+}
+
+/* ================= FOOTER ================= */
+.role-footer {
+    margin-top: 32px;
+    text-align: center;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.role-footer .btn-logout {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 24px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    background: #f70000;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.role-footer .btn-logout:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 992px) {
+    .role-grid {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 18px;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .page-header::after {
+        display: none;
+    }
+    
+    .page-header .role-count {
+        display: block;
+        margin: 6px auto 0;
+        width: fit-content;
+    }
+    
+    .role-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .role-card {
+        min-height: 160px;
+        padding: 24px 20px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 8px 16px;
+    }
+    
+    .role-card .role-icon-wrapper {
+        width: 56px;
+        height: 56px;
+        font-size: 24px;
+        margin-bottom: 0;
+    }
+    
+    .role-card .role-name {
+        font-size: 16px;
+        width: 100%;
+        text-align: center;
+    }
+    
+    .role-card .role-desc {
+        font-size: 12px;
+        width: 100%;
+        text-align: center;
+        margin-bottom: 8px;
+    }
+    
+    .role-card .role-badge {
+        font-size: 11px;
+        padding: 4px 14px;
+    }
+    
+    .role-divider {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-header {
+        padding: 16px;
+    }
+    
+    .page-header h4 {
+        font-size: 18px;
+    }
+    
+    .page-header p {
+        font-size: 13px;
+    }
+    
+    .role-card {
+        min-height: 140px;
+        padding: 18px 14px;
+        border-radius: 12px;
+    }
+    
+    .role-card .role-icon-wrapper {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+    
+    .role-card .role-name {
+        font-size: 14px;
+    }
+    
+    .role-card .role-desc {
+        font-size: 11px;
+    }
+    
+    .role-card .role-badge {
+        font-size: 10px;
+        padding: 3px 12px;
+    }
+    
+    .role-footer .btn-logout {
+        font-size: 13px;
+        padding: 6px 18px;
+    }
+}
+
+/* ================= ANIMASI ================= */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.role-card {
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+.role-card:nth-child(1) { animation-delay: 0.05s; }
+.role-card:nth-child(2) { animation-delay: 0.12s; }
+.role-card:nth-child(3) { animation-delay: 0.19s; }
+.role-card:nth-child(4) { animation-delay: 0.26s; }
+
+</style>
+
+<!-- ================= HEADER ================= -->
+<div class="page-header">
+    <div>
+        <h4>
+            <i class="bi bi-person-badge header-icon"></i>
+            Pilih Role
+            <span class="role-count">{{ roles|length }} Role</span>
+        </h4>
+        <p>
+            Selamat datang, <strong>{{ user.get_full_name }}</strong> — 
+            Anda memiliki akses ke <strong>{{ roles|length }}</strong> role. 
+            Pilih salah satu untuk melanjutkan.
+        </p>
+    </div>
+</div>
+
+<!-- ================= ROLE CARDS ================= -->
+<div class="role-grid">
+
+    {% for role in roles %}
+
+    <form method="POST" id="role-form-{{ forloop.counter }}" style="display:none;">
+        {% csrf_token %}
+        <input type="hidden" name="role" value="{{ role }}">
+    </form>
+
+    <div class="role-card" 
+         onclick="document.getElementById('role-form-{{ forloop.counter }}').submit();">
+
+        <div class="role-icon-wrapper 
+            {% if role == 'KAPRODI' %}kaprodi
+            {% elif role == 'DOSENCP' %}dosencp
+            {% elif role == 'DOSENPB' %}dosenpb
+            {% elif role == 'MAHASISWA' %}mahasiswa
+            {% endif %}">
+            
+            {% if role == 'KAPRODI' %}
+                <i class="bi bi-person-workspace"></i>
+            {% elif role == 'DOSENCP' %}
+                <i class="bi bi-file-check"></i>
+            {% elif role == 'DOSENPB' %}
+                <i class="bi bi-people"></i>
+            {% elif role == 'MAHASISWA' %}
+                <i class="bi bi-mortarboard"></i>
+            {% else %}
+                <i class="bi bi-person-badge"></i>
+            {% endif %}
+        </div>
+
+        <div class="role-name">
+            {% if role == 'KAPRODI' %}
+                Kaprodi
+            {% elif role == 'DOSENCP' %}
+                Dosen Capstone Project
+            {% elif role == 'DOSENPB' %}
+                Dosen Pembimbing
+            {% elif role == 'MAHASISWA' %}
+                Mahasiswa
+            {% else %}
+                {{ role }}
+            {% endif %}
+        </div>
+
+        <div class="role-divider"></div>
+
+        <div class="role-desc">
+            {% if role == 'KAPRODI' %}
+                Mengelola seluruh data akademik dan pengawasan capstone
+            {% elif role == 'DOSENCP' %}
+                Mereview dan mengevaluasi proposal capstone mahasiswa
+            {% elif role == 'DOSENPB' %}
+                Membimbing mahasiswa dalam pelaksanaan capstone project
+            {% elif role == 'MAHASISWA' %}
+                Mengelola tim dan pelaksanaan capstone project
+            {% else %}
+                Akses role {{ role }}
+            {% endif %}
+        </div>
+
+        <div class="role-badge">
+            <i class="bi bi-arrow-right-circle"></i>
+            Login sebagai
+        </div>
+    </div>
+
+    {% empty %}
+
+    <div class="col-12">
+        <div class="alert alert-warning text-center">
+            <i class="bi bi-exclamation-triangle"></i>
+            Anda tidak memiliki role. Silakan hubungi administrator.
+        </div>
+    </div>
+
+    {% endfor %}
+
+</div>
+
+<!-- ================= FOOTER ================= -->
+<div class="role-footer">
+    <a href="{% url 'capstone_system:logout' %}" class="btn-logout">
+        <i class="bi bi-box-arrow-right"></i>
+        Logout
+    </a>
+</div>
+
+{% endblock %}

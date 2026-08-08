@@ -547,7 +547,7 @@ def aktifkan_dosen(request, id):
 
 
 # =========================================================
-# TAMBAH DOSEN
+# TAMBAH DOSEN (DENGAN MULTI-ROLE)
 # =========================================================
 @login_required
 @transaction.atomic
@@ -559,53 +559,14 @@ def tambah_dosen(request):
     if request.method == "POST":
         form = DosenForm(request.POST)
         if form.is_valid():
-            nama = form.cleaned_data['nama_lengkap']
-            email = form.cleaned_data['email']
-            role = form.cleaned_data['role']
-            nip = form.cleaned_data['nip']
-            bidang_keahlian = form.cleaned_data['bidang_keahlian']
-            prodi = form.cleaned_data['prodi']
-            status_aktif = form.cleaned_data['status_aktif']
-
-            # CEK DUPLIKAT
-            if User.objects.filter(username=nip).exists():
-                messages.error(request, "NIP sudah terdaftar.")
-                return render(request, "kaprodi/tambah_dosen.html", {"form": form})
-
-            if User.objects.filter(email=email).exists():
-                messages.error(request, "Email sudah digunakan.")
-                return render(request, "kaprodi/tambah_dosen.html", {"form": form})
-
-            # BUAT USER
-            user = User.objects.create_user(
-                username=nip,
-                password=nip,
-                first_name=nama,
-                email=email,
-                role=role,
-                is_password_changed=False,
-                is_active=True,
-            )
-
-            # BUAT DOSEN (user sudah tersimpan)
-            dosen = Dosen(
-                user=user,
-                nip=nip,
-                bidang_keahlian=bidang_keahlian,
-                status_aktif=status_aktif,
-                prodi=prodi,
-            )
-            dosen.save()
-
-            # BUAT ROLE TERKAIT
-            if role == "DOSENPB":
-                DosenPembimbing.objects.create(dosen=dosen)
-            elif role == "DOSENCP":
-                DosenCP.objects.create(dosen=dosen, tugas="Reviewer Capstone")
-            # Jika role KAPRODI, tidak perlu buat apa-apa
-
-            messages.success(request, f"Dosen {nama} berhasil ditambahkan.")
+            # 🔥 PERBAIKI: Gunakan form.save() langsung
+            # Form.save() sudah handle semua termasuk roles
+            dosen = form.save()
+            
+            messages.success(request, f"Dosen {dosen.user.get_full_name()} berhasil ditambahkan.")
             return redirect("capstone_system:kaprodi_dosen")
+        else:
+            messages.error(request, "Terjadi kesalahan. Silakan periksa kembali form.")
     else:
         form = DosenForm()
 
@@ -613,7 +574,7 @@ def tambah_dosen(request):
 
 
 # =========================================================
-# EDIT DOSEN
+# EDIT DOSEN (DENGAN MULTI-ROLE)
 # =========================================================
 @login_required
 @transaction.atomic
@@ -627,19 +588,13 @@ def edit_dosen(request, id):
     if request.method == "POST":
         form = DosenForm(request.POST, instance=dosen)
         if form.is_valid():
-            form.save()
-            dosen = form.instance
-
-            DosenPembimbing.objects.filter(dosen=dosen).delete()
-            DosenCP.objects.filter(dosen=dosen).delete()
-
-            if dosen.user.role == "DOSENPB":
-                DosenPembimbing.objects.create(dosen=dosen)
-            else:
-                DosenCP.objects.create(dosen=dosen, tugas="Reviewer Capstone")
-
+            # 🔥 PERBAIKI: Gunakan form.save() yang sudah handle multi-role
+            dosen = form.save()
+            
             messages.success(request, "Data dosen berhasil diperbarui.")
             return redirect("capstone_system:kaprodi_dosen")
+        else:
+            messages.error(request, "Terjadi kesalahan. Silakan periksa kembali form.")
     else:
         form = DosenForm(instance=dosen)
 

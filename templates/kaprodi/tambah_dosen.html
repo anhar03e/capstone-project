@@ -52,9 +52,76 @@ body{
     box-shadow:0 0 0 .2rem rgba(37,99,235,.15);
 }
 
-.form-check-input{
-    transform:scale(1.15);
-    margin-top:.3rem;
+/* ===== CHECKBOX ROLE ===== */
+.role-checkbox-group {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 10px 0;
+}
+
+.role-checkbox-group .form-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 18px;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    margin: 0;
+    background: #fafafa;
+    flex: 1;
+    min-width: 200px;
+}
+
+.role-checkbox-group .form-check:hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
+
+.role-checkbox-group .form-check.checked {
+    border-color: #2563eb;
+    background: #dbeafe;
+}
+
+.role-checkbox-group .form-check input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #2563eb;
+    cursor: pointer;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.role-checkbox-group .form-check .role-label {
+    font-weight: 500;
+    font-size: 14px;
+    color: #1f2937;
+    cursor: pointer;
+}
+
+.role-checkbox-group .form-check .role-desc {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.role-checkbox-group .form-check .badge-role {
+    font-size: 10px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+    margin-left: auto;
+}
+
+.badge-role.dosencp {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.badge-role.dosenpb {
+    background: #d1fae5;
+    color: #065f46;
 }
 
 </style>
@@ -64,7 +131,7 @@ body{
 <div class="page-header">
 
     <h4 class="mb-1">
-        Tambah Dosen 
+        <i class="bi bi-person-plus-fill"></i> Tambah Dosen
     </h4>
 
     <div>
@@ -97,8 +164,7 @@ body{
 
             <div class="row">
 
-                <!-- Nama -->
-
+                <!-- Nama Lengkap -->
                 <div class="col-md-6 mb-3">
 
                     <label class="form-label">
@@ -110,7 +176,6 @@ body{
                 </div>
 
                 <!-- NIP -->
-
                 <div class="col-md-6 mb-3">
 
                     <label class="form-label">
@@ -122,7 +187,6 @@ body{
                 </div>
 
                 <!-- Email -->
-
                 <div class="col-md-6 mb-3">
 
                     <label class="form-label">
@@ -133,20 +197,55 @@ body{
 
                 </div>
 
-                <!-- Role -->
-
+                <!-- 🔥 PERUBAHAN: Role dengan Checkbox -->
                 <div class="col-md-6 mb-3">
 
                     <label class="form-label">
-                        Role
+                        Role Dosen
                     </label>
 
-                    {{ form.role }}
+                    <div class="role-checkbox-group">
+                        {% for value, label in form.roles.field.choices %}
+                        <div class="form-check">
+                            <input type="checkbox" 
+                                   name="{{ form.roles.name }}" 
+                                   value="{{ value }}"
+                                   id="role_{{ value }}"
+                                   class="form-check-input"
+                                   onchange="this.parentElement.classList.toggle('checked', this.checked)">
+                            <div>
+                                <div class="role-label">
+                                    {% if value == 'DOSENCP' %}
+                                        📋 Dosen Capstone Project
+                                    {% elif value == 'DOSENPB' %}
+                                        📚 Dosen Pembimbing
+                                    {% else %}
+                                        {{ label }}
+                                    {% endif %}
+                                </div>
+                                <div class="role-desc">
+                                    {% if value == 'DOSENCP' %}
+                                        Mereview proposal capstone
+                                    {% elif value == 'DOSENPB' %}
+                                        Membimbing mahasiswa capstone
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <span class="badge-role {% if value == 'DOSENCP' %}dosencp{% elif value == 'DOSENPB' %}dosenpb{% endif %}">
+                                {{ value }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <small class="text-muted d-block mt-2">
+                        <i class="bi bi-info-circle"></i> 
+                        Centang satu atau lebih role yang sesuai
+                    </small>
 
                 </div>
 
                 <!-- Program Studi -->
-
                 <div class="col-md-6 mb-3">
 
                     <label class="form-label">
@@ -158,7 +257,6 @@ body{
                 </div>
 
                 <!-- Bidang Keahlian -->
-
                 <div class="col-md-6 mb-3">
 
                     <label class="form-label">
@@ -169,21 +267,14 @@ body{
 
                 </div>
 
-                <!-- Status -->
-
+                <!-- Status Aktif -->
                 <div class="col-md-12 mb-3">
 
-                    <div class="form-check">
+                    <label class="form-label">
+                        Status
+                    </label>
 
-                        {{ form.status_aktif }}
-
-                        <label class="form-check-label ms-2">
-
-                            Dosen Aktif
-
-                        </label>
-
-                    </div>
+                    {{ form.status_aktif }}
 
                 </div>
 
@@ -220,5 +311,16 @@ body{
     </div>
 
 </div>
+
+<script>
+// Tambahkan class 'checked' pada checkbox yang sudah dicentang saat load
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.role-checkbox-group .form-check input[type="checkbox"]').forEach(function(checkbox) {
+        if (checkbox.checked) {
+            checkbox.parentElement.classList.add('checked');
+        }
+    });
+});
+</script>
 
 {% endblock %}

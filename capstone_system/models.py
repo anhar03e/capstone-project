@@ -5,7 +5,7 @@ import os
 
 
 # =========================================================
-# FUNGSI VALIDASI FILE PDF
+# FUNGSI VALIDASI FILE PDF (TETAP 10MB - TIDAK DIUBAH)
 # =========================================================
 def validate_pdf_file(value):
     """Validasi file harus PDF dan maksimal 10MB"""
@@ -18,7 +18,32 @@ def validate_pdf_file(value):
 
 
 # =========================================================
-# USER
+# ROLE (MODEL BARU UNTUK MULTI-ROLE)
+# =========================================================
+class Role(models.Model):
+    """Model untuk menyimpan daftar role yang tersedia"""
+    ROLE_CHOICES = (
+        ('MAHASISWA', 'Mahasiswa'),
+        ('DOSENCP', 'Dosen CP'),
+        ('DOSENPB', 'Dosen Pembimbing'),
+        ('KAPRODI', 'Kaprodi'),
+    )
+    
+    name = models.CharField(max_length=20, choices=ROLE_CHOICES, unique=True)
+    description = models.TextField(blank=True, null=True)
+    
+    def __str__(self):
+        return self.get_name_display()
+    
+    def get_name_display(self):
+        return dict(self.ROLE_CHOICES).get(self.name, self.name)
+    
+    class Meta:
+        ordering = ['name']
+
+
+# =========================================================
+# USER (DENGAN MULTI-ROLE)
 # =========================================================
 class User(AbstractUser):
 
@@ -29,9 +54,24 @@ class User(AbstractUser):
         ('KAPRODI', 'Kaprodi'),
     )
 
+    # FIELD role TETAP ADA (TIDAK DIHAPUS) - untuk backward compatibility
     role = models.CharField(
         max_length=20,
         choices=ROLE_CHOICES,
+        null=True,
+        blank=True
+    )
+
+    # TAMBAHAN: ManyToMany ke Role untuk multi-role
+    roles = models.ManyToManyField(
+        Role,
+        blank=True,
+        related_name='users'
+    )
+    
+    # TAMBAHAN: Field untuk menyimpan role yang sedang aktif
+    active_role = models.CharField(
+        max_length=20,
         null=True,
         blank=True
     )
@@ -47,12 +87,35 @@ class User(AbstractUser):
         blank=True
     )
 
+    # =========================================================
+    # METHOD UNTUK MULTI-ROLE (TAMBAHAN)
+    # =========================================================
+    def get_all_roles(self):
+        """Mendapatkan semua role user sebagai list of strings"""
+        return list(self.roles.values_list('name', flat=True))
+    
+    def has_role(self, role_name):
+        """Cek apakah user memiliki role tertentu"""
+        return self.roles.filter(name=role_name).exists()
+    
+    def switch_role(self, role_name):
+        """Switch ke role tertentu"""
+        if self.has_role(role_name):
+            self.active_role = role_name
+            self.save(update_fields=['active_role'])
+            return True
+        return False
+    
+    def get_active_role(self):
+        """Mendapatkan role yang sedang aktif"""
+        return self.active_role
+
     def __str__(self):
         return f"{self.get_full_name()} ({self.role})"
 
 
 # =========================================================
-# MAHASISWA
+# MAHASISWA (TIDAK DIUBAH)
 # =========================================================
 class Mahasiswa(models.Model):
     KATEGORI_CHOICES = (
@@ -94,7 +157,7 @@ class Mahasiswa(models.Model):
 
 
 # =========================================================
-# DOSEN (MASTER)
+# DOSEN (MASTER) - TIDAK DIUBAH
 # =========================================================
 class Dosen(models.Model):
     STATUS_CHOICES = (
@@ -116,7 +179,7 @@ class Dosen(models.Model):
 
 
 # =========================================================
-# DOSEN PEMBIMBING (PB)
+# DOSEN PEMBIMBING (PB) - TIDAK DIUBAH
 # =========================================================
 class DosenPembimbing(models.Model):
     dosen = models.ForeignKey(
@@ -189,7 +252,7 @@ class DosenPembimbing(models.Model):
 
 
 # =========================================================
-# DOSEN CP
+# DOSEN CP - TIDAK DIUBAH
 # =========================================================
 class DosenCP(models.Model):
     dosen = models.ForeignKey(Dosen, on_delete=models.CASCADE, related_name='cp')
@@ -200,7 +263,7 @@ class DosenCP(models.Model):
 
 
 # =========================================================
-# TIM
+# TIM - TIDAK DIUBAH
 # =========================================================
 class Tim(models.Model):
     nama_tim = models.CharField(max_length=255)
@@ -237,7 +300,7 @@ class Tim(models.Model):
 
 
 # =========================================================
-# ANGGOTA TIM
+# ANGGOTA TIM - TIDAK DIUBAH
 # =========================================================
 class AnggotaTim(models.Model):
     ROLE_CHOICES = (
@@ -262,7 +325,7 @@ class AnggotaTim(models.Model):
 
 
 # =========================================================
-# PROPOSAL CAPSTONE (CORE SYSTEM)
+# PROPOSAL CAPSTONE (CORE SYSTEM) - TIDAK DIUBAH
 # =========================================================
 class ProposalCapstone(models.Model):
 
@@ -288,7 +351,7 @@ class ProposalCapstone(models.Model):
     mitra = models.CharField(max_length=255)
     file = models.FileField(
         upload_to='proposal/',
-        validators=[validate_pdf_file]  # <-- PERUBAHAN: Validasi PDF
+        validators=[validate_pdf_file]  # TETAP ADA
     )
 
     waktu_pengajuan = models.DateTimeField(auto_now_add=True)
@@ -388,7 +451,7 @@ class ProposalCapstone(models.Model):
 
 
 # =========================================================
-# RIWAYAT FEEDBACK PROPOSAL (LOG HISTORY)
+# RIWAYAT FEEDBACK PROPOSAL (LOG HISTORY) - TIDAK DIUBAH
 # =========================================================
 class RiwayatFeedbackProposal(models.Model):
 
@@ -429,7 +492,7 @@ class RiwayatFeedbackProposal(models.Model):
 
 
 # =========================================================
-# RESUME
+# RESUME - TIDAK DIUBAH
 # =========================================================
 class Resume(models.Model):
 
@@ -442,7 +505,7 @@ class Resume(models.Model):
 
     file_resume = models.FileField(
         upload_to='resume/',
-        validators=[validate_pdf_file]  # <-- PERUBAHAN: Validasi PDF
+        validators=[validate_pdf_file]  # TETAP ADA
     )
     waktu_pengajuan = models.DateTimeField(auto_now_add=True)
 
@@ -478,7 +541,7 @@ class Resume(models.Model):
 
 
 # =========================================================
-# RIWAYAT FEEDBACK RESUME (LOG HISTORY)
+# RIWAYAT FEEDBACK RESUME (LOG HISTORY) - TIDAK DIUBAH
 # =========================================================
 class RiwayatFeedbackResume(models.Model):
 
@@ -509,7 +572,7 @@ class RiwayatFeedbackResume(models.Model):
 
 
 # =========================================================
-# PENGAJUAN DOSPEM
+# PENGAJUAN DOSPEM - TIDAK DIUBAH
 # =========================================================
 class PengajuanDospem(models.Model):
 
@@ -539,7 +602,7 @@ class PengajuanDospem(models.Model):
 
 
 # =========================================================
-# JADWAL KONSULTASI (UPGRADE BOOKING SYSTEM)
+# JADWAL KONSULTASI - TIDAK DIUBAH
 # =========================================================
 class JadwalKonsultasi(models.Model):
 
@@ -573,7 +636,7 @@ class JadwalKonsultasi(models.Model):
 
 
 # =========================================================
-# BOOKING JADWAL KONSULTASI (UPGRADE BOOKING SYSTEM)
+# BOOKING JADWAL KONSULTASI - TIDAK DIUBAH
 # =========================================================
 class BookingJadwal(models.Model):
 

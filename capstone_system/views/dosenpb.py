@@ -1,4 +1,5 @@
-# views/dosenpb.py
+# views/dosenpb.py - PERBAIKI LENGKAP
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -30,7 +31,8 @@ def dosenpb_home(request):
     
     dosen_pb = get_dosen_pb(request.user)
     if not dosen_pb:
-        return redirect('login')
+        messages.error(request, "Anda belum terdaftar sebagai Dosen Pembimbing.")
+        return redirect('capstone_system:login')  # <-- PERBAIKI INI!
 
     jumlah_mahasiswa = Mahasiswa.objects.filter(dosen_pembimbing=dosen_pb).count()
     today = timezone.localdate()
@@ -122,7 +124,8 @@ def dosenpb_detail_pengajuan(request, id):
     
     dosen_pb = get_dosen_pb(request.user)
     if not dosen_pb:
-        return redirect('login')
+        messages.error(request, "Anda belum terdaftar sebagai Dosen Pembimbing.")
+        return redirect('capstone_system:login')  # <-- PERBAIKI INI!
 
     pengajuan = get_object_or_404(
         PengajuanDospem.objects.select_related('mahasiswa__user', 'resume', 'resume__proposal'),
@@ -139,25 +142,15 @@ def dosenpb_detail_pengajuan(request, id):
         catatan = request.POST.get('catatan', '').strip()
         status_sekarang = pengajuan.status
 
-        # =========================================================
-        # VALIDASI: Catatan wajib untuk tolak dan revisi
-        # =========================================================
         if aksi in ['tolak', 'revisi'] and not catatan:
             messages.error(request, f"Catatan wajib diisi untuk {aksi}!")
             return redirect(request.path)
 
-        # =========================================================
-        # CEK KUOTA SEBELUM MENYETUJUI
-        # =========================================================
         if aksi == 'setujui':
-            # Gunakan property jumlah_bimbingan (bukan jumlah_bimbingan_sekarang)
             if dosen_pb.jumlah_bimbingan >= dosen_pb.batas_bimbingan:
                 messages.error(request, f"Kuota bimbingan penuh! (Maksimal {dosen_pb.batas_bimbingan} mahasiswa)")
                 return redirect(request.path)
 
-        # =========================================================
-        # PROSES SETUJUI
-        # =========================================================
         if aksi == 'setujui':
             pengajuan.status = 'DISETUJUI'
             pengajuan.catatan_dosen = catatan
@@ -183,20 +176,12 @@ def dosenpb_detail_pengajuan(request, id):
                     status='DISETUJUI', catatan=catatan
                 )
 
-            # Update mahasiswa
             mahasiswa.dosen_pembimbing = dosen_pb
             mahasiswa.save()
-            
-            # Update status dosen pembimbing
             dosen_pb.update_status()
-            
             messages.success(request, f"Mahasiswa {mahasiswa.user.get_full_name()} berhasil disetujui!")
 
-        # =========================================================
-        # PROSES TOLAK
-        # =========================================================
         elif aksi == 'tolak':
-            # Jika sebelumnya sudah disetujui, lepaskan mahasiswa
             if status_sekarang == 'DISETUJUI':
                 mahasiswa.dosen_pembimbing = None
                 mahasiswa.save()
@@ -226,16 +211,10 @@ def dosenpb_detail_pengajuan(request, id):
                     status='DITOLAK', catatan=catatan
                 )
 
-            # Update status dosen pembimbing
             dosen_pb.update_status()
-            
             messages.warning(request, f"Pengajuan dari {mahasiswa.user.get_full_name()} ditolak!")
 
-        # =========================================================
-        # PROSES REVISI
-        # =========================================================
         elif aksi == 'revisi':
-            # Jika sebelumnya sudah disetujui, lepaskan mahasiswa
             if status_sekarang == 'DISETUJUI':
                 mahasiswa.dosen_pembimbing = None
                 mahasiswa.save()
@@ -265,9 +244,7 @@ def dosenpb_detail_pengajuan(request, id):
                     status='REVISI', catatan=catatan
                 )
 
-            # Update status dosen pembimbing
             dosen_pb.update_status()
-            
             messages.info(request, f"Revisi diminta untuk {mahasiswa.user.get_full_name()}!")
 
         pengajuan.save()

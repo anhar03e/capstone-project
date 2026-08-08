@@ -72,13 +72,22 @@
         <!-- PROFILE -->
         <li>
             <a href="{% url 'capstone_system:dosenpb_profile' %}"
-               class="nav-link {% if request.resolver_match.url_name == 'dosenpb_profile' %}active{% endif %}">
-                <i class="bi bi-person-circle"></i>
-                <span class="menu-text">Profil</span>
+                class="nav-link {% if request.resolver_match.url_name == 'dosenpb_profile' %}active{% endif %}">
+                    <i class="bi bi-person-circle"></i>
+                    <span class="menu-text">Profil</span>
+                </a>
+            </li>
+
+        </ul>
+
+        <li>
+            <a href="{% url 'capstone_system:choose_role' %}"
+            class="nav-link">
+                <i class="bi bi-arrow-left-right"></i>
+                <span class="menu-text">Ganti Role</span>
             </a>
         </li>
 
-    </ul>
 
     <!-- ================= FOOTER ================= -->
     <div class="mt-auto p-3 border-top border-light border-opacity-25">

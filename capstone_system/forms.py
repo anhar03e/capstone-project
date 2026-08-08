@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.core.exceptions import ValidationError
 from .models import (
-    User, Mahasiswa, Dosen, DosenCP, DosenPembimbing,
+    User, Role, Mahasiswa, Dosen, DosenCP, DosenPembimbing,
     ProposalCapstone, Resume, PengajuanDospem, JadwalKonsultasi
 )
 import os
@@ -25,9 +25,28 @@ def validate_pdf_file(value):
 # USER FORMS
 # =========================================================
 class UserForm(UserChangeForm):
+    """Form untuk edit user dengan multi-role"""
+    
+    # Field role TETAP ADA (backward compatibility)
+    role = forms.ChoiceField(
+        choices=User.ROLE_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Role Utama'
+    )
+    
+    # TAMBAHAN: Field untuk multi-role
+    roles = forms.ModelMultipleChoiceField(
+        queryset=Role.objects.all(),
+        widget=forms.SelectMultiple(attrs={'class': 'form-select', 'size': 4}),
+        required=False,
+        label='Roles (Multi-Role)',
+        help_text='Pilih satu atau lebih role (Ctrl+Click untuk multi pilih)'
+    )
+    
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'role', 'is_active']
+        fields = ['username', 'first_name', 'last_name', 'email', 'role', 'roles', 'is_active']
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
@@ -36,9 +55,33 @@ class UserForm(UserChangeForm):
             'role': forms.Select(attrs={'class': 'form-select'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['roles'].initial = self.instance.roles.all()
 
 
 class CustomUserCreationForm(UserCreationForm):
+    """Form untuk membuat user baru dengan multi-role"""
+    
+    # Field role TETAP ADA (backward compatibility)
+    role = forms.ChoiceField(
+        choices=User.ROLE_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Role Utama'
+    )
+    
+    # TAMBAHAN: Field untuk multi-role
+    roles = forms.ModelMultipleChoiceField(
+        queryset=Role.objects.all(),
+        widget=forms.SelectMultiple(attrs={'class': 'form-select', 'size': 4}),
+        required=False,
+        label='Roles (Multi-Role)',
+        help_text='Pilih satu atau lebih role (Ctrl+Click untuk multi pilih)'
+    )
+    
     class Meta:
         model = User
         fields = [
@@ -47,6 +90,7 @@ class CustomUserCreationForm(UserCreationForm):
             'last_name',
             'email',
             'role',
+            'roles',
             'password1',
             'password2'
         ]
@@ -57,6 +101,15 @@ class CustomUserCreationForm(UserCreationForm):
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'role': forms.Select(attrs={'class': 'form-select'}),
         }
+    
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        if commit:
+            user.save()
+            # Simpan roles ManyToMany
+            if self.cleaned_data.get('roles'):
+                user.roles.set(self.cleaned_data['roles'])
+        return user
 
 
 # =========================================================
@@ -65,7 +118,7 @@ class CustomUserCreationForm(UserCreationForm):
 class MahasiswaForm(forms.ModelForm):
 
     user = forms.ModelChoiceField(
-        queryset=User.objects.filter(role='MAHASISWA'),
+        queryset=User.objects.filter(roles__name='MAHASISWA'),
         widget=forms.Select(attrs={'class': 'form-select'}),
         label="Mahasiswa"
     )
@@ -84,12 +137,12 @@ class MahasiswaForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields['user'].queryset = User.objects.filter(role='MAHASISWA')
+        self.fields['user'].queryset = User.objects.filter(roles__name='MAHASISWA')
         self.fields['user'].label_from_instance = lambda obj: f"{obj.get_full_name()} ({obj.username})"
 
 
 # =========================================================
-# DOSEN FORM
+# DOSEN FORM (DIPERBAIKI - DENGAN CHECKBOX MULTI-ROLE)
 # =========================================================
 class DosenForm(forms.ModelForm):
 
@@ -109,12 +162,16 @@ class DosenForm(forms.ModelForm):
         widget=forms.EmailInput(attrs={'class': 'form-control'})
     )
 
-    role = forms.ChoiceField(
-        choices=[
-            ('DOSENCP', 'Dosen CP'),
-            ('DOSENPB', 'Dosen Pembimbing'),
-        ],
-        widget=forms.Select(attrs={'class': 'form-select'})
+    # 🔥 PERUBAHAN: HAPUS field role (tidak dipakai lagi)
+    # role = forms.ChoiceField(...)  # <-- HAPUS
+
+    # 🔥 PERUBAHAN: Multi-role untuk dosen dengan Checkbox
+    roles = forms.ModelMultipleChoiceField(
+        queryset=Role.objects.filter(name__in=['DOSENCP', 'DOSENPB']),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input role-checkbox'}),
+        required=True,
+        label='Role Dosen',
+        help_text='Centang satu atau lebih role yang sesuai'
     )
 
     prodi = forms.ChoiceField(
@@ -143,31 +200,46 @@ class DosenForm(forms.ModelForm):
             user = self.instance.user
             self.fields['nama_lengkap'].initial = user.first_name
             self.fields['email'].initial = user.email
-            self.fields['role'].initial = user.role
+            # HAPUS: self.fields['role'].initial = user.role
+            self.fields['roles'].initial = user.roles.filter(name__in=['DOSENCP', 'DOSENPB'])
 
     def save(self, commit=True):
-        """Override save untuk update user data"""
+        """Override save untuk update user data dengan multi-role"""
         dosen = super().save(commit=False)
         
-        # Update user data
+        # Update user data (HANYA nama dan email, TANPA mengubah role)
         user = dosen.user
         user.first_name = self.cleaned_data['nama_lengkap']
         user.email = self.cleaned_data['email']
-        user.role = self.cleaned_data['role']
+        
+        # 🔥 PERUBAHAN PENTING: JANGAN ubah user.role di sini!
+        # Biarkan role user tetap seperti sebelumnya
+        # user.role TIDAK diubah
+        
+        # 🔥 PERUBAHAN PENTING: Update multi-role di user.roles
+        # Hanya update jika ada perubahan di field roles
+        selected_roles = self.cleaned_data.get('roles', [])
+        
+        # Hapus role lama yang terkait dengan dosen (DOSENCP dan DOSENPB)
+        user.roles.remove(*user.roles.filter(name__in=['DOSENCP', 'DOSENPB']))
+        # Tambahkan role baru
+        for role in selected_roles:
+            user.roles.add(role)
         
         if commit:
             user.save()
             dosen.save()
             
-            # Auto create DosenCP atau DosenPembimbing berdasarkan role
-            if user.role == 'DOSENCP':
+            # Auto create DosenCP atau DosenPembimbing berdasarkan role yang dipilih
+            if user.roles.filter(name='DOSENCP').exists():
                 DosenCP.objects.get_or_create(dosen=dosen, defaults={'tugas': 'Reviewer Capstone'})
-                # Hapus DosenPembimbing jika ada
-                DosenPembimbing.objects.filter(dosen=dosen).delete()
-            elif user.role == 'DOSENPB':
-                DosenPembimbing.objects.get_or_create(dosen=dosen)
-                # Hapus DosenCP jika ada
+            else:
                 DosenCP.objects.filter(dosen=dosen).delete()
+            
+            if user.roles.filter(name='DOSENPB').exists():
+                DosenPembimbing.objects.get_or_create(dosen=dosen)
+            else:
+                DosenPembimbing.objects.filter(dosen=dosen).delete()
         
         return dosen
 

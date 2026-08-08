@@ -32,7 +32,6 @@ urlpatterns = [
     path('mahasiswa/jadwal/book/<int:jadwal_id>/', views.booking_jadwal, name='booking_jadwal'),
     path('mahasiswa/jadwal/cancel/<int:booking_id>/',views.cancel_booking,name='cancel_booking'),
     
-
     # ===================== DOSEN CP =====================
     path('dosencp/', views.dosencp_home, name='dosencp_home'),
     path('dosencp/proposal/', views.dosencp_list_proposal, name='dosencp_list_proposal'),
@@ -67,7 +66,7 @@ urlpatterns = [
     path('kaprodi/tim/', views.kaprodi_list_tim, name='kaprodi_tim'),
     path('kaprodi/tim/<int:tim_id>/', views.kaprodi_detail_tim, name='kaprodi_detail_tim'),
     
-    # PROPOSAL - UNCOMMENT INI!
+    # PROPOSAL
     path('kaprodi/proposal/', views.kaprodi_list_proposal, name='kaprodi_proposal'),
     path('kaprodi/proposal/<int:proposal_id>/', views.kaprodi_detail_proposal, name='kaprodi_detail_proposal'),
     path('kaprodi/proposal/<int:proposal_id>/update/', views.kaprodi_update_proposal, name='kaprodi_update_proposal'),
@@ -75,7 +74,7 @@ urlpatterns = [
     
     path('kaprodi/monitoring/', views.kaprodi_monitoring, name='kaprodi_monitoring'),
     
-    # RESUME - UNCOMMENT INI!
+    # RESUME
     path('kaprodi/resume/', views.kaprodi_list_resume, name='kaprodi_resume'),
     path('kaprodi/resume/<int:resume_id>/', views.kaprodi_detail_resume, name='kaprodi_detail_resume'),
     
@@ -87,11 +86,16 @@ urlpatterns = [
     path("kaprodi/dospem/<int:id>/edit-batas/", views.edit_batas_dospem, name="edit_batas_dospem"),
     path("kaprodi/dosen/<int:id>/hapus/", views.hapus_dosen, name="hapus_dosen"),
     
-    # UPLOAD MAHASISWA
-    path('kaprodi/upload-mahasiswa/', views.kaprodi.upload_mahasiswa_view, name='kaprodi_upload_mahasiswa'),
-    path('kaprodi/upload-mahasiswa/process/', views.kaprodi.upload_mahasiswa_process, name='kaprodi_upload_mahasiswa_process'),
-    path('kaprodi/download-template/', views.kaprodi.download_template_mahasiswa, name='kaprodi_download_template'),
+    # UPLOAD MAHASISWA - PERBAIKI INI!
+    path('kaprodi/upload-mahasiswa/', views.upload_mahasiswa_view, name='kaprodi_upload_mahasiswa'),
+    path('kaprodi/upload-mahasiswa/process/', views.upload_mahasiswa_process, name='kaprodi_upload_mahasiswa_process'),
+    path('kaprodi/download-template/', views.download_template_mahasiswa, name='kaprodi_download_template'),
 
+    # ARSIP
     path('mahasiswa/kembalikan-arsip/<int:id>/', views.kembalikan_dari_arsip, name='kembalikan_dari_arsip'),
     path('mahasiswa/kembalikan-semua-arsip/', views.kembalikan_semua_arsip, name='kembalikan_semua_arsip'),
+
+    # CHOOSE ROLE
+    path('choose-role/', views.choose_role, name='choose_role'),
+
 ]
