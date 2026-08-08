@@ -58,23 +58,30 @@ def kaprodi_list_mahasiswa(request):
     if not has_access:
         return response
 
-    # 🔥 PERBAIKI: Ambil hanya AKTIF dan NONAKTIF, KECUALI ARSIP (kecuali difilter)
-    mahasiswa_list = Mahasiswa.objects.select_related(
-        'user', 'dosen_pembimbing'
-    ).exclude(status="ARSIP")  # 🔥 EXCLUDE ARSIP SECARA DEFAULT
+    # 🔥 Jika tidak ada parameter status, redirect ke ?status=AKTIF
+    if not request.GET.get('status') and not request.GET.get('angkatan') and not request.GET.get('q'):
+        return redirect(f"{request.path}?status=AKTIF")
 
+    # Ambil parameter filter
     status = request.GET.get('status')
+    angkatan = request.GET.get('angkatan')
+    keyword = request.GET.get('q', '').strip()
+
+    # Query dasar
+    mahasiswa_list = Mahasiswa.objects.select_related('user', 'dosen_pembimbing')
+
+    # Filter status
     if status:
         mahasiswa_list = mahasiswa_list.filter(status=status)
     else:
-        # Jika tidak ada filter status, tampilkan AKTIF dan NONAKTIF saja
-        mahasiswa_list = mahasiswa_list.filter(status__in=['AKTIF', 'NONAKTIF'])
+        # DEFAULT: Hanya AKTIF
+        mahasiswa_list = mahasiswa_list.filter(status="AKTIF")
 
-    angkatan = request.GET.get('angkatan')
+    # Filter angkatan
     if angkatan:
         mahasiswa_list = mahasiswa_list.filter(angkatan=angkatan)
 
-    keyword = request.GET.get('q', '').strip()
+    # Filter keyword
     if keyword:
         mahasiswa_list = mahasiswa_list.filter(
             Q(user__first_name__icontains=keyword) |
@@ -84,13 +91,11 @@ def kaprodi_list_mahasiswa(request):
 
     mahasiswa_list = mahasiswa_list.order_by('-angkatan', 'nim')
 
-    # 🔥 TAMBAH: Ambil kategori dari Mahasiswa atau AnggotaTim
+    # Ambil kategori
     for mhs in mahasiswa_list:
-        # PRIORITAS: Jika mahasiswa.kategori ada (diubah Kaprodi), pakai itu
         if mhs.kategori:
             mhs.kategori_tim = mhs.kategori
         else:
-            # Jika tidak ada, ambil dari AnggotaTim
             anggota = AnggotaTim.objects.filter(
                 mahasiswa=mhs,
                 status_persetujuan='APPROVED'

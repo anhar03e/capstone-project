@@ -1,5 +1,20 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
+import os
+
+
+# =========================================================
+# FUNGSI VALIDASI FILE PDF
+# =========================================================
+def validate_pdf_file(value):
+    """Validasi file harus PDF dan maksimal 10MB"""
+    ext = os.path.splitext(value.name)[1].lower()
+    if ext != '.pdf':
+        raise ValidationError('Hanya file PDF yang diperbolehkan.')
+    
+    if value.size > 10 * 1024 * 1024:  # 10MB
+        raise ValidationError('Ukuran file maksimal 10MB.')
 
 
 # =========================================================
@@ -271,7 +286,10 @@ class ProposalCapstone(models.Model):
 
     judul = models.CharField(max_length=255)
     mitra = models.CharField(max_length=255)
-    file = models.FileField(upload_to='proposal/')
+    file = models.FileField(
+        upload_to='proposal/',
+        validators=[validate_pdf_file]  # <-- PERUBAHAN: Validasi PDF
+    )
 
     waktu_pengajuan = models.DateTimeField(auto_now_add=True)
     waktu_update = models.DateTimeField(auto_now=True)
@@ -422,7 +440,10 @@ class Resume(models.Model):
     mitra = models.CharField(max_length=255)
     sub_judul = models.CharField(max_length=255)
 
-    file_resume = models.FileField(upload_to='resume/')
+    file_resume = models.FileField(
+        upload_to='resume/',
+        validators=[validate_pdf_file]  # <-- PERUBAHAN: Validasi PDF
+    )
     waktu_pengajuan = models.DateTimeField(auto_now_add=True)
 
     waktu_peninjauan = models.DateTimeField(null=True, blank=True)

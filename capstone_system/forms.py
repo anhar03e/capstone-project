@@ -1,9 +1,25 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django.core.exceptions import ValidationError
 from .models import (
     User, Mahasiswa, Dosen, DosenCP, DosenPembimbing,
     ProposalCapstone, Resume, PengajuanDospem, JadwalKonsultasi
 )
+import os
+
+
+# =========================================================
+# FUNGSI VALIDASI FILE PDF (BARU)
+# =========================================================
+def validate_pdf_file(value):
+    """Validasi file harus PDF dan maksimal 10MB"""
+    ext = os.path.splitext(value.name)[1].lower()
+    if ext != '.pdf':
+        raise ValidationError('Hanya file PDF yang diperbolehkan.')
+    
+    if value.size > 10 * 1024 * 1024:  # 10MB
+        raise ValidationError('Ukuran file maksimal 10MB.')
+
 
 # =========================================================
 # USER FORMS
@@ -59,15 +75,13 @@ class MahasiswaForm(forms.ModelForm):
             'angkatan': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
-    # =========================
-    # TAMBAHAN PENTING
-    # =========================
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.fields['user'].queryset = User.objects.filter(role='MAHASISWA')
 
         self.fields['user'].label_from_instance = lambda obj: f"{obj.get_full_name()} ({obj.username})"
+
 
 # =========================================================
 # DOSEN FORM
@@ -121,20 +135,6 @@ class DosenForm(forms.ModelForm):
             self.fields['email'].initial = user.email
             self.fields['role'].initial = user.role
 
-    # def save(self, commit=True):
-    #     dosen = super().save(commit=False)
-
-    #     user = dosen.user
-    #     user.first_name = self.cleaned_data['nama_lengkap']
-    #     user.email = self.cleaned_data['email']
-    #     user.role = self.cleaned_data['role']
-
-    #     if commit:
-    #         user.save()
-    #         dosen.save()
-
-    #     return dosen
-
 
 # =========================================================
 # DOSEN CP FORM
@@ -166,8 +166,9 @@ class DosenPembimbingForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': 'form-select'}),
         }
 
+
 # =========================================================
-# PROPOSAL CAPSTONE FORM (FIXED)
+# PROPOSAL CAPSTONE FORM (DIPERBAIKI - TAMBAH VALIDASI PDF)
 # =========================================================
 class ProposalForm(forms.ModelForm):
     class Meta:
@@ -183,9 +184,16 @@ class ProposalForm(forms.ModelForm):
             'file': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
 
+    def clean_file(self):
+        """Validasi file PDF maksimal 10MB"""
+        file = self.cleaned_data.get('file')
+        if file:
+            validate_pdf_file(file)
+        return file
+
 
 # =========================================================
-# RESUME FORM
+# RESUME FORM (DIPERBAIKI - TAMBAH VALIDASI PDF)
 # =========================================================
 class ResumeForm(forms.ModelForm):
     class Meta:
@@ -198,6 +206,13 @@ class ResumeForm(forms.ModelForm):
             'sub_judul': forms.TextInput(attrs={'class': 'form-control'}),
             'file_resume': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
+
+    def clean_file_resume(self):
+        """Validasi file PDF maksimal 10MB"""
+        file = self.cleaned_data.get('file_resume')
+        if file:
+            validate_pdf_file(file)
+        return file
 
 
 # =========================================================
@@ -230,8 +245,9 @@ class JadwalForm(forms.ModelForm):
             'kuota': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
         }
 
+
 # =========================================================
-# UPLOAD MAHASISWA FORM (TAMBAHKAN INI)
+# UPLOAD MAHASISWA FORM
 # =========================================================
 class UploadMahasiswaForm(forms.Form):
     file = forms.FileField(
@@ -245,8 +261,10 @@ class UploadMahasiswaForm(forms.Form):
     )
     
     def clean_file(self):
-        import os
         file = self.cleaned_data.get('file')
+        
+        if not file:
+            raise forms.ValidationError('Silakan pilih file terlebih dahulu.')
         
         # Validasi ekstensi
         allowed_extensions = ['.xlsx', '.xls']

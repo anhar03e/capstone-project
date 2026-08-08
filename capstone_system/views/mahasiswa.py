@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.utils import timezone
 from django.contrib.auth import update_session_auth_hash
+import os  # <-- PERUBAHAN: Tambahkan import os
 
 from ..models import (
     Mahasiswa,
@@ -21,6 +22,21 @@ from ..models import (
 )
 from ..forms import ProposalForm, ResumeForm
 from .base import check_role, get_tim_user, get_proposal_ketua
+
+
+# =========================================================
+# FUNGSI VALIDASI FILE PDF
+# =========================================================
+def validate_pdf_file_size(file):
+    """
+    Validasi file harus PDF dan maksimal 10MB
+    """
+    if file:
+        ext = os.path.splitext(file.name)[1].lower()
+        if ext != '.pdf':
+            raise ValueError('Hanya file PDF yang diperbolehkan.')
+        if file.size > 10 * 1024 * 1024:  # 10MB
+            raise ValueError('Ukuran file maksimal 10MB.')
 
 
 # =========================================================
@@ -207,7 +223,7 @@ def tracking_status(request):
 
 
 # =========================================================
-# UPLOAD PROPOSAL
+# UPLOAD PROPOSAL (DIPERBAIKI - TAMBAH VALIDASI FILE)
 # =========================================================
 @login_required
 def upload_proposal(request):
@@ -236,7 +252,6 @@ def upload_proposal(request):
     proposal = ProposalCapstone.objects.filter(tim=tim).first()
     edit_mode = request.GET.get("edit")
     
-    # 🔥 PERUBAHAN: Gunakan status_cp untuk pengecekan
     proposal_locked = (
         proposal is not None and
         proposal.status_cp in ["DITERIMA", "SEDANG_REVIEW"]
@@ -247,7 +262,18 @@ def upload_proposal(request):
             messages.warning(request, "Proposal sedang direview atau telah disetujui sehingga tidak dapat diubah.")
             return redirect("capstone_system:upload_proposal")
 
+        # =========================================================
+        # 🔥 VALIDASI FILE SEBELUM FORM VALIDASI
+        # =========================================================
+        if request.FILES.get('file'):
+            try:
+                validate_pdf_file_size(request.FILES.get('file'))
+            except ValueError as e:
+                messages.error(request, str(e))
+                return redirect('capstone_system:upload_proposal')
+
         form = ProposalForm(request.POST, request.FILES, instance=proposal)
+        
         if form.is_valid():
             obj = form.save(commit=False)
             obj.tim = tim
@@ -259,13 +285,14 @@ def upload_proposal(request):
                 obj.status_cp = "BELUM_REVIEW"
                 obj.catatan_cp = ""
                 obj.waktu_peninjauan = None
-                # Reset status_pb juga
                 obj.status_pb = "BELUM_REVIEW"
                 obj.catatan_pb = ""
 
             obj.save()
             messages.success(request, "Proposal berhasil disimpan.")
             return redirect("capstone_system:upload_proposal")
+        else:
+            messages.error(request, "Form tidak valid. Silakan periksa kembali.")
     else:
         form = ProposalForm(instance=proposal)
 
@@ -290,7 +317,7 @@ def upload_proposal(request):
 
 
 # =========================================================
-# UPLOAD RESUME
+# UPLOAD RESUME (DIPERBAIKI - TAMBAH VALIDASI FILE)
 # =========================================================
 @login_required
 def upload_resume(request):
@@ -305,7 +332,6 @@ def upload_resume(request):
         messages.error(request, "Silakan upload proposal terlebih dahulu.")
         return redirect('capstone_system:mahasiswa_home')
     
-    # 🔥 PERUBAHAN: Gunakan status_cp (bukan status_final)
     if not proposal.status_cp or proposal.status_cp != 'DITERIMA':
         messages.error(request, "Resume belum bisa diakses sebelum Review CP selesai (DITERIMA).")
         return redirect('capstone_system:mahasiswa_home')
@@ -315,6 +341,16 @@ def upload_resume(request):
     dosen_list = DosenPembimbing.objects.filter(status='OPEN').select_related('dosen__user')
 
     if request.method == 'POST':
+        # =========================================================
+        # 🔥 VALIDASI FILE SEBELUM FORM VALIDASI
+        # =========================================================
+        if request.FILES.get('file_resume'):
+            try:
+                validate_pdf_file_size(request.FILES.get('file_resume'))
+            except ValueError as e:
+                messages.error(request, str(e))
+                return redirect('capstone_system:upload_resume')
+
         form = ResumeForm(request.POST, request.FILES, instance=resume)
         dosen_id = request.POST.get('dosen_pembimbing')
 
@@ -337,7 +373,6 @@ def upload_resume(request):
 
             res.save()
 
-            # 🔥 PERUBAHAN: Reset status_pb proposal
             proposal.status_pb = "BELUM_REVIEW"
             proposal.catatan_pb = ""
             proposal.save()
@@ -358,6 +393,8 @@ def upload_resume(request):
 
             messages.success(request, "Resume berhasil disimpan.")
             return redirect('capstone_system:upload_resume')
+        else:
+            messages.error(request, "Form tidak valid. Silakan periksa kembali.")
     else:
         form = ResumeForm(instance=resume)
 
@@ -563,7 +600,7 @@ def buat_tim(request):
         # 🔥 AMBIL DATA DARI FORM
         # =========================================================
         nama_tim = request.POST.get('nama_tim')
-        kategori = request.POST.get('kategori')  # 🔥 KATEGORI KETUA / TIM
+        kategori = request.POST.get('kategori')
         anggota_ids = request.POST.getlist('anggota_id[]')
         anggota_kategori = request.POST.getlist('anggota_kategori[]')
 
@@ -603,18 +640,16 @@ def buat_tim(request):
         if edit_mode:
             tim = anggota_user.tim
             tim.nama_tim = nama_tim
-            tim.kategori = kategori  # 🔥 SIMPAN KATEGORI TIM
+            tim.kategori = kategori
             tim.status = 'PENDING'
             tim.save()
             
-            # 🔥 UPDATE KATEGORI KETUA
             ketua = tim.anggota.filter(role='ketua').first()
             if ketua:
                 ketua.kategori = kategori
                 ketua.save()
                 
         else:
-            # CEK APAKAH ADA ANGGOTA YANG SUDAH PUNYA TIM
             semua_id = set(anggota_ids)
             sudah_pakai = AnggotaTim.objects.filter(
                 mahasiswa_id__in=semua_id,
@@ -624,19 +659,17 @@ def buat_tim(request):
                 messages.error(request, "Ada anggota yang sudah memiliki tim")
                 return redirect('capstone_system:mahasiswa_home')
 
-            # 🔥 BUAT TIM DENGAN KATEGORI
             tim = Tim.objects.create(
                 nama_tim=nama_tim,
-                kategori=kategori,  # 🔥 SIMPAN KATEGORI
+                kategori=kategori,
                 status='PENDING'
             )
             
-            # 🔥 BUAT KETUA DENGAN KATEGORI
             AnggotaTim.objects.create(
                 tim=tim,
                 mahasiswa=mahasiswa,
                 role='ketua',
-                kategori=kategori,  # 🔥 SIMPAN KATEGORI DI ANGGOTA
+                kategori=kategori,
                 status_persetujuan='APPROVED'
             )
 
@@ -649,37 +682,31 @@ def buat_tim(request):
         for m_id, kat in zip(anggota_ids, anggota_kategori):
             m_id = int(m_id)
             
-            # CEK: Jangan tambahkan ketua sebagai anggota
             if m_id == mahasiswa.id:
                 continue
             
             anggota_baru.add(m_id)
             
-            # 🔥 PERBAIKI: Pakai kategori dari dropdown, default 'EPD' jika kosong
             if kat not in ['EPD', 'SM']:
-                kat = 'EPD'  # default EPD
+                kat = 'EPD'
             
             if m_id in anggota_lama:
                 anggota = anggota_lama[m_id]
-                anggota.kategori = kat  # 🔥 PAKAI KATEGORI DARI DROPDOWN
+                anggota.kategori = kat
                 anggota.save()
             else:
                 AnggotaTim.objects.create(
                     tim=tim,
                     mahasiswa_id=m_id,
                     role='anggota',
-                    kategori=kat,  # 🔥 PAKAI KATEGORI DARI DROPDOWN
+                    kategori=kat,
                     status_persetujuan='PENDING'
                 )
 
-        # Hapus anggota yang tidak ada di daftar baru
         for m_id, anggota in anggota_lama.items():
             if m_id not in anggota_baru:
                 anggota.delete()
 
-        # =========================================================
-        # Update status tim
-        # =========================================================
         ada_pending = tim.anggota.filter(status_persetujuan='PENDING').exists()
         tim.status = 'PENDING' if ada_pending else 'APPROVED'
         tim.save()
@@ -725,9 +752,6 @@ def undangan_tim(request):
             anggota.delete()
             messages.warning(request, f"Anda menolak undangan dari tim {tim.nama_tim}")
 
-        # =========================================================
-        # Update status tim
-        # =========================================================
         ada_pending = tim.anggota.filter(status_persetujuan='PENDING').exists()
         tim.status = 'PENDING' if ada_pending else 'APPROVED'
         tim.save()

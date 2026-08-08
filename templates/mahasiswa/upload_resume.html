@@ -250,6 +250,25 @@ body{
     color:#721c24;
 }
 
+/* ================= VALIDASI FILE ================= */
+.file-input-wrapper {
+    position: relative;
+}
+
+.file-input-wrapper .file-info {
+    font-size: 13px;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.file-input-wrapper .file-info.valid {
+    color: #28a745;
+}
+
+.file-input-wrapper .file-info.invalid {
+    color: #dc3545;
+}
+
 </style>
 
 <!-- ================= HEADER ================= -->
@@ -541,7 +560,7 @@ body{
             {% endif %}
         </div>
 
-        <form method="POST" enctype="multipart/form-data">
+        <form method="POST" enctype="multipart/form-data" id="resumeForm">
             {% csrf_token %}
 
             <div class="mb-3">
@@ -577,10 +596,17 @@ body{
                 <label class="form-label fw-semibold">
                     Upload File Resume
                 </label>
-                <input type="file" 
-                       name="file_resume" 
-                       class="form-control"
-                       required>
+                <div class="file-input-wrapper">
+                    <input type="file" 
+                           name="file_resume" 
+                           class="form-control"
+                           accept=".pdf"
+                           required>
+                    <div id="fileFeedback" class="file-info"></div>
+                </div>
+                <small class="text-muted">
+                    📄 Format: PDF | Maksimal: 10MB
+                </small>
                 {% if resume and resume.file_resume %}
                 <div class="file-box">
                     <i class="bi bi-file-earmark"></i> File sebelumnya: {{ resume.file_resume.name|slice:"20" }}...
@@ -588,7 +614,7 @@ body{
                 {% endif %}
             </div>
 
-            <button class="btn btn-success w-100">
+            <button class="btn btn-success w-100" type="submit">
                 <i class="bi bi-cloud-upload"></i> Upload Ulang Resume
             </button>
 
@@ -600,7 +626,7 @@ body{
 
         {% else %}
         <!-- FORM NORMAL -->
-        <form method="POST" enctype="multipart/form-data">
+        <form method="POST" enctype="multipart/form-data" id="resumeForm">
             {% csrf_token %}
 
             <div class="mb-3">
@@ -636,7 +662,13 @@ body{
                 <label class="form-label fw-semibold">
                     Upload File Resume
                 </label>
-                {{ form.file_resume }}
+                <div class="file-input-wrapper">
+                    {{ form.file_resume }}
+                    <div id="fileFeedback" class="file-info"></div>
+                </div>
+                <small class="text-muted">
+                    📄 Format: PDF | Maksimal: 10MB
+                </small>
                 {% if resume and resume.file_resume %}
                 <div class="file-box">
                     <i class="bi bi-file-earmark"></i> File sebelumnya: {{ resume.file_resume.name|slice:"20" }}...
@@ -644,7 +676,7 @@ body{
                 {% endif %}
             </div>
 
-            <button class="btn btn-success w-100">
+            <button class="btn btn-success w-100" type="submit">
                 {% if resume %}
                     <i class="bi bi-pencil"></i> Update Resume
                 {% else %}
@@ -666,5 +698,81 @@ body{
 </div>
 
 {% endif %}
+
+<!-- ========================================================= -->
+<!-- JAVASCRIPT VALIDASI FILE PDF & MAX 10MB -->
+<!-- ========================================================= -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('resumeForm');
+    const fileInput = document.querySelector('input[name="file_resume"]');
+    const fileFeedback = document.getElementById('fileFeedback');
+
+    if (fileInput && fileFeedback) {
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            
+            // Reset feedback
+            fileFeedback.textContent = '';
+            fileFeedback.className = 'file-info';
+            this.classList.remove('is-invalid');
+            
+            if (file) {
+                let isValid = true;
+                let errorMessage = '';
+                let successMessage = '';
+                
+                // 1. Cek ekstensi file
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (ext !== 'pdf') {
+                    isValid = false;
+                    errorMessage = '⚠️ Hanya file PDF yang diperbolehkan! Ekstensi: .' + ext;
+                }
+                
+                // 2. Cek ukuran file (maks 10MB)
+                if (isValid && file.size > 10 * 1024 * 1024) {
+                    isValid = false;
+                    errorMessage = '⚠️ Ukuran file maksimal 10MB! (File Anda: ' + (file.size / (1024 * 1024)).toFixed(2) + 'MB)';
+                }
+                
+                // 3. Tampilkan feedback
+                if (!isValid) {
+                    this.classList.add('is-invalid');
+                    fileFeedback.textContent = errorMessage;
+                    fileFeedback.className = 'file-info invalid';
+                } else {
+                    fileFeedback.textContent = '✅ File valid: ' + file.name + ' (' + (file.size / (1024 * 1024)).toFixed(2) + 'MB)';
+                    fileFeedback.className = 'file-info valid';
+                }
+            }
+        });
+    }
+
+    // Validasi sebelum submit
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const file = fileInput ? fileInput.files[0] : null;
+            
+            // Jika file ada, validasi
+            if (file) {
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (ext !== 'pdf') {
+                    e.preventDefault();
+                    alert('⚠️ Hanya file PDF yang diperbolehkan!');
+                    fileInput.focus();
+                    return false;
+                }
+                
+                if (file.size > 10 * 1024 * 1024) {
+                    e.preventDefault();
+                    alert('⚠️ Ukuran file maksimal 10MB! (File Anda: ' + (file.size / (1024 * 1024)).toFixed(2) + 'MB)');
+                    fileInput.focus();
+                    return false;
+                }
+            }
+        });
+    }
+});
+</script>
 
 {% endblock %}

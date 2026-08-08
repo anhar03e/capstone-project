@@ -283,32 +283,24 @@ body{
 
                 </div>
 
-                <div class="col-md-3">
+               <div class="col-md-3">
 
-                    <select
-                        name="status"
-                        class="form-select">
-
-                        <option value="">Semua Status</option>
-
-                        <option value="AKTIF"
-                            {% if status_filter == 'AKTIF' %}selected{% endif %}>
+                    <select name="status" class="form-select">
+                        <!-- HAPUS opsi "Semua Status" -->
+                        <option value="AKTIF" 
+                            {% if not status_filter or status_filter == 'AKTIF' %}selected{% endif %}>
                             Aktif
                         </option>
-
+                        
                         <option value="NONAKTIF"
                             {% if status_filter == 'NONAKTIF' %}selected{% endif %}>
                             Nonaktif
                         </option>
-
-                        <option value="ARSIP"
-                            {% if status_filter == 'ARSIP' %}selected{% endif %}>
-                            Arsip
-                        </option>
-
+                        
                     </select>
 
                 </div>
+
 
                 <div class="col-md-3">
 
