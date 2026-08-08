@@ -8,6 +8,8 @@ from django.contrib.auth import update_session_auth_hash
 import pandas as pd
 from django.views.decorators.csrf import csrf_exempt  
 from django.views.decorators.http import require_http_methods
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
 
 from ..models import (
     AnggotaTim,
@@ -52,6 +54,10 @@ def kaprodi_home(request):
 # =========================================================
 # MAHASISWA (MASTER DATA) - DENGAN KATEGORI
 # =========================================================
+# kaprodi_views.py - Tambahkan entries parameter
+
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
 @login_required
 def kaprodi_list_mahasiswa(request):
     has_access, response = check_role(request, ['KAPRODI'])
@@ -66,6 +72,20 @@ def kaprodi_list_mahasiswa(request):
     status = request.GET.get('status')
     angkatan = request.GET.get('angkatan')
     keyword = request.GET.get('q', '').strip()
+    
+    # 🔥 Ambil parameter entries (jumlah data per halaman)
+    entries = request.GET.get('entries', '15')  # default 15
+    
+    # 🔥 Tentukan jumlah per halaman
+    if entries == 'all':
+        per_page = None  # Semua data
+    else:
+        try:
+            per_page = int(entries)
+            if per_page <= 0:
+                per_page = 15
+        except ValueError:
+            per_page = 15
 
     # Query dasar
     mahasiswa_list = Mahasiswa.objects.select_related('user', 'dosen_pembimbing')
@@ -74,7 +94,6 @@ def kaprodi_list_mahasiswa(request):
     if status:
         mahasiswa_list = mahasiswa_list.filter(status=status)
     else:
-        # DEFAULT: Hanya AKTIF
         mahasiswa_list = mahasiswa_list.filter(status="AKTIF")
 
     # Filter angkatan
@@ -108,12 +127,48 @@ def kaprodi_list_mahasiswa(request):
     total_mahasiswa_nonaktif = Mahasiswa.objects.filter(status="NONAKTIF").count()
     total_mahasiswa_arsip = Mahasiswa.objects.filter(status="ARSIP").count()
 
+    # =========================================================
+    # 🔥 PAGINATION
+    # =========================================================
+    if per_page is None:
+        # Jika "Semua", tampilkan semua data tanpa pagination
+        page_obj = mahasiswa_list
+        # Buat paginator palsu untuk template
+        class FakePaginator:
+            count = mahasiswa_list.count()
+            num_pages = 1
+            page_range = [1]
+        class FakePage:
+            def __init__(self, data):
+                self.object_list = data
+                self.paginator = FakePaginator()
+                self.number = 1
+                self.has_previous = False
+                self.has_next = False
+                self.previous_page_number = None
+                self.next_page_number = None
+                self.start_index = 1
+                self.end_index = len(data)
+            def __iter__(self):
+                return iter(self.object_list)
+        page_obj = FakePage(mahasiswa_list)
+    else:
+        paginator = Paginator(mahasiswa_list, per_page)
+        page_number = request.GET.get('page')
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
     context = {
-        'mahasiswa_list': mahasiswa_list,
+        'page_obj': page_obj,
         'daftar_angkatan': daftar_angkatan,
         'status_filter': status,
         'angkatan_filter': angkatan,
         'keyword': keyword,
+        'entries': entries,  # 🔥 Kirim entries ke template
         'total_mahasiswa': total_mahasiswa_aktif + total_mahasiswa_nonaktif + total_mahasiswa_arsip,
         'total_mahasiswa_aktif': total_mahasiswa_aktif,
         'total_mahasiswa_nonaktif': total_mahasiswa_nonaktif,
@@ -454,15 +509,74 @@ def kaprodi_manage_dospem(request):
     if not has_access:
         return response
 
+    keyword = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    entries = request.GET.get('entries', '10')
+
     dospem_list = DosenPembimbing.objects.select_related(
         "dosen", "dosen__user"
     ).filter(dosen__status_aktif="AKTIF").order_by("dosen__user__first_name")
 
+    # Filter keyword
+    if keyword:
+        dospem_list = dospem_list.filter(
+            Q(dosen__user__first_name__icontains=keyword) |
+            Q(dosen__user__last_name__icontains=keyword)
+        )
+
+    # Filter status
+    if status_filter:
+        dospem_list = dospem_list.filter(status=status_filter)
+
+    # Update status setiap dospem
     for dospem in dospem_list:
         dospem.update_status()
 
+    # 🔥 PAGINATION
+    if entries == 'all':
+        per_page = None
+    else:
+        try:
+            per_page = int(entries)
+            if per_page <= 0:
+                per_page = 10
+        except ValueError:
+            per_page = 10
+
+    if per_page is None:
+        class FakePaginator:
+            count = dospem_list.count()
+            num_pages = 1
+            page_range = [1]
+        class FakePage:
+            def __init__(self, data):
+                self.object_list = data
+                self.paginator = FakePaginator()
+                self.number = 1
+                self.has_previous = False
+                self.has_next = False
+                self.previous_page_number = None
+                self.next_page_number = None
+                self.start_index = 1
+                self.end_index = len(data)
+            def __iter__(self):
+                return iter(self.object_list)
+        page_obj = FakePage(dospem_list)
+    else:
+        paginator = Paginator(dospem_list, per_page)
+        page_number = request.GET.get('page')
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
     context = {
-        "dospem_list": dospem_list,
+        "page_obj": page_obj,
+        "keyword": keyword,
+        "status_filter": status_filter,
+        "entries": entries,
         "total_dospem": dospem_list.count(),
         "total_open": dospem_list.filter(status="OPEN").count(),
         "total_full": dospem_list.filter(status="FULL").count(),
@@ -480,9 +594,11 @@ def kaprodi_list_dosen(request):
     if not has_access:
         return response
 
-    dosen_list = Dosen.objects.select_related('user').all()
     keyword = request.GET.get('q', '')
     status = request.GET.get('status')
+    entries = request.GET.get('entries', '10')
+
+    dosen_list = Dosen.objects.select_related('user').all()
 
     if keyword:
         dosen_list = dosen_list.filter(
@@ -494,10 +610,53 @@ def kaprodi_list_dosen(request):
     if status:
         dosen_list = dosen_list.filter(status_aktif=status)
 
+    dosen_list = dosen_list.order_by('user__first_name')
+
+    # 🔥 PAGINATION
+    if entries == 'all':
+        per_page = None
+    else:
+        try:
+            per_page = int(entries)
+            if per_page <= 0:
+                per_page = 10
+        except ValueError:
+            per_page = 10
+
+    if per_page is None:
+        class FakePaginator:
+            count = dosen_list.count()
+            num_pages = 1
+            page_range = [1]
+        class FakePage:
+            def __init__(self, data):
+                self.object_list = data
+                self.paginator = FakePaginator()
+                self.number = 1
+                self.has_previous = False
+                self.has_next = False
+                self.previous_page_number = None
+                self.next_page_number = None
+                self.start_index = 1
+                self.end_index = len(data)
+            def __iter__(self):
+                return iter(self.object_list)
+        page_obj = FakePage(dosen_list)
+    else:
+        paginator = Paginator(dosen_list, per_page)
+        page_number = request.GET.get('page')
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
     context = {
-        'dosen_list': dosen_list,
+        'page_obj': page_obj,
         'keyword': keyword,
         'status_filter': status,
+        'entries': entries,
         'total_dosen': Dosen.objects.filter(status_aktif='AKTIF').count(),
         'total_dosen_aktif': Dosen.objects.filter(status_aktif='AKTIF').count(),
         'total_dosen_nonaktif': Dosen.objects.filter(status_aktif='NONAKTIF').count(),
@@ -613,8 +772,74 @@ def kaprodi_list_tim(request):
     if not has_access:
         return response
 
+    keyword = request.GET.get('q', '')
+    kategori_filter = request.GET.get('kategori', '')
+    status_filter = request.GET.get('status', '')
+    entries = request.GET.get('entries', '10')
+
     tim_list = Tim.objects.all().order_by('-dibuat_pada')
-    return render(request, 'kaprodi/list_tim.html', {'tim_list': tim_list})
+
+    # Filter keyword
+    if keyword:
+        tim_list = tim_list.filter(nama_tim__icontains=keyword)
+
+    # Filter kategori
+    if kategori_filter:
+        tim_list = tim_list.filter(kategori=kategori_filter)
+
+    # Filter status
+    if status_filter:
+        tim_list = tim_list.filter(status=status_filter)
+
+    # 🔥 PAGINATION
+    if entries == 'all':
+        per_page = None
+    else:
+        try:
+            per_page = int(entries)
+            if per_page <= 0:
+                per_page = 10
+        except ValueError:
+            per_page = 10
+
+    if per_page is None:
+        class FakePaginator:
+            count = tim_list.count()
+            num_pages = 1
+            page_range = [1]
+        class FakePage:
+            def __init__(self, data):
+                self.object_list = data
+                self.paginator = FakePaginator()
+                self.number = 1
+                self.has_previous = False
+                self.has_next = False
+                self.previous_page_number = None
+                self.next_page_number = None
+                self.start_index = 1
+                self.end_index = len(data)
+            def __iter__(self):
+                return iter(self.object_list)
+        page_obj = FakePage(tim_list)
+    else:
+        paginator = Paginator(tim_list, per_page)
+        page_number = request.GET.get('page')
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
+    context = {
+        'page_obj': page_obj,
+        'keyword': keyword,
+        'kategori_filter': kategori_filter,
+        'status_filter': status_filter,
+        'entries': entries,
+    }
+
+    return render(request, 'kaprodi/list_tim.html', context)
 
 
 @login_required
@@ -725,18 +950,106 @@ def kaprodi_pengajuan(request):
     if not has_access:
         return response
 
-    pengajuan_list = PengajuanDospem.objects.all().order_by('-tanggal_pengajuan')
-    return render(request, 'kaprodi/pengajuan.html', {'pengajuan_list': pengajuan_list})
+    keyword = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    dosen_filter = request.GET.get('dosen', '')
+    entries = request.GET.get('entries', '10')
+
+    pengajuan_list = PengajuanDospem.objects.all().order_by('-tanggal_pengajuan').select_related(
+        'mahasiswa__user', 'dosen_pembimbing__dosen__user'
+    )
+
+    # Filter keyword
+    if keyword:
+        pengajuan_list = pengajuan_list.filter(
+            Q(mahasiswa__user__first_name__icontains=keyword) |
+            Q(mahasiswa__user__last_name__icontains=keyword) |
+            Q(mahasiswa__nim__icontains=keyword)
+        )
+
+    # Filter status
+    if status_filter:
+        pengajuan_list = pengajuan_list.filter(status=status_filter)
+
+    # Filter dosen
+    if dosen_filter:
+        pengajuan_list = pengajuan_list.filter(dosen_pembimbing_id=dosen_filter)
+
+    # Dosen list untuk filter dropdown
+    dosen_list = DosenPembimbing.objects.select_related('dosen__user').all().order_by('dosen__user__first_name')
+
+    # 🔥 PAGINATION
+    if entries == 'all':
+        per_page = None
+    else:
+        try:
+            per_page = int(entries)
+            if per_page <= 0:
+                per_page = 10
+        except ValueError:
+            per_page = 10
+
+    if per_page is None:
+        class FakePaginator:
+            count = pengajuan_list.count()
+            num_pages = 1
+            page_range = [1]
+        class FakePage:
+            def __init__(self, data):
+                self.object_list = data
+                self.paginator = FakePaginator()
+                self.number = 1
+                self.has_previous = False
+                self.has_next = False
+                self.previous_page_number = None
+                self.next_page_number = None
+                self.start_index = 1
+                self.end_index = len(data)
+            def __iter__(self):
+                return iter(self.object_list)
+        page_obj = FakePage(pengajuan_list)
+    else:
+        paginator = Paginator(pengajuan_list, per_page)
+        page_number = request.GET.get('page')
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
+    context = {
+        'page_obj': page_obj,
+        'keyword': keyword,
+        'status_filter': status_filter,
+        'dosen_filter': dosen_filter,
+        'dosen_list': dosen_list,
+        'entries': entries,
+    }
+
+    return render(request, 'kaprodi/pengajuan.html', context)
 
 
 # =========================================================
 # MONITORING CAPSTONE (GABUNGAN PROPOSAL & RESUME)
 # =========================================================
+# kaprodi_views.py - Update fungsi kaprodi_monitoring
+
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
 @login_required
 def kaprodi_monitoring(request):
     has_access, response = check_role(request, ['KAPRODI'])
     if not has_access:
         return response
+
+    # Ambil parameter filter
+    keyword = request.GET.get('q', '').strip()
+    status_proposal = request.GET.get('status_proposal', '')
+    status_resume = request.GET.get('status_resume', '')
+    sort_by = request.GET.get('sort', 'nama')
+    sort_order = request.GET.get('order', 'asc')
+    entries = request.GET.get('entries', '10')
 
     # Ambil semua mahasiswa aktif
     mahasiswa_list = Mahasiswa.objects.filter(status='AKTIF').select_related(
@@ -744,17 +1057,12 @@ def kaprodi_monitoring(request):
     )
 
     # Filter pencarian
-    keyword = request.GET.get('q', '').strip()
     if keyword:
         mahasiswa_list = mahasiswa_list.filter(
             Q(user__first_name__icontains=keyword) |
             Q(user__last_name__icontains=keyword) |
             Q(nim__icontains=keyword)
         )
-
-    # Filter status
-    status_proposal = request.GET.get('status_proposal', '')
-    status_resume = request.GET.get('status_resume', '')
 
     # Build monitoring data
     monitoring_data = []
@@ -778,15 +1086,11 @@ def kaprodi_monitoring(request):
         'belum_review': 0,
     }
 
-    # =========================================================
-    # DATA DOSEN PEMBIMBING (SEMUA DOSEN)
-    # =========================================================
-    # Ambil SEMUA dosen pembimbing yang aktif
+    # DATA DOSEN PEMBIMBING
     semua_dospem = DosenPembimbing.objects.filter(
         dosen__status_aktif='AKTIF'
     ).select_related('dosen', 'dosen__user')
 
-    # Buat dictionary untuk semua dosen dengan default 0
     dosen_dict = {}
     for dospem in semua_dospem:
         nama_dosen = dospem.dosen.user.get_full_name()
@@ -858,7 +1162,7 @@ def kaprodi_monitoring(request):
         if not proposal and not resume:
             total_belum_upload += 1
 
-        # Dosen pembimbing - UPDATE JUMLAH MAHASISWA
+        # Dosen pembimbing
         dosen_nama = None
         if mhs.dosen_pembimbing:
             dosen_nama = mhs.dosen_pembimbing.dosen.user.get_full_name()
@@ -887,12 +1191,7 @@ def kaprodi_monitoring(request):
             'dosen_pembimbing': dosen_nama,
         })
 
-    # =========================================================
     # SORTING
-    # =========================================================
-    sort_by = request.GET.get('sort', 'nama')
-    sort_order = request.GET.get('order', 'asc')
-
     sort_mapping = {
         'nama': 'nama',
         'nim': 'nim',
@@ -904,12 +1203,9 @@ def kaprodi_monitoring(request):
 
     sort_field = sort_mapping.get(sort_by, 'nama')
     reverse = sort_order == 'desc'
-
     monitoring_data.sort(key=lambda x: x.get(sort_field, '').lower() if x.get(sort_field) else '', reverse=reverse)
 
-    # =========================================================
-    # BUAT LIST DOSEN UNTUK TAMPILAN (SEMUA DOSEN)
-    # =========================================================
+    # DOSEN LIST
     dosen_list = []
     for nama, data in dosen_dict.items():
         dosen_list.append({
@@ -924,8 +1220,50 @@ def kaprodi_monitoring(request):
     
     dosen_list.sort(key=lambda x: x['jumlah_mahasiswa'], reverse=True)
 
+    # =========================================================
+    # 🔥 PAGINATION
+    # =========================================================
+    if entries == 'all':
+        per_page = None
+    else:
+        try:
+            per_page = int(entries)
+            if per_page <= 0:
+                per_page = 10
+        except ValueError:
+            per_page = 10
+
+    if per_page is None:
+        class FakePaginator:
+            count = len(monitoring_data)
+            num_pages = 1
+            page_range = [1]
+        class FakePage:
+            def __init__(self, data):
+                self.object_list = data
+                self.paginator = FakePaginator()
+                self.number = 1
+                self.has_previous = False
+                self.has_next = False
+                self.previous_page_number = None
+                self.next_page_number = None
+                self.start_index = 1
+                self.end_index = len(data)
+            def __iter__(self):
+                return iter(self.object_list)
+        page_obj = FakePage(monitoring_data)
+    else:
+        paginator = Paginator(monitoring_data, per_page)
+        page_number = request.GET.get('page')
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
     context = {
-        'monitoring_list': monitoring_data,
+        'page_obj': page_obj,  # <-- GANTI monitoring_list dengan page_obj
         'total_mahasiswa': mahasiswa_list.count(),
         'total_proposal': total_proposal,
         'total_resume': total_resume,
@@ -937,6 +1275,7 @@ def kaprodi_monitoring(request):
         'status_resume': status_resume,
         'sort_by': sort_by,
         'sort_order': sort_order,
+        'entries': entries,  # <-- TAMBAHKAN entries
         'dosen_list': dosen_list,
         'total_tanpa_dosen': total_tanpa_dosen,
     }
@@ -1015,7 +1354,20 @@ def arsip_mahasiswa(request):
         return response
 
     keyword = request.GET.get("q", "")
-    mahasiswa_list = Mahasiswa.objects.filter(status="ARSIP").select_related("user")
+    entries = request.GET.get('entries', '10')  # default 10
+    
+    # 🔥 Tentukan jumlah per halaman
+    if entries == 'all':
+        per_page = None
+    else:
+        try:
+            per_page = int(entries)
+            if per_page <= 0:
+                per_page = 10
+        except ValueError:
+            per_page = 10
+
+    mahasiswa_list = Mahasiswa.objects.filter(status="ARSIP").select_related("user", "dosen_pembimbing")
 
     if keyword:
         mahasiswa_list = mahasiswa_list.filter(
@@ -1024,9 +1376,43 @@ def arsip_mahasiswa(request):
             Q(nim__icontains=keyword)
         )
 
+    mahasiswa_list = mahasiswa_list.order_by('-angkatan', 'nim')
+
+    # 🔥 PAGINATION
+    if per_page is None:
+        # Jika "Semua", tampilkan semua data
+        class FakePaginator:
+            count = mahasiswa_list.count()
+            num_pages = 1
+            page_range = [1]
+        class FakePage:
+            def __init__(self, data):
+                self.object_list = data
+                self.paginator = FakePaginator()
+                self.number = 1
+                self.has_previous = False
+                self.has_next = False
+                self.previous_page_number = None
+                self.next_page_number = None
+                self.start_index = 1
+                self.end_index = len(data)
+            def __iter__(self):
+                return iter(self.object_list)
+        page_obj = FakePage(mahasiswa_list)
+    else:
+        paginator = Paginator(mahasiswa_list, per_page)
+        page_number = request.GET.get('page')
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
     context = {
-        "mahasiswa_list": mahasiswa_list,
+        "page_obj": page_obj,
         "keyword": keyword,
+        "entries": entries,
         "total_arsip": mahasiswa_list.count(),
     }
 
@@ -1042,10 +1428,72 @@ def kaprodi_dosen_cp(request):
     if not has_access:
         return response
 
-    dosen_capstone = DosenCP.objects.select_related("dosen", "dosen__user").all().order_by("dosen__user__first_name")
+    keyword = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    entries = request.GET.get('entries', '10')
+
+    dosen_capstone = DosenCP.objects.select_related(
+        "dosen", "dosen__user"
+    ).all().order_by("dosen__user__first_name")
+
+    # Filter keyword
+    if keyword:
+        dosen_capstone = dosen_capstone.filter(
+            Q(dosen__user__first_name__icontains=keyword) |
+            Q(dosen__user__last_name__icontains=keyword) |
+            Q(dosen__nip__icontains=keyword)
+        )
+
+    # Filter status
+    if status_filter:
+        dosen_capstone = dosen_capstone.filter(dosen__status_aktif=status_filter)
+
+    # 🔥 PAGINATION
+    if entries == 'all':
+        per_page = None
+    else:
+        try:
+            per_page = int(entries)
+            if per_page <= 0:
+                per_page = 10
+        except ValueError:
+            per_page = 10
+
+    if per_page is None:
+        class FakePaginator:
+            count = dosen_capstone.count()
+            num_pages = 1
+            page_range = [1]
+        class FakePage:
+            def __init__(self, data):
+                self.object_list = data
+                self.paginator = FakePaginator()
+                self.number = 1
+                self.has_previous = False
+                self.has_next = False
+                self.previous_page_number = None
+                self.next_page_number = None
+                self.start_index = 1
+                self.end_index = len(data)
+            def __iter__(self):
+                return iter(self.object_list)
+        page_obj = FakePage(dosen_capstone)
+    else:
+        paginator = Paginator(dosen_capstone, per_page)
+        page_number = request.GET.get('page')
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
 
     context = {
-        "dosen_capstone": dosen_capstone,
+        "page_obj": page_obj,
+        "keyword": keyword,
+        "status_filter": status_filter,
+        "entries": entries,
+        "total_dosen_capstone": dosen_capstone.count(),
     }
 
     return render(request, "kaprodi/list_dosen_cp.html", context)
@@ -1439,3 +1887,85 @@ def kembalikan_semua_arsip(request):
             )
 
     return redirect('capstone_system:arsip_mahasiswa')
+
+# =========================================================
+# pagination untuk list mahasiswa (KAPRODI)
+# =========================================================
+
+# @login_required
+# def kaprodi_list_mahasiswa(request):
+#     has_access, response = check_role(request, ['KAPRODI'])
+#     if not has_access:
+#         return response
+
+#     # 🔥 Jika tidak ada parameter status, redirect ke ?status=AKTIF
+#     if not request.GET.get('status') and not request.GET.get('angkatan') and not request.GET.get('q'):
+#         return redirect(f"{request.path}?status=AKTIF")
+
+#     # Ambil parameter filter
+#     status = request.GET.get('status')
+#     angkatan = request.GET.get('angkatan')
+#     keyword = request.GET.get('q', '').strip()
+
+#     # Query dasar
+#     mahasiswa_list = Mahasiswa.objects.select_related('user', 'dosen_pembimbing')
+
+#     # Filter status
+#     if status:
+#         mahasiswa_list = mahasiswa_list.filter(status=status)
+#     else:
+#         mahasiswa_list = mahasiswa_list.filter(status="AKTIF")
+
+#     # Filter angkatan
+#     if angkatan:
+#         mahasiswa_list = mahasiswa_list.filter(angkatan=angkatan)
+
+#     # Filter keyword
+#     if keyword:
+#         mahasiswa_list = mahasiswa_list.filter(
+#             Q(user__first_name__icontains=keyword) |
+#             Q(user__last_name__icontains=keyword) |
+#             Q(nim__icontains=keyword)
+#         )
+
+#     mahasiswa_list = mahasiswa_list.order_by('-angkatan', 'nim')
+
+#     # Ambil kategori
+#     for mhs in mahasiswa_list:
+#         if mhs.kategori:
+#             mhs.kategori_tim = mhs.kategori
+#         else:
+#             anggota = AnggotaTim.objects.filter(
+#                 mahasiswa=mhs,
+#                 status_persetujuan='APPROVED'
+#             ).first()
+#             mhs.kategori_tim = anggota.kategori if anggota else None
+
+#     daftar_angkatan = Mahasiswa.objects.values_list('angkatan', flat=True).distinct().order_by('-angkatan')
+
+#     total_mahasiswa_aktif = Mahasiswa.objects.filter(status="AKTIF").count()
+#     total_mahasiswa_nonaktif = Mahasiswa.objects.filter(status="NONAKTIF").count()
+#     total_mahasiswa_arsip = Mahasiswa.objects.filter(status="ARSIP").count()
+
+#     # =========================================================
+#     # 🔥 PAGINATION
+#     # =========================================================
+#     paginator = Paginator(mahasiswa_list, 15)  # 15 data per halaman
+#     page_number = request.GET.get('page')
+#     page_obj = paginator.get_page(page_number)
+
+#     context = {
+#         'page_obj': page_obj,  # <-- GANTI mahasiswa_list dengan page_obj
+#         'daftar_angkatan': daftar_angkatan,
+#         'status_filter': status,
+#         'angkatan_filter': angkatan,
+#         'keyword': keyword,
+#         'total_mahasiswa': total_mahasiswa_aktif + total_mahasiswa_nonaktif + total_mahasiswa_arsip,
+#         'total_mahasiswa_aktif': total_mahasiswa_aktif,
+#         'total_mahasiswa_nonaktif': total_mahasiswa_nonaktif,
+#         'total_mahasiswa_arsip': total_mahasiswa_arsip,
+#     }
+
+#     return render(request, 'kaprodi/list_mahasiswa.html', context)
+
+

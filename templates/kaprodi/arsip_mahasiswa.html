@@ -160,6 +160,118 @@ body{
     color: #065f46;
 }
 
+/* ================= PAGINATION ================= */
+.pagination-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    padding: 15px 20px;
+    flex-wrap: wrap;
+}
+
+.pagination-modern .pagination-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagination-modern .pagination-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.pagination-modern .page-item {
+    list-style: none;
+}
+
+.pagination-modern .page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    color: #4b5563;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    background: #fff;
+}
+
+.pagination-modern .page-link:hover {
+    background: #f3f4f6;
+    border-color: #2563eb;
+    color: #2563eb;
+}
+
+.pagination-modern .page-item.active .page-link {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+
+.pagination-modern .page-item.disabled .page-link {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-modern .page-item.disabled .page-link:hover {
+    background: #fff;
+    border-color: #e5e7eb;
+    color: #4b5563;
+}
+
+.pagination-modern .page-info {
+    color: #6b7280;
+    font-size: 14px;
+    padding: 0 12px;
+}
+
+.pagination-modern .page-link i {
+    font-size: 16px;
+}
+
+/* Pagination Info di Header */
+.pagination-info {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+/* ================= SHOW ENTRIES ================= */
+.show-entries {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.show-entries select {
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+    transition: 0.2s;
+}
+
+.show-entries select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.show-entries label {
+    color: #6b7280;
+    font-size: 14px;
+    margin: 0;
+}
+
 /* RESPONSIVE */
 @media (max-width:768px){
     .action-bar{
@@ -168,6 +280,13 @@ body{
     }
     .action-bar .btn-group{
         flex-wrap:wrap;
+    }
+    .pagination-modern {
+        flex-direction: column;
+        align-items: center;
+    }
+    .pagination-modern .pagination-left {
+        margin-bottom: 10px;
     }
 }
 </style>
@@ -204,7 +323,7 @@ body{
     <!-- ============ FILTER ============ -->
     <div class="card-body filter-box border-bottom">
 
-        <form method="get">
+        <form method="get" id="filterForm">
             <div class="row g-2">
 
                 <div class="col-md-9">
@@ -222,6 +341,23 @@ body{
                 </div>
 
             </div>
+
+            <!-- 🔥 SHOW ENTRIES -->
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <div class="show-entries">
+                        <label for="entries">Tampilkan</label>
+                        <select name="entries" id="entries" onchange="this.form.submit()">
+                            <option value="10" {% if entries == '10' %}selected{% endif %}>10</option>
+                            <option value="25" {% if entries == '25' %}selected{% endif %}>25</option>
+                            <option value="50" {% if entries == '50' %}selected{% endif %}>50</option>
+                            <option value="100" {% if entries == '100' %}selected{% endif %}>100</option>
+                            <option value="all" {% if entries == 'all' %}selected{% endif %}>Semua</option>
+                        </select>
+                        <label for="entries">data per halaman</label>
+                    </div>
+                </div>
+            </div>
         </form>
 
     </div>
@@ -231,7 +367,7 @@ body{
 
         <div class="d-flex align-items-center gap-3">
             <span class="badge-count">
-                <i class="bi bi-people"></i> {{ mahasiswa_list|length }} Mahasiswa
+                <i class="bi bi-people"></i> {{ page_obj.paginator.count }} Mahasiswa
             </span>
             <span class="selected-count" id="selectedCount">
                 <i class="bi bi-check-circle"></i> Terpilih: <span id="selectedCountNumber">0</span>
@@ -300,7 +436,7 @@ body{
 
                     <tbody>
 
-                        {% for mhs in mahasiswa_list %}
+                        {% for mhs in page_obj %}
 
                         <tr>
                             <td class="text-center">
@@ -311,18 +447,11 @@ body{
                                        onchange="updateSelectedCount()">
                             </td>
 
-                            <td>{{ forloop.counter }}</td>
+                            <td>{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
 
-                            <!-- ===== INI BAGIAN YANG DIPERBAIKI ===== -->
                             <td>
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="avatar">
-                                        {{ mhs.user.first_name|first|upper }}
-                                    </div>
-                                    <div>
-                                        <div class="fw-semibold">{{ mhs.user.get_full_name }}</div>
-                                        <small class="text-muted">Mahasiswa</small>
-                                    </div>
+                                <div>
+                                    <div class="fw-semibold">{{ mhs.user.get_full_name }}</div>
                                 </div>
                             </td>
 
@@ -359,7 +488,7 @@ body{
                                 {% endif %}
                             </td>
 
-                            <!-- ===== TOMBOL TETAP SAMA ===== -->
+                            <!-- ===== TOMBOL ===== -->
                             <td class="text-center">
                                 <div class="btn-group" role="group">
 
@@ -412,16 +541,83 @@ body{
 
     </div>
 
-    <!-- ============ FOOTER ============ -->
-    <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center">
-        <small class="text-muted">
-            <i class="bi bi-info-circle"></i>
-            Centang mahasiswa yang ingin dikembalikan, lalu klik "Kembalikan Semua"
-        </small>
-        <span class="text-muted">
-            Total: <b>{{ mahasiswa_list|length }}</b> data
-        </span>
+    <!-- ============ PAGINATION ============ -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-top-0">
+
+        <nav>
+            <ul class="pagination-modern">
+
+                <div class="pagination-left">
+                    <span class="page-info">
+                        Menampilkan {{ page_obj.start_index }} - {{ page_obj.end_index }} dari {{ page_obj.paginator.count }} data
+                    </span>
+                </div>
+
+                <div class="pagination-right">
+
+                    <!-- Previous -->
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}" title="Halaman Pertama">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}" title="Sebelumnya">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-double-left"></i></span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                    </li>
+                    {% endif %}
+
+                    <!-- Page Numbers -->
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if num == page_obj.number %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Next -->
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}" title="Selanjutnya">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}" title="Halaman Terakhir">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-double-right"></i></span>
+                    </li>
+                    {% endif %}
+
+                </div>
+
+            </ul>
+        </nav>
+
     </div>
+    {% endif %}
 
 </div>
 

@@ -60,6 +60,131 @@ body{
     justify-content:center;
     font-weight:bold;
 }
+
+/* BADGE STATUS */
+.badge-status {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.badge-status i {
+    margin-right: 4px;
+}
+
+/* ================= PAGINATION ================= */
+.pagination-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    padding: 15px 20px;
+    flex-wrap: wrap;
+}
+
+.pagination-modern .pagination-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagination-modern .pagination-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.pagination-modern .page-item {
+    list-style: none;
+}
+
+.pagination-modern .page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    color: #4b5563;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    background: #fff;
+}
+
+.pagination-modern .page-link:hover {
+    background: #f3f4f6;
+    border-color: #2563eb;
+    color: #2563eb;
+}
+
+.pagination-modern .page-item.active .page-link {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+
+.pagination-modern .page-item.disabled .page-link {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-modern .page-item.disabled .page-link:hover {
+    background: #fff;
+    border-color: #e5e7eb;
+    color: #4b5563;
+}
+
+.pagination-modern .page-info {
+    color: #6b7280;
+    font-size: 14px;
+    padding: 0 12px;
+}
+
+.pagination-modern .page-link i {
+    font-size: 16px;
+}
+
+/* Pagination Info di Header */
+.pagination-info {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+/* ================= SHOW ENTRIES ================= */
+.show-entries {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.show-entries select {
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+    transition: 0.2s;
+}
+
+.show-entries select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.show-entries label {
+    color: #6b7280;
+    font-size: 14px;
+    margin: 0;
+}
+
 </style>
 
 <!-- HEADER -->
@@ -85,7 +210,7 @@ body{
             <small>Total Dosen Pembimbing</small>
 
             <h3 class="mb-0 mt-2">
-                {{ dospem_list.count }}
+                {{ page_obj.paginator.count }}
             </h3>
 
         </div>
@@ -97,8 +222,69 @@ body{
 <!-- TABLE -->
 <div class="card card-modern">
 
-    <div class="card-header bg-white">
-        <b>Daftar Dosen Pembimbing</b>
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+
+        <div>
+            <b>Daftar Dosen Pembimbing</b>
+            <span class="badge bg-primary ms-2">
+                {{ page_obj.paginator.count }} Data
+            </span>
+            <span class="pagination-info ms-2">
+                Halaman {{ page_obj.number }} dari {{ page_obj.paginator.num_pages }}
+            </span>
+        </div>
+
+    </div>
+
+    <!-- FILTER -->
+    <div class="card-body filter-box border-bottom">
+
+        <form method="get" id="filterForm">
+            <div class="row g-2">
+
+                <div class="col-md-6">
+                    <input type="text"
+                           name="q"
+                           class="form-control"
+                           placeholder="Cari Nama Dosen..."
+                           value="{{ keyword }}">
+                </div>
+
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="">Semua Status</option>
+                        <option value="OPEN" {% if status_filter == 'OPEN' %}selected{% endif %}>OPEN</option>
+                        <option value="FULL" {% if status_filter == 'FULL' %}selected{% endif %}>FULL</option>
+                        <option value="CLOSED" {% if status_filter == 'CLOSED' %}selected{% endif %}>CLOSED</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <button class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- SHOW ENTRIES -->
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <div class="show-entries">
+                        <label for="entries">Tampilkan</label>
+                        <select name="entries" id="entries" onchange="this.form.submit()">
+                            <option value="10" {% if entries == '10' %}selected{% endif %}>10</option>
+                            <option value="25" {% if entries == '25' %}selected{% endif %}>25</option>
+                            <option value="50" {% if entries == '50' %}selected{% endif %}>50</option>
+                            <option value="100" {% if entries == '100' %}selected{% endif %}>100</option>
+                            <option value="all" {% if entries == 'all' %}selected{% endif %}>Semua</option>
+                        </select>
+                        <label for="entries">data per halaman</label>
+                    </div>
+                </div>
+            </div>
+        </form>
+
     </div>
 
     <div class="card-body p-0">
@@ -124,19 +310,15 @@ body{
 
                 <tbody>
 
-                {% for dospem in dospem_list %}
+                {% for dospem in page_obj %}
 
                 <tr>
 
-                    <td>{{ forloop.counter }}</td>
+                    <td>{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
 
                     <td>
 
                         <div class="d-flex align-items-center gap-2">
-
-                            <div class="avatar">
-                                {{ dospem.dosen.user.first_name|first|upper }}
-                            </div>
 
                             <div>
                                 <b>{{ dospem.dosen.user.get_full_name }}</b>
@@ -180,20 +362,20 @@ body{
 
                         {% if dospem.status == "OPEN" %}
 
-                            <span class="badge bg-success">
-                                OPEN
+                            <span class="badge bg-success badge-status">
+                                <i class="bi bi-check-circle"></i> OPEN
                             </span>
 
                         {% elif dospem.status == "FULL" %}
 
-                            <span class="badge bg-danger">
-                                FULL
+                            <span class="badge bg-danger badge-status">
+                                <i class="bi bi-x-circle"></i> FULL
                             </span>
 
                         {% else %}
 
-                            <span class="badge bg-secondary">
-                                CLOSED
+                            <span class="badge bg-secondary badge-status">
+                                <i class="bi bi-lock"></i> CLOSED
                             </span>
 
                         {% endif %}
@@ -221,6 +403,7 @@ body{
 
                     <td colspan="8" class="text-center py-4 text-muted">
 
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                         Belum ada dosen pembimbing.
 
                     </td>
@@ -237,6 +420,94 @@ body{
 
     </div>
 
+    <!-- ================= PAGINATION ================= -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-top-0">
+
+        <nav>
+            <ul class="pagination-modern">
+
+                <div class="pagination-left">
+                    <span class="page-info">
+                        Menampilkan {{ page_obj.start_index }} - {{ page_obj.end_index }} dari {{ page_obj.paginator.count }} data
+                    </span>
+                </div>
+
+                <div class="pagination-right">
+
+                    <!-- Previous -->
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if status_filter %}&status={{ status_filter }}{% endif %}{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}" title="Halaman Pertama">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}" title="Sebelumnya">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-double-left"></i></span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                    </li>
+                    {% endif %}
+
+                    <!-- Page Numbers -->
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if num == page_obj.number %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Next -->
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}" title="Selanjutnya">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}" title="Halaman Terakhir">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-double-right"></i></span>
+                    </li>
+                    {% endif %}
+
+                </div>
+
+            </ul>
+        </nav>
+
+    </div>
+    {% endif %}
+
 </div>
+
+<script>
+// Auto-submit dengan Enter di filter
+document.querySelector('.filter-box input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        this.closest('form').submit();
+    }
+});
+</script>
 
 {% endblock %}

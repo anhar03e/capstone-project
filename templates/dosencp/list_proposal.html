@@ -79,11 +79,145 @@ body {
     color:#fff;
 }
 
+/* Sedang Review */
+.badge-review{
+    background:#cff4fc;
+    color:#055160;
+}
+
 /* ================= BUTTON ================= */
 .btn-detail {
     border-radius: 20px;
     padding: 4px 14px;
     font-size: 12px;
+}
+
+/* ================= PAGINATION ================= */
+.pagination-modern {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    padding: 15px 20px;
+    flex-wrap: wrap;
+}
+
+.pagination-modern .pagination-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagination-modern .pagination-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.pagination-modern .page-item {
+    list-style: none;
+}
+
+.pagination-modern .page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    color: #4b5563;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    background: #fff;
+}
+
+.pagination-modern .page-link:hover {
+    background: #f3f4f6;
+    border-color: #2563eb;
+    color: #2563eb;
+}
+
+.pagination-modern .page-item.active .page-link {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+}
+
+.pagination-modern .page-item.disabled .page-link {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-modern .page-item.disabled .page-link:hover {
+    background: #fff;
+    border-color: #e5e7eb;
+    color: #4b5563;
+}
+
+.pagination-modern .page-info {
+    color: #6b7280;
+    font-size: 14px;
+    padding: 0 12px;
+}
+
+.pagination-modern .page-link i {
+    font-size: 16px;
+}
+
+.pagination-info {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+/* ================= SHOW ENTRIES ================= */
+.show-entries {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.show-entries select {
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+    transition: 0.2s;
+}
+
+.show-entries select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.show-entries label {
+    color: #6b7280;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* ================= FILTER ================= */
+.filter-box input,
+.filter-box select {
+    border-radius: 10px;
+}
+
+/* ================= RESPONSIVE ================= */
+@media (max-width: 768px) {
+    .pagination-modern {
+        flex-direction: column;
+        align-items: center;
+    }
+    .pagination-modern .pagination-left {
+        margin-bottom: 8px;
+    }
 }
 </style>
 
@@ -95,12 +229,61 @@ body {
 
 <!-- TABLE -->
 <div class="card card-modern">
+
+    <!-- FILTER & SHOW ENTRIES -->
+    <div class="card-body filter-box border-bottom">
+
+        <form method="get" id="filterForm">
+            <div class="row g-2">
+
+                <div class="col-md-4">
+                    <input type="text"
+                           name="q"
+                           class="form-control"
+                           placeholder="Cari Judul / Tim..."
+                           value="{{ keyword|default:'' }}">
+                </div>
+
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="">Semua Status</option>
+                        <option value="BELUM_REVIEW" {% if status_filter == 'BELUM_REVIEW' %}selected{% endif %}>Belum Review</option>
+                        <option value="SEDANG_REVIEW" {% if status_filter == 'SEDANG_REVIEW' %}selected{% endif %}>Sedang Review</option>
+                        <option value="DITERIMA" {% if status_filter == 'DITERIMA' %}selected{% endif %}>Diterima</option>
+                        <option value="REVISI" {% if status_filter == 'REVISI' %}selected{% endif %}>Revisi</option>
+                        <option value="DITOLAK" {% if status_filter == 'DITOLAK' %}selected{% endif %}>Ditolak</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <select name="entries" class="form-select" onchange="this.form.submit()">
+                        <option value="5" {% if entries == '5' %}selected{% endif %}>5 data</option>
+                        <option value="10" {% if entries == '10' %}selected{% endif %}>10 data</option>
+                        <option value="25" {% if entries == '25' %}selected{% endif %}>25 data</option>
+                        <option value="50" {% if entries == '50' %}selected{% endif %}>50 data</option>
+                        <option value="100" {% if entries == '100' %}selected{% endif %}>100 data</option>
+                        <option value="all" {% if entries == 'all' %}selected{% endif %}>Semua</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                </div>
+
+            </div>
+        </form>
+
+    </div>
+
     <div class="table-responsive">
 
         <table class="table mb-0">
 
             <thead>
                 <tr>
+                    <th>No</th>
                     <th>Judul</th>
                     <th>Tim</th>
                     <th>Status CP</th>
@@ -110,9 +293,11 @@ body {
 
            <tbody>
 
-            {% for proposal in proposals %}
+            {% for proposal in page_obj %}
 
             <tr>
+
+                <td>{{ forloop.counter|add:page_obj.start_index|add:"-1" }}</td>
 
                 <!-- Judul -->
                 <td class="fw-semibold">
@@ -139,7 +324,7 @@ body {
 
                     {% elif proposal.status_cp == "SEDANG_REVIEW" %}
 
-                        <span class="badge-status badge-pending">
+                        <span class="badge-status badge-review">
                             Sedang Review
                         </span>
 
@@ -175,7 +360,7 @@ body {
                 <td>
                     <a href="{% url 'capstone_system:dosencp_detail_proposal' proposal.id %}"
                     class="btn btn-outline-primary btn-detail">
-                        Detail
+                        <i class="bi bi-eye"></i> Detail
                     </a>
                 </td>
 
@@ -184,7 +369,8 @@ body {
             {% empty %}
 
             <tr>
-                <td colspan="4" class="text-center text-muted py-4">
+                <td colspan="5" class="text-center text-muted py-4">
+                    <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                     Belum ada proposal
                 </td>
             </tr>
@@ -196,6 +382,95 @@ body {
         </table>
 
     </div>
+
+    <!-- ================= PAGINATION ================= -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-top-0">
+
+        <nav>
+            <ul class="pagination-modern">
+
+                <div class="pagination-left">
+                    <span class="page-info">
+                        Menampilkan {{ page_obj.start_index }} - {{ page_obj.end_index }} dari {{ page_obj.paginator.count }} data
+                    </span>
+                </div>
+
+                <div class="pagination-right">
+
+                    <!-- Previous -->
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if status_filter %}&status={{ status_filter }}{% endif %}{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}" title="Halaman Pertama">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}" title="Sebelumnya">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-double-left"></i></span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                    </li>
+                    {% endif %}
+
+                    <!-- Page Numbers -->
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if num == page_obj.number %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Next -->
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}" title="Selanjutnya">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if keyword %}&q={{ keyword }}{% endif %}{% if entries %}&entries={{ entries }}{% endif %}" title="Halaman Terakhir">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                    </li>
+                    <li class="page-item disabled">
+                        <span class="page-link"><i class="bi bi-chevron-double-right"></i></span>
+                    </li>
+                    {% endif %}
+
+                </div>
+
+            </ul>
+        </nav>
+
+    </div>
+    {% endif %}
+
 </div>
+
+<script>
+// Auto-submit dengan Enter di filter
+document.querySelector('.filter-box input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        this.closest('form').submit();
+    }
+});
+</script>
 
 {% endblock %}

@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
 from django.contrib.auth import update_session_auth_hash
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from ..models import ProposalCapstone, RiwayatFeedbackProposal
 from .base import check_role
@@ -17,24 +18,83 @@ def dosencp_home(request):
     if not has_access:
         return response
 
+    # Ambil parameter
+    keyword = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    entries = request.GET.get('entries', '5')
+
+    # Query proposal
     proposal_qs = ProposalCapstone.objects.all().order_by('-waktu_update')
 
+    # Filter keyword
+    if keyword:
+        proposal_qs = proposal_qs.filter(
+            Q(judul__icontains=keyword) |
+            Q(tim__nama_tim__icontains=keyword)
+        )
+
+    # Filter status
+    if status_filter:
+        proposal_qs = proposal_qs.filter(status_cp=status_filter)
+
+    # Statistik
     pending_qs = proposal_qs.filter(status_cp='BELUM_REVIEW')
     diterima_qs = proposal_qs.filter(status_cp='DITERIMA')
     revisi_qs = proposal_qs.filter(status_cp='REVISI')
     ditolak_qs = proposal_qs.filter(status_cp='DITOLAK')
 
+    # 🔥 PAGINATION
+    if entries == 'all':
+        per_page = None
+    else:
+        try:
+            per_page = int(entries)
+            if per_page <= 0:
+                per_page = 5
+        except ValueError:
+            per_page = 5
+
+    if per_page is None:
+        class FakePaginator:
+            count = proposal_qs.count()
+            num_pages = 1
+            page_range = [1]
+        class FakePage:
+            def __init__(self, data):
+                self.object_list = data
+                self.paginator = FakePaginator()
+                self.number = 1
+                self.has_previous = False
+                self.has_next = False
+                self.previous_page_number = None
+                self.next_page_number = None
+                self.start_index = 1
+                self.end_index = len(data)
+            def __iter__(self):
+                return iter(self.object_list)
+        page_obj = FakePage(proposal_qs)
+    else:
+        paginator = Paginator(proposal_qs, per_page)
+        page_number = request.GET.get('page')
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
     context = {
+        'page_obj': page_obj,
+        'keyword': keyword,
+        'status_filter': status_filter,
+        'entries': entries,
         'total_proposal': proposal_qs.count(),
         'proposal_pending': pending_qs.count(),
         'proposal_diterima': diterima_qs.count(),
-        'proposal_revisi': revisi_qs.count(),
-        'proposal_ditolak': ditolak_qs.count(),
-        'proposal_terbaru': proposal_qs[:5],
+        'proposal_revisi': revisi_qs.count() + ditolak_qs.count(),
     }
 
     return render(request, 'dosencp/home.html', context)
-
 # =========================================================
 # LIST PROPOSAL
 # =========================================================
@@ -44,14 +104,71 @@ def dosencp_list_proposal(request):
     if not has_access:
         return response
 
+    keyword = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    entries = request.GET.get('entries', '5')
+
     proposals = ProposalCapstone.objects.select_related('tim').order_by('-id')
-    status = request.GET.get('status')
 
-    if status:
-        proposals = proposals.filter(status_cp=status)
+    # Filter keyword
+    if keyword:
+        proposals = proposals.filter(
+            Q(judul__icontains=keyword) |
+            Q(tim__nama_tim__icontains=keyword)
+        )
 
-    return render(request, 'dosencp/list_proposal.html', {'proposals': proposals})
+    # Filter status
+    if status_filter:
+        proposals = proposals.filter(status_cp=status_filter)
 
+    # 🔥 PAGINATION
+    if entries == 'all':
+        per_page = None
+    else:
+        try:
+            per_page = int(entries)
+            if per_page <= 0:
+                per_page = 5
+        except ValueError:
+            per_page = 5
+
+    if per_page is None:
+        class FakePaginator:
+            count = proposals.count()
+            num_pages = 1
+            page_range = [1]
+        class FakePage:
+            def __init__(self, data):
+                self.object_list = data
+                self.paginator = FakePaginator()
+                self.number = 1
+                self.has_previous = False
+                self.has_next = False
+                self.previous_page_number = None
+                self.next_page_number = None
+                self.start_index = 1
+                self.end_index = len(data)
+            def __iter__(self):
+                return iter(self.object_list)
+        page_obj = FakePage(proposals)
+    else:
+        paginator = Paginator(proposals, per_page)
+        page_number = request.GET.get('page')
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
+    context = {
+        'page_obj': page_obj,
+        'keyword': keyword,
+        'status_filter': status_filter,
+        'entries': entries,
+    }
+
+    return render(request, 'dosencp/list_proposal.html', context)
 # =========================================================
 # DETAIL PROPOSAL
 # =========================================================

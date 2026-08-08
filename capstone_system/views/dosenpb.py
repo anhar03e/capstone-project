@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.db.models import Q
 from django.contrib.auth import update_session_auth_hash
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from ..models import (
     Mahasiswa,
@@ -32,18 +33,100 @@ def dosenpb_home(request):
     dosen_pb = get_dosen_pb(request.user)
     if not dosen_pb:
         messages.error(request, "Anda belum terdaftar sebagai Dosen Pembimbing.")
-        return redirect('capstone_system:login')  # <-- PERBAIKI INI!
+        return redirect('capstone_system:login')
 
-    jumlah_mahasiswa = Mahasiswa.objects.filter(dosen_pembimbing=dosen_pb).count()
+    # =========================================================
+    # AMBIL PARAMETER FILTER
+    # =========================================================
+    keyword = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    entries = request.GET.get('entries', '5')
+
+    # =========================================================
+    # DATA MAHASISWA BIMBINGAN
+    # =========================================================
+    mahasiswa_list = Mahasiswa.objects.filter(
+        dosen_pembimbing=dosen_pb,
+        status='AKTIF'
+    ).select_related('user')
+
+    # Filter keyword
+    if keyword:
+        mahasiswa_list = mahasiswa_list.filter(
+            Q(nim__icontains=keyword) |
+            Q(user__first_name__icontains=keyword) |
+            Q(user__last_name__icontains=keyword)
+        )
+
+    mahasiswa_list = mahasiswa_list.order_by('user__first_name')
+
+    # =========================================================
+    # PAGINATION
+    # =========================================================
+    if entries == 'all':
+        per_page = None
+    else:
+        try:
+            per_page = int(entries)
+            if per_page <= 0:
+                per_page = 5
+        except ValueError:
+            per_page = 5
+
+    if per_page is None:
+        class FakePaginator:
+            count = mahasiswa_list.count()
+            num_pages = 1
+            page_range = [1]
+        class FakePage:
+            def __init__(self, data):
+                self.object_list = data
+                self.paginator = FakePaginator()
+                self.number = 1
+                self.has_previous = False
+                self.has_next = False
+                self.previous_page_number = None
+                self.next_page_number = None
+                self.start_index = 1
+                self.end_index = len(data)
+            def __iter__(self):
+                return iter(self.object_list)
+        page_obj = FakePage(mahasiswa_list)
+    else:
+        paginator = Paginator(mahasiswa_list, per_page)
+        page_number = request.GET.get('page')
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
+    # =========================================================
+    # DATA JADWAL HARI INI
+    # =========================================================
     today = timezone.localdate()
-    jadwal_hari_ini = JadwalKonsultasi.objects.filter(dosen=dosen_pb, tanggal=today).order_by('jam_mulai')
+    jadwal_hari_ini = JadwalKonsultasi.objects.filter(
+        dosen=dosen_pb, 
+        tanggal=today
+    ).order_by('jam_mulai')
     jadwal_tersedia = sum(j.sisa_kuota for j in jadwal_hari_ini)
 
-    return render(request, 'dosenpb/home.html', {
-        'jumlah_mahasiswa': jumlah_mahasiswa,
+    # =========================================================
+    # KIRIM KE TEMPLATE
+    # =========================================================
+    context = {
+        'page_obj': page_obj,           # 🔥 PENTING: untuk pagination
+        'keyword': keyword,             # 🔥 PENTING: untuk filter
+        'entries': entries,             # 🔥 PENTING: untuk show entries
+        'status_filter': status_filter, # 🔥 PENTING: untuk filter status
+        'jumlah_mahasiswa': mahasiswa_list.count(),
         'jadwal_hari_ini': jadwal_hari_ini,
         'jadwal_tersedia': jadwal_tersedia,
-    })
+    }
+
+    return render(request, 'dosenpb/home.html', context)
+
 
 # =========================================================
 # LIST MAHASISWA BIMBINGAN
@@ -80,11 +163,75 @@ def dosenpb_pengajuan(request):
         return response
     
     dosen_pb = get_dosen_pb(request.user)
+    
+    keyword = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    entries = request.GET.get('entries', '5')
+
     pengajuan_list = PengajuanDospem.objects.select_related(
-        'mahasiswa__user', 'resume'
+        'mahasiswa__user', 'resume', 'dosen_pembimbing__dosen__user'
     ).filter(dosen_pembimbing=dosen_pb).order_by('-tanggal_pengajuan')
 
-    return render(request, 'dosenpb/pengajuan.html', {'pengajuan_list': pengajuan_list})
+    # Filter keyword
+    if keyword:
+        pengajuan_list = pengajuan_list.filter(
+            Q(mahasiswa__user__first_name__icontains=keyword) |
+            Q(mahasiswa__user__last_name__icontains=keyword) |
+            Q(mahasiswa__nim__icontains=keyword)
+        )
+
+    # Filter status
+    if status_filter:
+        pengajuan_list = pengajuan_list.filter(status=status_filter)
+
+    # 🔥 PAGINATION
+    if entries == 'all':
+        per_page = None
+    else:
+        try:
+            per_page = int(entries)
+            if per_page <= 0:
+                per_page = 5
+        except ValueError:
+            per_page = 5
+
+    if per_page is None:
+        class FakePaginator:
+            count = pengajuan_list.count()
+            num_pages = 1
+            page_range = [1]
+        class FakePage:
+            def __init__(self, data):
+                self.object_list = data
+                self.paginator = FakePaginator()
+                self.number = 1
+                self.has_previous = False
+                self.has_next = False
+                self.previous_page_number = None
+                self.next_page_number = None
+                self.start_index = 1
+                self.end_index = len(data)
+            def __iter__(self):
+                return iter(self.object_list)
+        page_obj = FakePage(pengajuan_list)
+    else:
+        paginator = Paginator(pengajuan_list, per_page)
+        page_number = request.GET.get('page')
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
+    context = {
+        'page_obj': page_obj,
+        'keyword': keyword,
+        'status_filter': status_filter,
+        'entries': entries,
+    }
+
+    return render(request, 'dosenpb/pengajuan.html', context)
 
 # =========================================================
 # DETAIL MAHASISWA (DARI MENU MAHASISWA)
@@ -293,6 +440,8 @@ def dosenpb_profile(request):
 # =========================================================
 # JADWAL KONSULTASI
 # =========================================================
+# dosenpb.py - Perbaiki fungsi dosenpb_schedule
+
 @login_required
 def dosenpb_schedule(request):
     has_access, response = check_role(request, ['DOSENPB'])
@@ -301,23 +450,109 @@ def dosenpb_schedule(request):
     
     dosen_pb = get_dosen_pb(request.user)
 
+    # 🔥 PROSES POST (TAMBAH JADWAL)
     if request.method == 'POST':
-        form = JadwalForm(request.POST)
-        if form.is_valid():
-            jadwal = form.save(commit=False)
-            jadwal.dosen = dosen_pb
-            jadwal.save()
-            messages.success(request, "Jadwal berhasil ditambahkan")
+        tanggal = request.POST.get('tanggal')
+        jam_mulai = request.POST.get('jam_mulai')
+        jam_selesai = request.POST.get('jam_selesai')
+        
+        # 🔥 CEK SEMUA FIELD WAJIB DIISI
+        if not tanggal or not jam_mulai or not jam_selesai:
+            messages.error(request, "Semua field wajib diisi!")
             return redirect('capstone_system:dosenpb_schedule')
-    else:
-        form = JadwalForm()
+        
+        # 🔥 CEK APAKAH JADWAL SUDAH ADA
+        existing = JadwalKonsultasi.objects.filter(
+            dosen=dosen_pb,
+            tanggal=tanggal,
+            jam_mulai=jam_mulai,
+            jam_selesai=jam_selesai
+        ).exists()
+        
+        if existing:
+            messages.error(request, f"Jadwal pada tanggal {tanggal} jam {jam_mulai}-{jam_selesai} sudah ada!")
+        else:
+            # 🔥 BUAT JADWAL BARU
+            JadwalKonsultasi.objects.create(
+                dosen=dosen_pb,
+                tanggal=tanggal,
+                jam_mulai=jam_mulai,
+                jam_selesai=jam_selesai,
+                kuota=3,  # Default kuota 3
+                jumlah_dipesan=0
+            )
+            messages.success(request, f"Jadwal {tanggal} {jam_mulai}-{jam_selesai} berhasil ditambahkan!")
+        
+        return redirect('capstone_system:dosenpb_schedule')
 
+    # 🔥 AMBIL PARAMETER FILTER
+    keyword = request.GET.get('q', '')
+    status_filter = request.GET.get('status', '')
+    entries = request.GET.get('entries', '5')
+
+    # 🔥 QUERY JADWAL
     jadwal_list = JadwalKonsultasi.objects.filter(dosen=dosen_pb).order_by('tanggal', 'jam_mulai')
 
-    return render(request, 'dosenpb/schedule.html', {
-        'form': form,
-        'jadwal_list': jadwal_list
-    })
+    # Filter keyword (cari tanggal)
+    if keyword:
+        jadwal_list = jadwal_list.filter(
+            Q(tanggal__icontains=keyword)
+        )
+
+    # Filter status (tersedia/penuh)
+    if status_filter == 'tersedia':
+        jadwal_list = jadwal_list.filter(kuota__gt=F('jumlah_dipesan'))
+    elif status_filter == 'penuh':
+        jadwal_list = jadwal_list.filter(kuota__lte=F('jumlah_dipesan'))
+
+    # 🔥 PAGINATION
+    if entries == 'all':
+        per_page = None
+    else:
+        try:
+            per_page = int(entries)
+            if per_page <= 0:
+                per_page = 5
+        except ValueError:
+            per_page = 5
+
+    if per_page is None:
+        class FakePaginator:
+            count = jadwal_list.count()
+            num_pages = 1
+            page_range = [1]
+        class FakePage:
+            def __init__(self, data):
+                self.object_list = data
+                self.paginator = FakePaginator()
+                self.number = 1
+                self.has_previous = False
+                self.has_next = False
+                self.previous_page_number = None
+                self.next_page_number = None
+                self.start_index = 1
+                self.end_index = len(data)
+            def __iter__(self):
+                return iter(self.object_list)
+        page_obj = FakePage(jadwal_list)
+    else:
+        paginator = Paginator(jadwal_list, per_page)
+        page_number = request.GET.get('page')
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            page_obj = paginator.page(paginator.num_pages)
+
+    context = {
+        'page_obj': page_obj,
+        'keyword': keyword,
+        'status_filter': status_filter,
+        'entries': entries,
+    }
+
+    return render(request, 'dosenpb/schedule.html', context)
 
 # =========================================================
 # HAPUS JADWAL
@@ -330,7 +565,11 @@ def dosenpb_hapus_jadwal(request, id):
     
     dosen_pb = get_dosen_pb(request.user)
     jadwal = get_object_or_404(JadwalKonsultasi, id=id, dosen=dosen_pb)
+    
+    # Simpan info untuk pesan
+    info = f"{jadwal.tanggal} {jadwal.jam_mulai}-{jadwal.jam_selesai}"
+    
     jadwal.delete()
 
-    messages.success(request, "Jadwal berhasil dihapus")
+    messages.success(request, f"Jadwal {info} berhasil dihapus")
     return redirect('capstone_system:dosenpb_schedule')

@@ -13,14 +13,16 @@ body{
     background:#f5f7fb;
 }
 
+/* HEADER - SAMA SEPERTI LIST DOSEN */
 .page-header{
-    background:linear-gradient(135deg,#198754,#20c997);
+    background:linear-gradient(135deg,#0d6efd,#4f8cff);
     color:white;
     padding:24px;
     border-radius:16px;
     margin-bottom:20px;
 }
 
+/* CARD */
 .card-modern{
     border:none;
     border-radius:15px;
@@ -28,24 +30,96 @@ body{
     background:white;
 }
 
+/* AVATAR */
 .avatar{
-    width:45px;
-    height:45px;
+    width:42px;
+    height:42px;
     border-radius:50%;
-    background:#198754;
+    background:#0d6efd;
     color:white;
     display:flex;
     align-items:center;
     justify-content:center;
     font-weight:bold;
 }
+
+/* BADGE KATEGORI */
+.badge-kategori {
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.badge-kategori.epd {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.badge-kategori.sm {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+/* BADGE STATUS */
+.badge-status {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.badge-status i {
+    margin-right: 4px;
+}
+
+/* TABLE */
+.table-modern{
+    margin-bottom:0;
+}
+
+.table-modern thead{
+    background:#f8f9fa;
+}
+
+.table-modern th{
+    border:none;
+    font-weight:600;
+}
+
+.table-modern td{
+    vertical-align:middle;
+}
+
+/* INFO ROW */
+.info-row {
+    display: flex;
+    flex-direction: column;
+    padding: 6px 0;
+}
+
+.info-row .info-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.info-row .info-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-top: 2px;
+}
+
 </style>
 
 <!-- HEADER -->
 <div class="page-header">
 
     <h4 class="mb-1">
-        Detail Tim 
+        <i class="bi bi-people-fill"></i> Detail Tim
     </h4>
 
     <div>
@@ -66,62 +140,64 @@ body{
         <div class="row g-4">
 
             <div class="col-md-6">
-
-                <label class="text-muted">
-                    Nama Tim
-                </label>
-
-                <h5 class="mt-1">
-                    {{ tim.nama_tim }}
-                </h5>
-
-            </div>
-
-            {% if tim.kategori %}
-            <div class="col-md-6">
-
-                <label class="text-muted">
-                    Kategori
-                </label>
-
-                <div class="fw-semibold">
-                    {{ tim.kategori }}
+                <div class="info-row">
+                    <span class="info-label">Nama Tim</span>
+                    <span class="info-value">{{ tim.nama_tim }}</span>
                 </div>
-
             </div>
-            {% endif %}
 
-            {% if tim.status %}
             <div class="col-md-6">
+                <div class="info-row">
+                    <span class="info-label">Dibuat Pada</span>
+                    <span class="info-value">{{ tim.dibuat_pada|date:"d F Y H:i" }}</span>
+                </div>
+            </div>
 
-                <label class="text-muted">
-                    Status Tim
-                </label>
-
-                <div class="mt-1">
-
-                    <span class="badge bg-success">
-                        {{ tim.status }}
+            <div class="col-md-6">
+                <div class="info-row">
+                    <span class="info-label">Kategori</span>
+                    <span class="info-value">
+                        {% if tim.kategori %}
+                            <span class="badge-kategori 
+                                {% if tim.kategori == 'EPD' %}epd{% else %}sm{% endif %}">
+                                {{ tim.kategori }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
                     </span>
-
                 </div>
-
             </div>
-            {% endif %}
 
-            {% if tim.dibuat_pada %}
             <div class="col-md-6">
-
-                <label class="text-muted">
-                    Dibuat Pada
-                </label>
-
-                <div class="fw-semibold">
-                    {{ tim.dibuat_pada|date:"d F Y H:i" }}
+                <div class="info-row">
+                    <span class="info-label">Status Tim</span>
+                    <span class="info-value">
+                        {% if tim.status == "APPROVED" %}
+                            <span class="badge bg-success badge-status">
+                                <i class="bi bi-check-circle"></i> APPROVED
+                            </span>
+                        {% elif tim.status == "PENDING" %}
+                            <span class="badge bg-warning text-dark badge-status">
+                                <i class="bi bi-clock"></i> PENDING
+                            </span>
+                        {% elif tim.status == "REJECTED" %}
+                            <span class="badge bg-danger badge-status">
+                                <i class="bi bi-x-circle"></i> REJECTED
+                            </span>
+                        {% else %}
+                            <span class="badge bg-secondary badge-status">{{ tim.status }}</span>
+                        {% endif %}
+                    </span>
                 </div>
-
             </div>
-            {% endif %}
+
+            <div class="col-md-6">
+                <div class="info-row">
+                    <span class="info-label">Jumlah Anggota</span>
+                    <span class="info-value">{{ anggota.count }} Orang</span>
+                </div>
+            </div>
 
         </div>
 
@@ -132,9 +208,13 @@ body{
 <!-- ANGGOTA TIM -->
 <div class="card card-modern">
 
-    <div class="card-header bg-white">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
 
         <b>Anggota Tim</b>
+
+        <span class="badge bg-primary">
+            {{ anggota.count }} Anggota
+        </span>
 
     </div>
 
@@ -142,18 +222,17 @@ body{
 
         <div class="table-responsive">
 
-            <table class="table align-middle mb-0">
+            <table class="table table-modern align-middle">
 
-                <thead class="table-light">
-
+                <thead>
                     <tr>
-                        <th>No</th>
+                        <th width="50">No</th>
                         <th>Mahasiswa</th>
                         <th>NIM</th>
                         <th>Role</th>
+                        <th>Kategori</th>
                         <th>Status</th>
                     </tr>
-
                 </thead>
 
                 <tbody>
@@ -162,9 +241,7 @@ body{
 
                     <tr>
 
-                        <td>
-                            {{ forloop.counter }}
-                        </td>
+                        <td>{{ forloop.counter }}</td>
 
                         <td>
 
@@ -175,48 +252,55 @@ body{
                                 </div>
 
                                 <div>
-                                    <b>
-                                        {{ anggota_tim.mahasiswa.user.get_full_name }}
-                                    </b>
+                                    <b>{{ anggota_tim.mahasiswa.user.get_full_name }}</b>
                                 </div>
 
                             </div>
 
                         </td>
 
-                        <td>
-                            {{ anggota_tim.mahasiswa.nim }}
-                        </td>
+                        <td>{{ anggota_tim.mahasiswa.nim }}</td>
 
                         <td>
 
                             {% if anggota_tim.role == 'ketua' %}
                                 <span class="badge bg-primary">
-                                    Ketua
+                                    <i class="bi bi-crown"></i> Ketua
                                 </span>
                             {% else %}
                                 <span class="badge bg-secondary">
-                                    Anggota
+                                    <i class="bi bi-person"></i> Anggota
                                 </span>
                             {% endif %}
 
                         </td>
 
                         <td>
+                            {% if anggota_tim.kategori %}
+                                <span class="badge-kategori 
+                                    {% if anggota_tim.kategori == 'EPD' %}epd{% else %}sm{% endif %}">
+                                    {{ anggota_tim.kategori }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
 
                             {% if anggota_tim.status_persetujuan == 'APPROVED' %}
                                 <span class="badge bg-success">
-                                    Diterima
+                                    <i class="bi bi-check-circle"></i> Diterima
                                 </span>
 
                             {% elif anggota_tim.status_persetujuan == 'PENDING' %}
                                 <span class="badge bg-warning text-dark">
-                                    Pending
+                                    <i class="bi bi-clock"></i> Pending
                                 </span>
 
                             {% elif anggota_tim.status_persetujuan == 'REJECTED' %}
                                 <span class="badge bg-danger">
-                                    Ditolak
+                                    <i class="bi bi-x-circle"></i> Ditolak
                                 </span>
 
                             {% else %}
@@ -233,9 +317,9 @@ body{
 
                     <tr>
 
-                        <td colspan="5"
-                            class="text-center py-4 text-muted">
+                        <td colspan="6" class="text-center py-4 text-muted">
 
+                            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                             Belum ada anggota tim
 
                         </td>
