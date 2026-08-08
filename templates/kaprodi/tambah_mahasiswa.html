@@ -1,0 +1,344 @@
+{% extends 'dashboard/base_dashboard.html' %}
+
+{% block title %}Tambah Mahasiswa{% endblock %}
+
+{% block sidebar %}
+{% include "dashboard/sidebar_kaprodi.html" %}
+{% endblock %}
+
+{% block dashboard_content %}
+
+<style>
+
+body{
+    background:#f5f7fb;
+}
+
+/* HEADER */
+
+.page-header{
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+    color:white;
+    padding:22px;
+    border-radius:16px;
+    margin-bottom:25px;
+}
+
+/* CARD */
+
+.card-modern{
+    border:none;
+    border-radius:16px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+}
+
+/* FORM */
+
+.form-label{
+    font-weight:600;
+    color:#374151;
+}
+
+.form-control,
+.form-select{
+    border-radius:10px;
+    padding:10px 14px;
+    border:1px solid #d1d5db;
+}
+
+.form-control:focus,
+.form-select:focus{
+    border-color:#2563eb;
+    box-shadow:0 0 0 .2rem rgba(37,99,235,.15);
+}
+
+/* INFO BOX */
+.info-box{
+    background:#f8fafc;
+    border-radius:12px;
+    padding:12px 16px;
+    border:1px solid #eef2f7;
+    margin-bottom:12px;
+}
+
+.info-box .info-icon{
+    font-size:20px;
+    margin-right:10px;
+}
+
+/* ===== KELAS & ANGKATAN ===== */
+.kelas-angkatan-group {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.kelas-angkatan-group .form-group {
+    flex: 1;
+    min-width: 150px;
+}
+
+</style>
+
+<!-- HEADER -->
+
+<div class="page-header">
+
+    <h4 class="mb-1">
+        <i class="bi bi-person-plus-fill"></i> Tambah Mahasiswa
+    </h4>
+
+    <div>
+        Tambahkan data mahasiswa baru ke dalam sistem
+    </div>
+
+</div>
+
+<!-- INFO -->
+<div class="alert alert-info mb-4">
+    <div class="d-flex align-items-start">
+        <i class="bi bi-info-circle fs-4 me-3"></i>
+        <div>
+            <h6 class="mb-1">📌 Informasi:</h6>
+            <ul class="mb-0">
+                <li><strong>NIM</strong> akan digunakan sebagai <strong>username</strong> dan <strong>password default</strong></li>
+                <li><strong>Status</strong> mahasiswa akan otomatis menjadi <span class="badge bg-success">AKTIF</span></li>
+                <li><strong>Kelas</strong> menggunakan format: <code>A, B, C, D, E</code> (tanpa angka 5)</li>
+                <li><strong>Kategori</strong> dan <strong>Dosen Pembimbing</strong> dapat diisi kemudian melalui menu Edit</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- CARD -->
+
+<div class="card card-modern">
+
+    <div class="card-header bg-white">
+
+        <h5 class="mb-0 fw-bold">
+
+            <i class="bi bi-person-plus-fill me-2"></i>
+
+            Form Tambah Mahasiswa
+
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            <div class="row">
+
+                <!-- NIM -->
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        NIM <span class="text-danger">*</span>
+                    </label>
+
+                    <input type="text" 
+                           name="nim" 
+                           class="form-control" 
+                           placeholder="Contoh: 236151001"
+                           maxlength="20"
+                           required>
+
+                    <small class="text-muted">Masukkan NIM mahasiswa (max 20 karakter)</small>
+
+                </div>
+
+                <!-- Nama Lengkap -->
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Nama Lengkap <span class="text-danger">*</span>
+                    </label>
+
+                    <input type="text" 
+                           name="nama_lengkap" 
+                           class="form-control" 
+                           placeholder="Contoh: John Doe"
+                           required>
+
+                    <small class="text-muted">Masukkan nama lengkap mahasiswa</small>
+
+                </div>
+
+                <!-- Email -->
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Email <span class="text-danger">*</span>
+                    </label>
+
+                    <input type="email" 
+                           name="email" 
+                           class="form-control" 
+                           placeholder="Contoh: john.doe@polnes.ac.id"
+                           required>
+
+                    <small class="text-muted">Format: nama@domain.com</small>
+
+                </div>
+
+                <!-- Kelas & Angkatan -->
+                <div class="col-md-6 mb-3">
+
+                    <div class="kelas-angkatan-group">
+
+                        <!-- Kelas -->
+                        <div class="form-group">
+                            <label class="form-label">
+                                Kelas <span class="text-danger">*</span>
+                            </label>
+
+                            <select name="kelas" class="form-select" required>
+                                <option value="">-- Pilih Kelas --</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                                <option value="E">E</option>
+                                <option value="TI">TI</option>
+                            </select>
+
+                            <small class="text-muted">Kelas (A, B, C, D, E, TI)</small>
+                        </div>
+
+                        <!-- Angkatan -->
+                        <div class="form-group">
+                            <label class="form-label">
+                                Angkatan <span class="text-danger">*</span>
+                            </label>
+
+                            <input type="number" 
+                                   name="angkatan" 
+                                   class="form-control" 
+                                   placeholder="Contoh: 2023"
+                                   min="2000"
+                                   max="2100"
+                                   value="2023"
+                                   required>
+
+                            <small class="text-muted">Tahun angkatan (4 digit)</small>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <!-- Tanggal Masuk (Opsional) -->
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Tanggal Masuk
+                    </label>
+
+                    <input type="date" 
+                           name="tanggal_masuk" 
+                           class="form-control"
+                           id="tanggalMasuk">
+
+                    <small class="text-muted">Kosongkan untuk otomatis menggunakan tanggal hari ini</small>
+
+                </div>
+
+                <!-- Status (Readonly - Default AKTIF) -->
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Status
+                    </label>
+
+                    <input type="text" 
+                           class="form-control" 
+                           value="AKTIF" 
+                           disabled>
+
+                    <small class="text-muted">Status default: <span class="badge bg-success">AKTIF</span></small>
+
+                </div>
+
+                <!-- Hidden fields untuk kategori, dosen_pembimbing, foto_profil -->
+                <input type="hidden" name="kategori" value="">
+                <input type="hidden" name="dosen_pembimbing" value="">
+                <input type="hidden" name="foto_profil" value="">
+
+            </div>
+
+            <hr>
+
+            <div class="d-flex gap-2">
+
+                <button
+                    type="submit"
+                    class="btn btn-primary rounded-pill">
+
+                    <i class="bi bi-check-circle me-1"></i>
+
+                    Simpan Data
+
+                </button>
+
+                <a
+                    href="{% url 'capstone_system:kaprodi_mahasiswa' %}"
+                    class="btn btn-secondary rounded-pill">
+
+                    <i class="bi bi-arrow-left me-1"></i>
+
+                    Kembali
+
+                </a>
+
+                <button
+                    type="reset"
+                    class="btn btn-outline-secondary rounded-pill">
+
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>
+
+                    Reset
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 🔥 Auto-fill tanggal masuk dengan hari ini
+    const tanggalInput = document.getElementById('tanggalMasuk');
+    if (tanggalInput && !tanggalInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        tanggalInput.value = today;
+    }
+    
+    // 🔥 Validasi NIM hanya angka
+    const nimInput = document.querySelector('input[name="nim"]');
+    if (nimInput) {
+        nimInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+    }
+
+    // 🔥 Auto set angkatan jika kosong
+    const angkatanInput = document.querySelector('input[name="angkatan"]');
+    if (angkatanInput && !angkatanInput.value) {
+        angkatanInput.value = '2023';
+    }
+
+    // 🔥 Kelas otomatis berdasarkan NIM (optional)
+    // Bisa ditambahkan jika ingin auto detect kelas dari NIM
+});
+</script>
+
+{% endblock %}

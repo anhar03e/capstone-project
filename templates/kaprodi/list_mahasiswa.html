@@ -303,12 +303,17 @@ body{
 <!-- ================= HEADER ================= -->
 <div class="page-header">
 
-    <h4 class="mb-1">
-        Data Mahasiswa 
-    </h4>
-
-    <div>
-        Monitoring seluruh data mahasiswa Capstone Project
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="mb-1">Data Mahasiswa</h4>
+            <div>Monitoring seluruh data mahasiswa Capstone Project</div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'capstone_system:tambah_mahasiswa' %}" 
+               class="btn btn-light">
+                <i class="bi bi-plus-circle"></i> Tambah Mahasiswa
+            </a>
+        </div>
     </div>
 
 </div>

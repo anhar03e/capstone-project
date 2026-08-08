@@ -9,6 +9,7 @@ import pandas as pd
 from django.views.decorators.csrf import csrf_exempt  
 from django.views.decorators.http import require_http_methods
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.utils import timezone
 
 
 from ..models import (
@@ -22,6 +23,7 @@ from ..models import (
     Resume,
     PengajuanDospem,
     User,
+    Role,
 )
 from ..forms import DosenForm, ProposalForm, UploadMahasiswaForm
 from .base import check_role
@@ -370,8 +372,10 @@ def detail_mahasiswa(request, id):
     })
 
 
+# kaprodi_views.py - Perbaiki fungsi tambah_mahasiswa
+
 # =========================================================
-# TAMBAH MAHASISWA
+# TAMBAH MAHASISWA (SESUAI MODELS)
 # =========================================================
 @login_required
 @transaction.atomic
@@ -381,38 +385,109 @@ def tambah_mahasiswa(request):
         return response
 
     if request.method == "POST":
-        form = Mahasiswa(request.POST)
-        if form.is_valid():
-            nim = form.cleaned_data["nim"]
-            if User.objects.filter(username=nim).exists():
-                messages.error(request, "NIM sudah terdaftar.")
-                return render(request, "kaprodi/tambah_mahasiswa.html", {"form": form})
+        # Ambil data dari form
+        nim = request.POST.get('nim', '').strip()
+        nama = request.POST.get('nama_lengkap', '').strip()
+        email = request.POST.get('email', '').strip()
+        kelas = request.POST.get('kelas', '').strip().upper()  # Format kelas (A, B, C, dll)
+        angkatan = request.POST.get('angkatan', '').strip()
+        tanggal_masuk = request.POST.get('tanggal_masuk', '').strip()
 
-            if User.objects.filter(email=form.cleaned_data["email"]).exists():
-                messages.error(request, "Email sudah digunakan.")
-                return render(request, "kaprodi/tambah_mahasiswa.html", {"form": form})
+        # 🔥 VALIDASI
+        if not nim:
+            messages.error(request, "NIM wajib diisi!")
+            return redirect('capstone_system:tambah_mahasiswa')
+        
+        if not nama:
+            messages.error(request, "Nama lengkap wajib diisi!")
+            return redirect('capstone_system:tambah_mahasiswa')
+        
+        if not email:
+            messages.error(request, "Email wajib diisi!")
+            return redirect('capstone_system:tambah_mahasiswa')
+        
+        if not kelas:
+            messages.error(request, "Kelas wajib diisi!")
+            return redirect('capstone_system:tambah_mahasiswa')
+        
+        if not angkatan:
+            messages.error(request, "Angkatan wajib diisi!")
+            return redirect('capstone_system:tambah_mahasiswa')
 
+        # 🔥 CEK DUPLIKAT
+        if User.objects.filter(username=nim).exists():
+            messages.error(request, f"NIM '{nim}' sudah terdaftar sebagai User!")
+            return redirect('capstone_system:tambah_mahasiswa')
+
+        if Mahasiswa.objects.filter(nim=nim).exists():
+            messages.error(request, f"NIM '{nim}' sudah terdaftar sebagai Mahasiswa!")
+            return redirect('capstone_system:tambah_mahasiswa')
+
+        if User.objects.filter(email=email).exists():
+            messages.error(request, f"Email '{email}' sudah digunakan!")
+            return redirect('capstone_system:tambah_mahasiswa')
+
+        try:
+            # 🔥 SPLIT NAMA (SESUAI FORMAT IMPORT)
+            def split_name(full_name):
+                if not full_name:
+                    return '', ''
+                full_name = full_name.strip()
+                parts = full_name.split()
+                if len(parts) > 1:
+                    return parts[0], ' '.join(parts[1:])
+                return full_name, ''
+
+            first_name, last_name = split_name(nama)
+
+            # 🔥 BUAT USER
             user = User.objects.create_user(
                 username=nim,
                 password=nim,
-                first_name=form.cleaned_data["nama_lengkap"],
-                email=form.cleaned_data["email"],
-                role="MAHASISWA",
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                role='MAHASISWA',  # Field role (backward compatibility)
                 is_password_changed=False,
+                is_active=True,
             )
 
-            mahasiswa = form.save(commit=False)
-            mahasiswa.user = user
-            mahasiswa.status = "AKTIF"
-            mahasiswa.save()
+            # 🔥 TAMBAHKAN ROLE MAHASISWA KE MULTI-ROLE (IMPORT Role DI ATAS)
+            from ..models import Role
+            role_mahasiswa, created = Role.objects.get_or_create(name='MAHASISWA')
+            user.roles.add(role_mahasiswa)
 
-            messages.success(request, "Mahasiswa berhasil ditambahkan.")
+            # 🔥 TANGANI TANGGAL MASUK
+            if tanggal_masuk:
+                try:
+                    from datetime import datetime
+                    tanggal_masuk_obj = datetime.strptime(tanggal_masuk, '%Y-%m-%d').date()
+                except ValueError:
+                    tanggal_masuk_obj = timezone.now().date()
+            else:
+                tanggal_masuk_obj = timezone.now().date()
+
+            # 🔥 BUAT MAHASISWA (SESUAI DENGAN FORMAT IMPORT)
+            mahasiswa = Mahasiswa.objects.create(
+                user=user,
+                nim=nim,
+                kelas=kelas,
+                angkatan=angkatan,
+                status='AKTIF',                    # Default AKTIF
+                tanggal_masuk=tanggal_masuk_obj,   # Tanggal masuk
+                kategori=None,                     # Default None (akan diisi nanti)
+                dosen_pembimbing=None,             # Default None (akan diisi nanti)
+                foto_profil=None,                  # Default None (akan diisi nanti)
+            )
+
+            messages.success(request, f"✅ Mahasiswa {nama} (NIM: {nim}) berhasil ditambahkan!")
             return redirect("capstone_system:kaprodi_mahasiswa")
-    else:
-        form = Mahasiswa()
 
-    return render(request, "kaprodi/tambah_mahasiswa.html", {"form": form})
+        except Exception as e:
+            messages.error(request, f"❌ Gagal menyimpan data: {str(e)}")
+            return redirect('capstone_system:tambah_mahasiswa')
 
+    return render(request, "kaprodi/tambah_mahasiswa.html")
 
 # =========================================================
 # EDIT MAHASISWA (KAPRODI)
