@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.contrib.auth import update_session_auth_hash
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import F, Q
 
 from ..models import ProposalCapstone, RiwayatFeedbackProposal
 from .base import check_role
