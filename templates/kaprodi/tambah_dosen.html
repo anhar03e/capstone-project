@@ -114,6 +114,12 @@ body{
     margin-left: auto;
 }
 
+/* 🔥 TAMBAHKAN CSS UNTUK BADGE ROLE */
+.badge-role.kaprodi {
+    background: #fef3c7;
+    color: #d97706;
+}
+
 .badge-role.dosencp {
     background: #dbeafe;
     color: #1d4ed8;
@@ -125,6 +131,7 @@ body{
 }
 
 </style>
+
 
 <!-- HEADER -->
 
@@ -208,31 +215,34 @@ body{
                         {% for value, label in form.roles.field.choices %}
                         <div class="form-check">
                             <input type="checkbox" 
-                                   name="{{ form.roles.name }}" 
-                                   value="{{ value }}"
-                                   id="role_{{ value }}"
-                                   class="form-check-input"
-                                   onchange="this.parentElement.classList.toggle('checked', this.checked)">
+                                name="{{ form.roles.name }}" 
+                                value="{{ value }}"
+                                id="role_{{ value }}"
+                                class="form-check-input"
+                                onchange="this.parentElement.classList.toggle('checked', this.checked)">
                             <div>
                                 <div class="role-label">
-                                    {% if value == 'DOSENCP' %}
-                                        📋 Dosen Capstone Project
+                                    {% if value == 'KAPRODI' %}
+                                        Kaprodi
+                                    {% elif value == 'DOSENCP' %}
+                                        Dosen Capstone Project
                                     {% elif value == 'DOSENPB' %}
-                                        📚 Dosen Pembimbing
+                                        Dosen Pembimbing
                                     {% else %}
                                         {{ label }}
                                     {% endif %}
                                 </div>
                                 <div class="role-desc">
-                                    {% if value == 'DOSENCP' %}
+                                    {% if value == 'KAPRODI' %}
+                                        Mengelola seluruh data akademik
+                                    {% elif value == 'DOSENCP' %}
                                         Mereview proposal capstone
                                     {% elif value == 'DOSENPB' %}
                                         Membimbing mahasiswa capstone
                                     {% endif %}
                                 </div>
                             </div>
-                            <span class="badge-role {% if value == 'DOSENCP' %}dosencp{% elif value == 'DOSENPB' %}dosenpb{% endif %}">
-                                {{ value }}
+                            <span class="badge-role {% if value == 'KAPRODI' %}kaprodi{% elif value == 'DOSENCP' %}dosencp{% elif value == 'DOSENPB' %}dosenpb{% endif %}">
                             </span>
                         </div>
                         {% endfor %}

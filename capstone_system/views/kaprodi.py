@@ -28,6 +28,17 @@ from ..models import (
 from ..forms import DosenForm, ProposalForm, UploadMahasiswaForm
 from .base import check_role
 
+
+# =========================================================
+# FUNGSI BANTU: PASTIKAN ROLE ADA DI DATABASE
+# =========================================================
+def ensure_roles_exist():
+    """Pastikan data role selalu ada di database"""
+    roles = ['MAHASISWA', 'DOSENCP', 'DOSENPB', 'KAPRODI']
+    for role_name in roles:
+        Role.objects.get_or_create(name=role_name)
+
+
 # =========================================================
 # DASHBOARD KAPRODI
 # =========================================================
@@ -56,10 +67,6 @@ def kaprodi_home(request):
 # =========================================================
 # MAHASISWA (MASTER DATA) - DENGAN KATEGORI
 # =========================================================
-# kaprodi_views.py - Tambahkan entries parameter
-
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-
 @login_required
 def kaprodi_list_mahasiswa(request):
     has_access, response = check_role(request, ['KAPRODI'])
@@ -170,7 +177,7 @@ def kaprodi_list_mahasiswa(request):
         'status_filter': status,
         'angkatan_filter': angkatan,
         'keyword': keyword,
-        'entries': entries,  # 🔥 Kirim entries ke template
+        'entries': entries,
         'total_mahasiswa': total_mahasiswa_aktif + total_mahasiswa_nonaktif + total_mahasiswa_arsip,
         'total_mahasiswa_aktif': total_mahasiswa_aktif,
         'total_mahasiswa_nonaktif': total_mahasiswa_nonaktif,
@@ -181,7 +188,7 @@ def kaprodi_list_mahasiswa(request):
 
 
 # =========================================================
-# NONAKTIFKAN MAHASISWA (DIPERBAIKI)
+# NONAKTIFKAN MAHASISWA
 # =========================================================
 @login_required
 @transaction.atomic
@@ -192,12 +199,10 @@ def nonaktifkan_mahasiswa(request, id):
 
     mahasiswa = get_object_or_404(Mahasiswa, id=id)
     
-    # CEK: Jika sudah nonaktif
     if mahasiswa.status == "NONAKTIF":
         messages.warning(request, f"{mahasiswa.user.get_full_name()} sudah nonaktif.")
         return redirect("capstone_system:kaprodi_mahasiswa")
     
-    # CEK: Jika sedang arsip
     if mahasiswa.status == "ARSIP":
         messages.warning(request, f"{mahasiswa.user.get_full_name()} sedang dalam arsip. Kembalikan dulu dari arsip.")
         return redirect("capstone_system:kaprodi_mahasiswa")
@@ -217,7 +222,7 @@ def nonaktifkan_mahasiswa(request, id):
 
 
 # =========================================================
-# AKTIFKAN MAHASISWA (DIPERBAIKI - TAMBAH HANDLE ARSIP)
+# AKTIFKAN MAHASISWA
 # =========================================================
 @login_required
 @transaction.atomic
@@ -228,16 +233,11 @@ def aktifkan_mahasiswa(request, id):
 
     mahasiswa = get_object_or_404(Mahasiswa, id=id)
     
-    # CEK: Jika sudah aktif
     if mahasiswa.status == "AKTIF":
         messages.info(request, f"{mahasiswa.user.get_full_name()} sudah aktif.")
         return redirect("capstone_system:kaprodi_mahasiswa")
     
-    # =========================================================
-    # HANDLE KHUSUS UNTUK STATUS ARSIP
-    # =========================================================
     if mahasiswa.status == "ARSIP":
-        # Cek kuota dosen pembimbing
         if mahasiswa.dosen_pembimbing:
             dospem = mahasiswa.dosen_pembimbing
             if dospem.penuh:
@@ -256,9 +256,6 @@ def aktifkan_mahasiswa(request, id):
         messages.success(request, f"{mahasiswa.user.get_full_name()} berhasil dikembalikan dari arsip.")
         return redirect("capstone_system:kaprodi_mahasiswa")
     
-    # =========================================================
-    # HANDLE UNTUK STATUS NONAKTIF
-    # =========================================================
     dospem = mahasiswa.dosen_pembimbing
     if mahasiswa.status == "NONAKTIF" and dospem:
         if dospem.penuh:
@@ -279,14 +276,11 @@ def aktifkan_mahasiswa(request, id):
 
 
 # =========================================================
-# KEMBALIKAN MAHASISWA DARI ARSIP (FUNGSI BARU)
+# KEMBALIKAN MAHASISWA DARI ARSIP
 # =========================================================
 @login_required
 @transaction.atomic
 def kembalikan_dari_arsip(request, id):
-    """
-    Mengembalikan mahasiswa dari status ARSIP ke AKTIF
-    """
     has_access, response = check_role(request, ['KAPRODI'])
     if not has_access:
         return response
@@ -297,7 +291,6 @@ def kembalikan_dari_arsip(request, id):
         messages.warning(request, f"Mahasiswa {mahasiswa.user.get_full_name()} tidak dalam status arsip.")
         return redirect("capstone_system:kaprodi_mahasiswa")
 
-    # Cek kuota dosen pembimbing
     if mahasiswa.dosen_pembimbing:
         dospem = mahasiswa.dosen_pembimbing
         if dospem.penuh:
@@ -308,11 +301,8 @@ def kembalikan_dari_arsip(request, id):
             return redirect("capstone_system:arsip_mahasiswa")
         dospem.update_status()
 
-    # Kembalikan ke status AKTIF
     mahasiswa.status = "AKTIF"
     mahasiswa.save()
-    
-    # Aktifkan user
     mahasiswa.user.is_active = True
     mahasiswa.user.save()
 
@@ -324,7 +314,7 @@ def kembalikan_dari_arsip(request, id):
 
 
 # =========================================================
-# Detail Mahasiswa (KAPRODI) - DENGAN RIWAYAT & KATEGORI
+# DETAIL MAHASISWA
 # =========================================================
 @login_required
 def detail_mahasiswa(request, id):
@@ -334,7 +324,6 @@ def detail_mahasiswa(request, id):
 
     mahasiswa = get_object_or_404(Mahasiswa, id=id)
     
-    # 🔥 PRIORITAS: Jika mahasiswa.kategori ada, pakai itu
     if mahasiswa.kategori:
         mahasiswa.kategori_tim = mahasiswa.kategori
     else:
@@ -344,7 +333,6 @@ def detail_mahasiswa(request, id):
         ).first()
         mahasiswa.kategori_tim = anggota.kategori if anggota else None
     
-    # Ambil tim yang diikuti mahasiswa
     tim_ids = AnggotaTim.objects.filter(
         mahasiswa=mahasiswa,
         status_persetujuan='APPROVED'
@@ -372,10 +360,8 @@ def detail_mahasiswa(request, id):
     })
 
 
-# kaprodi_views.py - Perbaiki fungsi tambah_mahasiswa
-
 # =========================================================
-# TAMBAH MAHASISWA (SESUAI MODELS)
+# TAMBAH MAHASISWA
 # =========================================================
 @login_required
 @transaction.atomic
@@ -384,16 +370,17 @@ def tambah_mahasiswa(request):
     if not has_access:
         return response
 
+    # Pastikan role MAHASISWA ada
+    ensure_roles_exist()
+
     if request.method == "POST":
-        # Ambil data dari form
         nim = request.POST.get('nim', '').strip()
         nama = request.POST.get('nama_lengkap', '').strip()
         email = request.POST.get('email', '').strip()
-        kelas = request.POST.get('kelas', '').strip().upper()  # Format kelas (A, B, C, dll)
+        kelas = request.POST.get('kelas', '').strip().upper()
         angkatan = request.POST.get('angkatan', '').strip()
         tanggal_masuk = request.POST.get('tanggal_masuk', '').strip()
 
-        # 🔥 VALIDASI
         if not nim:
             messages.error(request, "NIM wajib diisi!")
             return redirect('capstone_system:tambah_mahasiswa')
@@ -414,7 +401,6 @@ def tambah_mahasiswa(request):
             messages.error(request, "Angkatan wajib diisi!")
             return redirect('capstone_system:tambah_mahasiswa')
 
-        # 🔥 CEK DUPLIKAT
         if User.objects.filter(username=nim).exists():
             messages.error(request, f"NIM '{nim}' sudah terdaftar sebagai User!")
             return redirect('capstone_system:tambah_mahasiswa')
@@ -428,7 +414,6 @@ def tambah_mahasiswa(request):
             return redirect('capstone_system:tambah_mahasiswa')
 
         try:
-            # 🔥 SPLIT NAMA (SESUAI FORMAT IMPORT)
             def split_name(full_name):
                 if not full_name:
                     return '', ''
@@ -440,24 +425,20 @@ def tambah_mahasiswa(request):
 
             first_name, last_name = split_name(nama)
 
-            # 🔥 BUAT USER
             user = User.objects.create_user(
                 username=nim,
                 password=nim,
                 first_name=first_name,
                 last_name=last_name,
                 email=email,
-                role='MAHASISWA',  # Field role (backward compatibility)
+                role='MAHASISWA',
                 is_password_changed=False,
                 is_active=True,
             )
 
-            # 🔥 TAMBAHKAN ROLE MAHASISWA KE MULTI-ROLE (IMPORT Role DI ATAS)
-            from ..models import Role
             role_mahasiswa, created = Role.objects.get_or_create(name='MAHASISWA')
             user.roles.add(role_mahasiswa)
 
-            # 🔥 TANGANI TANGGAL MASUK
             if tanggal_masuk:
                 try:
                     from datetime import datetime
@@ -467,17 +448,16 @@ def tambah_mahasiswa(request):
             else:
                 tanggal_masuk_obj = timezone.now().date()
 
-            # 🔥 BUAT MAHASISWA (SESUAI DENGAN FORMAT IMPORT)
             mahasiswa = Mahasiswa.objects.create(
                 user=user,
                 nim=nim,
                 kelas=kelas,
                 angkatan=angkatan,
-                status='AKTIF',                    # Default AKTIF
-                tanggal_masuk=tanggal_masuk_obj,   # Tanggal masuk
-                kategori=None,                     # Default None (akan diisi nanti)
-                dosen_pembimbing=None,             # Default None (akan diisi nanti)
-                foto_profil=None,                  # Default None (akan diisi nanti)
+                status='AKTIF',
+                tanggal_masuk=tanggal_masuk_obj,
+                kategori=None,
+                dosen_pembimbing=None,
+                foto_profil=None,
             )
 
             messages.success(request, f"✅ Mahasiswa {nama} (NIM: {nim}) berhasil ditambahkan!")
@@ -489,8 +469,9 @@ def tambah_mahasiswa(request):
 
     return render(request, "kaprodi/tambah_mahasiswa.html")
 
+
 # =========================================================
-# EDIT MAHASISWA (KAPRODI)
+# EDIT MAHASISWA
 # =========================================================
 @login_required
 def edit_mahasiswa(request, id):
@@ -505,10 +486,8 @@ def edit_mahasiswa(request, id):
         Q(status="OPEN") | Q(id=mahasiswa.dosen_pembimbing_id)
     ).select_related("dosen__user")
 
-    # 🔥 AMBIL NEXT URL
     next_url = request.GET.get('next') or request.POST.get('next')
     
-    # 🔥 Ambil kategori dari tim
     anggota = AnggotaTim.objects.filter(
         mahasiswa=mahasiswa,
         status_persetujuan='APPROVED'
@@ -530,10 +509,7 @@ def edit_mahasiswa(request, id):
         mahasiswa.nim = nim
         mahasiswa.kelas = request.POST.get("kelas")
         mahasiswa.angkatan = request.POST.get("angkatan")
-        
-        # 🔥 SIMPAN KATEGORI DARI FORM
         mahasiswa.kategori = request.POST.get("kategori")
-        
         mahasiswa.status = request.POST.get("status")
         mahasiswa.tanggal_masuk = request.POST.get("tanggal_masuk") or None
 
@@ -563,7 +539,6 @@ def edit_mahasiswa(request, id):
 
         messages.success(request, "Data mahasiswa berhasil diperbarui.")
 
-        # 🔥 Redirect ke next URL jika ada
         if next_url:
             return redirect(next_url)
         return redirect("capstone_system:kaprodi_mahasiswa")
@@ -584,6 +559,9 @@ def kaprodi_manage_dospem(request):
     if not has_access:
         return response
 
+    # Pastikan role ada
+    ensure_roles_exist()
+
     keyword = request.GET.get('q', '')
     status_filter = request.GET.get('status', '')
     entries = request.GET.get('entries', '10')
@@ -592,22 +570,18 @@ def kaprodi_manage_dospem(request):
         "dosen", "dosen__user"
     ).filter(dosen__status_aktif="AKTIF").order_by("dosen__user__first_name")
 
-    # Filter keyword
     if keyword:
         dospem_list = dospem_list.filter(
             Q(dosen__user__first_name__icontains=keyword) |
             Q(dosen__user__last_name__icontains=keyword)
         )
 
-    # Filter status
     if status_filter:
         dospem_list = dospem_list.filter(status=status_filter)
 
-    # Update status setiap dospem
     for dospem in dospem_list:
         dospem.update_status()
 
-    # 🔥 PAGINATION
     if entries == 'all':
         per_page = None
     else:
@@ -661,7 +635,66 @@ def kaprodi_manage_dospem(request):
 
 
 # =========================================================
-# DOSEN CP (OPSIONAL JIKA KAMU TAMBAH DI URLS)
+# TAMBAH DOSEN (DENGAN MULTI-ROLE)
+# =========================================================
+@login_required
+@transaction.atomic
+def tambah_dosen(request):
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    # 🔥 PASTIKAN ROLE ADA DI DATABASE
+    ensure_roles_exist()
+
+    if request.method == "POST":
+        form = DosenForm(request.POST)
+        if form.is_valid():
+            dosen = form.save()
+            messages.success(request, f"Dosen {dosen.user.get_full_name()} berhasil ditambahkan.")
+            return redirect("capstone_system:kaprodi_dosen")
+        else:
+            messages.error(request, "Terjadi kesalahan. Silakan periksa kembali form.")
+    else:
+        form = DosenForm()
+
+    return render(request, "kaprodi/tambah_dosen.html", {"form": form})
+
+
+# =========================================================
+# EDIT DOSEN (DENGAN MULTI-ROLE)
+# =========================================================
+@login_required
+@transaction.atomic
+def edit_dosen(request, id):
+    has_access, response = check_role(request, ['KAPRODI'])
+    if not has_access:
+        return response
+
+    # 🔥 PASTIKAN ROLE ADA DI DATABASE
+    ensure_roles_exist()
+
+    dosen = get_object_or_404(Dosen, id=id)
+
+    if request.method == "POST":
+        form = DosenForm(request.POST, instance=dosen)
+        if form.is_valid():
+            dosen = form.save()
+            messages.success(request, "Data dosen berhasil diperbarui.")
+            return redirect("capstone_system:kaprodi_dosen")
+        else:
+            messages.error(request, "Terjadi kesalahan. Silakan periksa kembali form.")
+    else:
+        form = DosenForm(instance=dosen)
+
+    return render(request, "kaprodi/edit_dosen.html", {
+        "form": form,
+        "dosen": dosen
+    })
+
+
+# =========================================================
+# LIST DOSEN
 # =========================================================
 @login_required
 def kaprodi_list_dosen(request):
@@ -687,7 +720,6 @@ def kaprodi_list_dosen(request):
 
     dosen_list = dosen_list.order_by('user__first_name')
 
-    # 🔥 PAGINATION
     if entries == 'all':
         per_page = None
     else:
@@ -781,61 +813,27 @@ def aktifkan_dosen(request, id):
 
 
 # =========================================================
-# TAMBAH DOSEN (DENGAN MULTI-ROLE)
+# HAPUS DOSEN
 # =========================================================
 @login_required
 @transaction.atomic
-def tambah_dosen(request):
-    has_access, response = check_role(request, ['KAPRODI'])
-    if not has_access:
-        return response
-
-    if request.method == "POST":
-        form = DosenForm(request.POST)
-        if form.is_valid():
-            # 🔥 PERBAIKI: Gunakan form.save() langsung
-            # Form.save() sudah handle semua termasuk roles
-            dosen = form.save()
-            
-            messages.success(request, f"Dosen {dosen.user.get_full_name()} berhasil ditambahkan.")
-            return redirect("capstone_system:kaprodi_dosen")
-        else:
-            messages.error(request, "Terjadi kesalahan. Silakan periksa kembali form.")
-    else:
-        form = DosenForm()
-
-    return render(request, "kaprodi/tambah_dosen.html", {"form": form})
-
-
-# =========================================================
-# EDIT DOSEN (DENGAN MULTI-ROLE)
-# =========================================================
-@login_required
-@transaction.atomic
-def edit_dosen(request, id):
+def hapus_dosen(request, id):
     has_access, response = check_role(request, ['KAPRODI'])
     if not has_access:
         return response
 
     dosen = get_object_or_404(Dosen, id=id)
 
-    if request.method == "POST":
-        form = DosenForm(request.POST, instance=dosen)
-        if form.is_valid():
-            # 🔥 PERBAIKI: Gunakan form.save() yang sudah handle multi-role
-            dosen = form.save()
-            
-            messages.success(request, "Data dosen berhasil diperbarui.")
-            return redirect("capstone_system:kaprodi_dosen")
-        else:
-            messages.error(request, "Terjadi kesalahan. Silakan periksa kembali form.")
-    else:
-        form = DosenForm(instance=dosen)
+    if Mahasiswa.objects.filter(dosen_pembimbing__dosen=dosen).exists():
+        messages.error(request, "Dosen tidak dapat dihapus karena masih menjadi pembimbing mahasiswa.")
+        return redirect("capstone_system:kaprodi_dosen")
 
-    return render(request, "kaprodi/edit_dosen.html", {
-        "form": form,
-        "dosen": dosen
-    })
+    DosenPembimbing.objects.filter(dosen=dosen).delete()
+    DosenCP.objects.filter(dosen=dosen).delete()
+    dosen.user.delete()
+
+    messages.success(request, "Data dosen berhasil dihapus.")
+    return redirect("capstone_system:kaprodi_dosen")
 
 
 # =========================================================
@@ -854,19 +852,15 @@ def kaprodi_list_tim(request):
 
     tim_list = Tim.objects.all().order_by('-dibuat_pada')
 
-    # Filter keyword
     if keyword:
         tim_list = tim_list.filter(nama_tim__icontains=keyword)
 
-    # Filter kategori
     if kategori_filter:
         tim_list = tim_list.filter(kategori=kategori_filter)
 
-    # Filter status
     if status_filter:
         tim_list = tim_list.filter(status=status_filter)
 
-    # 🔥 PAGINATION
     if entries == 'all':
         per_page = None
     else:
@@ -1034,7 +1028,6 @@ def kaprodi_pengajuan(request):
         'mahasiswa__user', 'dosen_pembimbing__dosen__user'
     )
 
-    # Filter keyword
     if keyword:
         pengajuan_list = pengajuan_list.filter(
             Q(mahasiswa__user__first_name__icontains=keyword) |
@@ -1042,18 +1035,14 @@ def kaprodi_pengajuan(request):
             Q(mahasiswa__nim__icontains=keyword)
         )
 
-    # Filter status
     if status_filter:
         pengajuan_list = pengajuan_list.filter(status=status_filter)
 
-    # Filter dosen
     if dosen_filter:
         pengajuan_list = pengajuan_list.filter(dosen_pembimbing_id=dosen_filter)
 
-    # Dosen list untuk filter dropdown
     dosen_list = DosenPembimbing.objects.select_related('dosen__user').all().order_by('dosen__user__first_name')
 
-    # 🔥 PAGINATION
     if entries == 'all':
         per_page = None
     else:
@@ -1106,19 +1095,14 @@ def kaprodi_pengajuan(request):
 
 
 # =========================================================
-# MONITORING CAPSTONE (GABUNGAN PROPOSAL & RESUME)
+# MONITORING CAPSTONE
 # =========================================================
-# kaprodi_views.py - Update fungsi kaprodi_monitoring
-
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-
 @login_required
 def kaprodi_monitoring(request):
     has_access, response = check_role(request, ['KAPRODI'])
     if not has_access:
         return response
 
-    # Ambil parameter filter
     keyword = request.GET.get('q', '').strip()
     status_proposal = request.GET.get('status_proposal', '')
     status_resume = request.GET.get('status_resume', '')
@@ -1126,12 +1110,10 @@ def kaprodi_monitoring(request):
     sort_order = request.GET.get('order', 'asc')
     entries = request.GET.get('entries', '10')
 
-    # Ambil semua mahasiswa aktif
     mahasiswa_list = Mahasiswa.objects.filter(status='AKTIF').select_related(
         'user', 'dosen_pembimbing', 'dosen_pembimbing__dosen', 'dosen_pembimbing__dosen__user'
     )
 
-    # Filter pencarian
     if keyword:
         mahasiswa_list = mahasiswa_list.filter(
             Q(user__first_name__icontains=keyword) |
@@ -1139,13 +1121,11 @@ def kaprodi_monitoring(request):
             Q(nim__icontains=keyword)
         )
 
-    # Build monitoring data
     monitoring_data = []
     total_proposal = 0
     total_resume = 0
     total_belum_upload = 0
 
-    # Statistik
     stats_proposal = {
         'diterima': 0,
         'ditolak': 0,
@@ -1161,7 +1141,6 @@ def kaprodi_monitoring(request):
         'belum_review': 0,
     }
 
-    # DATA DOSEN PEMBIMBING
     semua_dospem = DosenPembimbing.objects.filter(
         dosen__status_aktif='AKTIF'
     ).select_related('dosen', 'dosen__user')
@@ -1179,18 +1158,15 @@ def kaprodi_monitoring(request):
     total_tanpa_dosen = 0
 
     for mhs in mahasiswa_list:
-        # Cari proposal terbaru
         proposal = ProposalCapstone.objects.filter(
             tim__anggota__mahasiswa=mhs,
             tim__anggota__status_persetujuan='APPROVED'
         ).order_by('-waktu_pengajuan').first()
 
-        # Cari resume terbaru
         resume = Resume.objects.filter(
             mahasiswa=mhs
         ).order_by('-waktu_pengajuan').first()
 
-        # Status proposal
         status_proposal_text = None
         if proposal:
             status_proposal_text = proposal.status_final
@@ -1209,7 +1185,6 @@ def kaprodi_monitoring(request):
         else:
             status_proposal_text = 'BELUM_UPLOAD'
 
-        # Status resume
         status_resume_text = None
         if resume:
             status_resume_text = resume.status
@@ -1227,17 +1202,14 @@ def kaprodi_monitoring(request):
         else:
             status_resume_text = 'BELUM_UPLOAD'
 
-        # Filter berdasarkan status
         if status_proposal and status_proposal_text != status_proposal:
             continue
         if status_resume and status_resume_text != status_resume:
             continue
 
-        # Cek belum upload
         if not proposal and not resume:
             total_belum_upload += 1
 
-        # Dosen pembimbing
         dosen_nama = None
         if mhs.dosen_pembimbing:
             dosen_nama = mhs.dosen_pembimbing.dosen.user.get_full_name()
@@ -1266,7 +1238,6 @@ def kaprodi_monitoring(request):
             'dosen_pembimbing': dosen_nama,
         })
 
-    # SORTING
     sort_mapping = {
         'nama': 'nama',
         'nim': 'nim',
@@ -1280,7 +1251,6 @@ def kaprodi_monitoring(request):
     reverse = sort_order == 'desc'
     monitoring_data.sort(key=lambda x: x.get(sort_field, '').lower() if x.get(sort_field) else '', reverse=reverse)
 
-    # DOSEN LIST
     dosen_list = []
     for nama, data in dosen_dict.items():
         dosen_list.append({
@@ -1295,9 +1265,6 @@ def kaprodi_monitoring(request):
     
     dosen_list.sort(key=lambda x: x['jumlah_mahasiswa'], reverse=True)
 
-    # =========================================================
-    # 🔥 PAGINATION
-    # =========================================================
     if entries == 'all':
         per_page = None
     else:
@@ -1338,7 +1305,7 @@ def kaprodi_monitoring(request):
             page_obj = paginator.page(paginator.num_pages)
 
     context = {
-        'page_obj': page_obj,  # <-- GANTI monitoring_list dengan page_obj
+        'page_obj': page_obj,
         'total_mahasiswa': mahasiswa_list.count(),
         'total_proposal': total_proposal,
         'total_resume': total_resume,
@@ -1350,7 +1317,7 @@ def kaprodi_monitoring(request):
         'status_resume': status_resume,
         'sort_by': sort_by,
         'sort_order': sort_order,
-        'entries': entries,  # <-- TAMBAHKAN entries
+        'entries': entries,
         'dosen_list': dosen_list,
         'total_tanpa_dosen': total_tanpa_dosen,
     }
@@ -1368,18 +1335,18 @@ def kaprodi_laporan(request):
         return response
 
     total_mahasiswa = Mahasiswa.objects.count()
-    total_dosen = Dosen.objects.count()  # TAMBAHKAN
+    total_dosen = Dosen.objects.count()
     total_dospem = DosenPembimbing.objects.count()
-    total_dosen_cp = DosenCP.objects.count()  # TAMBAHKAN
+    total_dosen_cp = DosenCP.objects.count()
     total_tim = Tim.objects.count()
     total_proposal = ProposalCapstone.objects.count()
     total_resume = Resume.objects.count()
 
     return render(request, 'kaprodi/laporan.html', {
         'total_mahasiswa': total_mahasiswa,
-        'total_dosen': total_dosen,  # TAMBAHKAN
+        'total_dosen': total_dosen,
         'total_dospem': total_dospem,
-        'total_dosen_cp': total_dosen_cp,  # TAMBAHKAN
+        'total_dosen_cp': total_dosen_cp,
         'total_tim': total_tim,
         'total_proposal': total_proposal,
         'total_resume': total_resume,
@@ -1429,9 +1396,8 @@ def arsip_mahasiswa(request):
         return response
 
     keyword = request.GET.get("q", "")
-    entries = request.GET.get('entries', '10')  # default 10
-    
-    # 🔥 Tentukan jumlah per halaman
+    entries = request.GET.get('entries', '10')
+
     if entries == 'all':
         per_page = None
     else:
@@ -1453,9 +1419,7 @@ def arsip_mahasiswa(request):
 
     mahasiswa_list = mahasiswa_list.order_by('-angkatan', 'nim')
 
-    # 🔥 PAGINATION
     if per_page is None:
-        # Jika "Semua", tampilkan semua data
         class FakePaginator:
             count = mahasiswa_list.count()
             num_pages = 1
@@ -1495,7 +1459,7 @@ def arsip_mahasiswa(request):
 
 
 # =========================================================
-# LIST DOSEN CAPSTONE (KAPRODI)
+# LIST DOSEN CAPSTONE
 # =========================================================
 @login_required
 def kaprodi_dosen_cp(request):
@@ -1511,7 +1475,6 @@ def kaprodi_dosen_cp(request):
         "dosen", "dosen__user"
     ).all().order_by("dosen__user__first_name")
 
-    # Filter keyword
     if keyword:
         dosen_capstone = dosen_capstone.filter(
             Q(dosen__user__first_name__icontains=keyword) |
@@ -1519,11 +1482,9 @@ def kaprodi_dosen_cp(request):
             Q(dosen__nip__icontains=keyword)
         )
 
-    # Filter status
     if status_filter:
         dosen_capstone = dosen_capstone.filter(dosen__status_aktif=status_filter)
 
-    # 🔥 PAGINATION
     if entries == 'all':
         per_page = None
     else:
@@ -1575,7 +1536,7 @@ def kaprodi_dosen_cp(request):
 
 
 # =========================================================
-# ARSIP TAHUNAN MAHASISWA (DIPERBAIKI)
+# ARSIP TAHUNAN MAHASISWA
 # =========================================================
 @login_required
 @transaction.atomic
@@ -1592,11 +1553,9 @@ def arsip_tahunan(request):
 
         mahasiswa_list = Mahasiswa.objects.filter(id__in=ids).select_related('user', 'dosen_pembimbing')
         
-        # Kumpulkan dosen pembimbing yang perlu diupdate
         dospem_to_update = set()
 
         for mahasiswa in mahasiswa_list:
-            # Hanya arsipkan yang statusnya AKTIF atau NONAKTIF
             if mahasiswa.status in ["AKTIF", "NONAKTIF"]:
                 if mahasiswa.status == "AKTIF" and mahasiswa.dosen_pembimbing:
                     dospem_to_update.add(mahasiswa.dosen_pembimbing)
@@ -1606,7 +1565,6 @@ def arsip_tahunan(request):
                 mahasiswa.user.is_active = False
                 mahasiswa.user.save()
 
-        # Update status dosen pembimbing setelah semua perubahan
         for dospem in dospem_to_update:
             dospem.update_status()
 
@@ -1616,7 +1574,7 @@ def arsip_tahunan(request):
 
 
 # =========================================================
-# EDIT BATAS BIMBINGAN DOSEN PEMBIMBING (KAPRODI)
+# EDIT BATAS BIMBINGAN DOSEN PEMBIMBING
 # =========================================================
 @login_required
 def edit_batas_dospem(request, id):
@@ -1643,35 +1601,10 @@ def edit_batas_dospem(request, id):
 
 
 # =========================================================
-# HAPUS DOSEN (KAPRODI)
-# =========================================================
-@login_required
-@transaction.atomic
-def hapus_dosen(request, id):
-    has_access, response = check_role(request, ['KAPRODI'])
-    if not has_access:
-        return response
-
-    dosen = get_object_or_404(Dosen, id=id)
-
-    if Mahasiswa.objects.filter(dosen_pembimbing__dosen=dosen).exists():
-        messages.error(request, "Dosen tidak dapat dihapus karena masih menjadi pembimbing mahasiswa.")
-        return redirect("capstone_system:kaprodi_dosen")
-
-    DosenPembimbing.objects.filter(dosen=dosen).delete()
-    DosenCP.objects.filter(dosen=dosen).delete()
-    dosen.user.delete()
-
-    messages.success(request, "Data dosen berhasil dihapus.")
-    return redirect("capstone_system:kaprodi_dosen")
-
-
-# =========================================================
 # UPLOAD MAHASISWA VIA EXCEL
 # =========================================================
 @login_required
 def upload_mahasiswa_view(request):
-    """Menampilkan form upload mahasiswa"""
     has_access, response = check_role(request, ['KAPRODI'])
     if not has_access:
         return response
@@ -1691,7 +1624,6 @@ def upload_mahasiswa_view(request):
 @login_required
 @csrf_exempt
 def upload_mahasiswa_process(request):
-    """Proses upload file Excel"""
     has_access, response = check_role(request, ['KAPRODI'])
     if not has_access:
         return JsonResponse({'success': False, 'message': 'Unauthorized'}, status=403)
@@ -1823,7 +1755,6 @@ def upload_mahasiswa_process(request):
 
 @login_required
 def download_template_mahasiswa(request):
-    """Download template Excel untuk upload mahasiswa"""
     has_access, response = check_role(request, ['KAPRODI'])
     if not has_access:
         return response
@@ -1892,14 +1823,11 @@ def download_template_mahasiswa(request):
 
 
 # =========================================================
-# KEMBALIKAN SEMUA MAHASISWA DARI ARSIP (FUNGSI BARU)
+# KEMBALIKAN SEMUA MAHASISWA DARI ARSIP
 # =========================================================
 @login_required
 @transaction.atomic
 def kembalikan_semua_arsip(request):
-    """
-    Mengembalikan banyak mahasiswa dari status ARSIP ke AKTIF sekaligus
-    """
     has_access, response = check_role(request, ['KAPRODI'])
     if not has_access:
         return response
@@ -1920,11 +1848,9 @@ def kembalikan_semua_arsip(request):
         failed_count = 0
         failed_names = []
 
-        # Kumpulkan dosen pembimbing yang perlu diupdate
         dospem_to_update = set()
 
         for mahasiswa in mahasiswa_list:
-            # Cek kuota dosen pembimbing
             if mahasiswa.dosen_pembimbing:
                 dospem = mahasiswa.dosen_pembimbing
                 if dospem.penuh:
@@ -1933,28 +1859,21 @@ def kembalikan_semua_arsip(request):
                     continue
                 dospem_to_update.add(dospem)
 
-            # Kembalikan ke status AKTIF
             mahasiswa.status = "AKTIF"
             mahasiswa.save()
-            
-            # Aktifkan user
             mahasiswa.user.is_active = True
             mahasiswa.user.save()
-            
             success_count += 1
 
-        # Update status dosen pembimbing setelah semua perubahan
         for dospem in dospem_to_update:
             dospem.update_status()
 
-        # Pesan sukses
         if success_count > 0:
             messages.success(
                 request, 
                 f'{success_count} mahasiswa berhasil dikembalikan dari arsip.'
             )
         
-        # Pesan gagal (jika ada)
         if failed_count > 0:
             messages.error(
                 request, 
@@ -1962,85 +1881,3 @@ def kembalikan_semua_arsip(request):
             )
 
     return redirect('capstone_system:arsip_mahasiswa')
-
-# =========================================================
-# pagination untuk list mahasiswa (KAPRODI)
-# =========================================================
-
-# @login_required
-# def kaprodi_list_mahasiswa(request):
-#     has_access, response = check_role(request, ['KAPRODI'])
-#     if not has_access:
-#         return response
-
-#     # 🔥 Jika tidak ada parameter status, redirect ke ?status=AKTIF
-#     if not request.GET.get('status') and not request.GET.get('angkatan') and not request.GET.get('q'):
-#         return redirect(f"{request.path}?status=AKTIF")
-
-#     # Ambil parameter filter
-#     status = request.GET.get('status')
-#     angkatan = request.GET.get('angkatan')
-#     keyword = request.GET.get('q', '').strip()
-
-#     # Query dasar
-#     mahasiswa_list = Mahasiswa.objects.select_related('user', 'dosen_pembimbing')
-
-#     # Filter status
-#     if status:
-#         mahasiswa_list = mahasiswa_list.filter(status=status)
-#     else:
-#         mahasiswa_list = mahasiswa_list.filter(status="AKTIF")
-
-#     # Filter angkatan
-#     if angkatan:
-#         mahasiswa_list = mahasiswa_list.filter(angkatan=angkatan)
-
-#     # Filter keyword
-#     if keyword:
-#         mahasiswa_list = mahasiswa_list.filter(
-#             Q(user__first_name__icontains=keyword) |
-#             Q(user__last_name__icontains=keyword) |
-#             Q(nim__icontains=keyword)
-#         )
-
-#     mahasiswa_list = mahasiswa_list.order_by('-angkatan', 'nim')
-
-#     # Ambil kategori
-#     for mhs in mahasiswa_list:
-#         if mhs.kategori:
-#             mhs.kategori_tim = mhs.kategori
-#         else:
-#             anggota = AnggotaTim.objects.filter(
-#                 mahasiswa=mhs,
-#                 status_persetujuan='APPROVED'
-#             ).first()
-#             mhs.kategori_tim = anggota.kategori if anggota else None
-
-#     daftar_angkatan = Mahasiswa.objects.values_list('angkatan', flat=True).distinct().order_by('-angkatan')
-
-#     total_mahasiswa_aktif = Mahasiswa.objects.filter(status="AKTIF").count()
-#     total_mahasiswa_nonaktif = Mahasiswa.objects.filter(status="NONAKTIF").count()
-#     total_mahasiswa_arsip = Mahasiswa.objects.filter(status="ARSIP").count()
-
-#     # =========================================================
-#     # 🔥 PAGINATION
-#     # =========================================================
-#     paginator = Paginator(mahasiswa_list, 15)  # 15 data per halaman
-#     page_number = request.GET.get('page')
-#     page_obj = paginator.get_page(page_number)
-
-#     context = {
-#         'page_obj': page_obj,  # <-- GANTI mahasiswa_list dengan page_obj
-#         'daftar_angkatan': daftar_angkatan,
-#         'status_filter': status,
-#         'angkatan_filter': angkatan,
-#         'keyword': keyword,
-#         'total_mahasiswa': total_mahasiswa_aktif + total_mahasiswa_nonaktif + total_mahasiswa_arsip,
-#         'total_mahasiswa_aktif': total_mahasiswa_aktif,
-#         'total_mahasiswa_nonaktif': total_mahasiswa_nonaktif,
-#         'total_mahasiswa_arsip': total_mahasiswa_arsip,
-#     }
-
-#     return render(request, 'kaprodi/list_mahasiswa.html', context)
-
-

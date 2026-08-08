@@ -144,6 +144,9 @@ class MahasiswaForm(forms.ModelForm):
 # =========================================================
 # DOSEN FORM (DIPERBAIKI - DENGAN CHECKBOX MULTI-ROLE)
 # =========================================================
+
+# forms.py - Perbaiki DosenForm
+
 class DosenForm(forms.ModelForm):
 
     PRODI_CHOICES = [
@@ -162,12 +165,9 @@ class DosenForm(forms.ModelForm):
         widget=forms.EmailInput(attrs={'class': 'form-control'})
     )
 
-    # 🔥 PERUBAHAN: HAPUS field role (tidak dipakai lagi)
-    # role = forms.ChoiceField(...)  # <-- HAPUS
-
-    # 🔥 PERUBAHAN: Multi-role untuk dosen dengan Checkbox
+    # 🔥 PERUBAHAN: Multi-role untuk dosen dengan Checkbox + KAPRODI
     roles = forms.ModelMultipleChoiceField(
-        queryset=Role.objects.filter(name__in=['DOSENCP', 'DOSENPB']),
+        queryset=Role.objects.filter(name__in=['DOSENCP', 'DOSENPB', 'KAPRODI']),  # 🔥 TAMBAH KAPRODI
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input role-checkbox'}),
         required=True,
         label='Role Dosen',
@@ -200,37 +200,70 @@ class DosenForm(forms.ModelForm):
             user = self.instance.user
             self.fields['nama_lengkap'].initial = user.first_name
             self.fields['email'].initial = user.email
-            # HAPUS: self.fields['role'].initial = user.role
-            self.fields['roles'].initial = user.roles.filter(name__in=['DOSENCP', 'DOSENPB'])
+            self.fields['roles'].initial = user.roles.filter(name__in=['DOSENCP', 'DOSENPB', 'KAPRODI'])
 
     def save(self, commit=True):
-        """Override save untuk update user data dengan multi-role"""
+        """Override save untuk update/create user data dengan multi-role"""
         dosen = super().save(commit=False)
         
-        # Update user data (HANYA nama dan email, TANPA mengubah role)
+        # 🔥 CEK APAKAH DOSEN SUDAH PUNYA USER
+        if dosen.pk is None or not hasattr(dosen, 'user') or dosen.user is None:
+            nama_lengkap = self.cleaned_data.get('nama_lengkap', '')
+            email = self.cleaned_data.get('email', '')
+            nip = self.cleaned_data.get('nip', '')
+            
+            def split_name(full_name):
+                if not full_name:
+                    return '', ''
+                full_name = full_name.strip()
+                parts = full_name.split()
+                if len(parts) > 1:
+                    return parts[0], ' '.join(parts[1:])
+                return full_name, ''
+            
+            first_name, last_name = split_name(nama_lengkap)
+            
+            user = User.objects.create_user(
+                username=nip,
+                password=nip,
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                role='DOSEN',
+                is_password_changed=False,
+                is_active=True,
+            )
+            
+            dosen.user = user
+            
+            if commit:
+                dosen.save()
+        
         user = dosen.user
-        user.first_name = self.cleaned_data['nama_lengkap']
-        user.email = self.cleaned_data['email']
+        user.first_name = self.cleaned_data.get('nama_lengkap', user.first_name)
+        user.email = self.cleaned_data.get('email', user.email)
         
-        # 🔥 PERUBAHAN PENTING: JANGAN ubah user.role di sini!
-        # Biarkan role user tetap seperti sebelumnya
-        # user.role TIDAK diubah
-        
-        # 🔥 PERUBAHAN PENTING: Update multi-role di user.roles
-        # Hanya update jika ada perubahan di field roles
+        # 🔥 UPDATE MULTI-ROLE (termasuk KAPRODI)
         selected_roles = self.cleaned_data.get('roles', [])
         
-        # Hapus role lama yang terkait dengan dosen (DOSENCP dan DOSENPB)
-        user.roles.remove(*user.roles.filter(name__in=['DOSENCP', 'DOSENPB']))
+        # Hapus role lama yang terkait dengan dosen (DOSENCP, DOSENPB, KAPRODI)
+        user.roles.remove(*user.roles.filter(name__in=['DOSENCP', 'DOSENPB', 'KAPRODI']))
         # Tambahkan role baru
         for role in selected_roles:
             user.roles.add(role)
+        
+        # 🔥 SET ACTIVE_ROLE
+        if selected_roles:
+            first_role = selected_roles[0]
+            user.active_role = first_role.name if hasattr(first_role, 'name') else str(first_role)
+        else:
+            user.active_role = 'DOSEN'
         
         if commit:
             user.save()
             dosen.save()
             
-            # Auto create DosenCP atau DosenPembimbing berdasarkan role yang dipilih
+            # 🔥 AUTO CREATE DOSENCP, DOSENPEMBIMBING, ATAU KAPRODI
             if user.roles.filter(name='DOSENCP').exists():
                 DosenCP.objects.get_or_create(dosen=dosen, defaults={'tugas': 'Reviewer Capstone'})
             else:
@@ -240,6 +273,18 @@ class DosenForm(forms.ModelForm):
                 DosenPembimbing.objects.get_or_create(dosen=dosen)
             else:
                 DosenPembimbing.objects.filter(dosen=dosen).delete()
+            
+            # 🔥 TAMBAH: Jika role KAPRODI, set user sebagai superuser
+            if user.roles.filter(name='KAPRODI').exists():
+                user.is_superuser = True
+                user.is_staff = True
+                user.save()
+            else:
+                # Jika tidak punya role KAPRODI, pastikan bukan superuser
+                if not user.roles.filter(name='KAPRODI').exists():
+                    user.is_superuser = False
+                    user.is_staff = False
+                    user.save()
         
         return dosen
 
