@@ -214,8 +214,7 @@ dosen_data = [
     ('199011122024062001', 'Fransisca Angelia Sebayang M.Kom', 'DOSENCP', 'Administrasi Basis Data', True, True),
     ('199508112024061001', 'Muhammad Taufiq Sumadi M.Tr.Kom', 'DOSENCP', 'Struktur Data', True, True),
     ('197502132008011007', 'Mulyanto S.Kom M.Cs', 'DOSENPB', 'Pemodelan Dan Simulasi', False, True),
-    ('197808232003121001', 'Rheo Malani S.Kom M.Kom', 'DOSENPB', 'K3', False, True),
-CP 1 199508112024061991
+    ('197808232003121001', 'Rheo Malani S.Kom M.Kom', 'DOSENPB', 'K3', False, True),    
 ]
 
 # =========================

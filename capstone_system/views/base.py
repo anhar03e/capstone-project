@@ -305,7 +305,7 @@ class CustomPasswordResetView(PasswordResetView):
             form.save(
                 request=self.request,
                 use_https=True,
-                domain_override="tbzc4sn6-8000.asse.devtunnels.ms", # Ganti dengan domain Anda
+                domain_override="capstone-project.tipolnes.com", # Ganti dengan domain Anda
                 email_template_name=self.email_template_name,
                 html_email_template_name=self.html_email_template_name,
                 subject_template_name=self.subject_template_name,
