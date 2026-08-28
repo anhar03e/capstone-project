@@ -71,6 +71,7 @@
     color:#6b7280;
     margin-bottom:15px;
     gap:10px;
+    flex-wrap:wrap;
 }
 
 /* =========================
@@ -104,15 +105,6 @@
 }
 
 /* =========================
-   TITLE
-========================= */
-.title{
-    font-size:20px;
-    font-weight:600;
-    margin-bottom:8px;
-}
-
-/* =========================
    BUTTON REVIEW
 ========================= */
 .actions{
@@ -132,6 +124,12 @@
 
 .btn-action:hover{
     transform:translateY(-2px);
+}
+
+.btn-action:disabled{
+    opacity:0.5;
+    cursor:not-allowed;
+    transform:none;
 }
 
 .approve{
@@ -240,6 +238,73 @@ textarea:focus{
 }
 
 /* =========================
+   FEEDBACK LIST
+========================= */
+.feedback-item{
+    padding:12px 16px;
+    border-radius:10px;
+    margin-bottom:10px;
+    border-left:4px solid;
+}
+
+.feedback-item.feedback-revisi{
+    background:#fef3c7;
+    border-left-color:#f59e0b;
+}
+
+.feedback-item.feedback-diterima{
+    background:#d1fae5;
+    border-left-color:#10b981;
+}
+
+.feedback-item.feedback-ditolak{
+    background:#fee2e2;
+    border-left-color:#ef4444;
+}
+
+.feedback-item.feedback-belum{
+    background:#f3f4f6;
+    border-left-color:#9ca3af;
+}
+
+.feedback-item .fb-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:8px;
+}
+
+.feedback-item .fb-dosen{
+    font-weight:600;
+    font-size:14px;
+}
+
+.feedback-item .fb-status{
+    font-size:12px;
+    padding:2px 10px;
+    border-radius:50px;
+}
+
+.feedback-item .fb-catatan{
+    margin-top:6px;
+    font-size:14px;
+}
+
+.feedback-item .fb-time{
+    font-size:12px;
+    color:#6b7280;
+}
+
+.badge-pertama{
+    background:#2563eb;
+    color:#fff;
+    font-size:10px;
+    padding:2px 8px;
+    border-radius:50px;
+}
+
+/* =========================
    RESPONSIVE
 ========================= */
 @media(max-width:768px){
@@ -265,6 +330,55 @@ textarea:focus{
     .preview-frame{
         height:500px;
     }
+
+    .feedback-item .fb-header{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+}
+
+/* =========================
+   INFO BOX
+========================= */
+.info-box{
+    background:#f8fafc;
+    border-radius:12px;
+    padding:15px 18px;
+    border-left:4px solid #2563eb;
+    margin-bottom:15px;
+}
+
+.info-box .info-title{
+    font-weight:600;
+    color:#1e293b;
+    margin-bottom:5px;
+}
+
+.info-box .info-desc{
+    color:#64748b;
+    font-size:14px;
+}
+
+.info-box .info-desc small{
+    display:block;
+    margin-top:4px;
+}
+
+/* =========================
+   STATUS LOCKED BADGE
+========================= */
+.locked-badge{
+    display:inline-block;
+    background:#f1f5f9;
+    color:#475569;
+    padding:4px 12px;
+    border-radius:50px;
+    font-size:12px;
+    font-weight:500;
+}
+
+.locked-badge i{
+    margin-right:4px;
 }
 </style>
 
@@ -288,7 +402,9 @@ textarea:focus{
 
     </div>
 
-    <!-- CARD -->
+    <!-- ========================================================= -->
+    <!-- CARD UTAMA                                                -->
+    <!-- ========================================================= -->
     <div class="card-clean">
 
         <!-- META -->
@@ -298,22 +414,128 @@ textarea:focus{
             </div>
 
             <div>
-                {% if proposal.status_cp == "DITERIMA" %}
-                 <span class="pill p-ok">Diterima</span>
+                <b>Total Revisi:</b> {{ total_revisi|default:0 }}
+            </div>
 
+            <div>
+                {% if proposal.status_cp == "DITERIMA" %}
+                    <span class="pill p-ok">Diterima</span>
                 {% elif proposal.status_cp == "REVISI" %}
                     <span class="pill p-rev">Revisi</span>
-
                 {% elif proposal.status_cp == "DITOLAK" %}
                     <span class="pill p-no">Ditolak</span>
-
                 {% else %}
-                    <span class="pill p-pending">Pending</span>
+                    <span class="pill p-pending">Belum Review</span>
                 {% endif %}
             </div>
         </div>
 
-        <!-- TIMELINE -->
+        <!-- ========================================================= -->
+        <!-- 🔥 TAMPILKAN SEMUA CATATAN (TERBARU DI ATAS)             -->
+        <!-- ========================================================= -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">
+                    <i class="bi bi-chat-left-text text-primary"></i>
+                    Semua Catatan Dosen CP
+                    {% if total_revisi > 0 %}
+                    <span class="badge bg-secondary ms-2">{{ total_revisi }} revisi</span>
+                    {% endif %}
+                    {% if status_pernah_ditentukan %}
+                    <span class="locked-badge ms-2">
+                        <i class="bi bi-lock-fill"></i> Status Terkunci
+                    </span>
+                    {% else %}
+                    <span class="locked-badge ms-2" style="background:#dbeafe;color:#1d4ed8;">
+                        <i class="bi bi-unlock-fill"></i> Status Bisa Diubah
+                    </span>
+                    {% endif %}
+                </h6>
+            </div>
+
+            <div class="card-body">
+                {% if semua_catatan %}
+                    {% for catatan in semua_catatan %}
+                    <div class="feedback-item 
+                        {% if catatan.status == 'REVISI' %}feedback-revisi
+                        {% elif catatan.status == 'DITERIMA' %}feedback-diterima
+                        {% elif catatan.status == 'DITOLAK' %}feedback-ditolak
+                        {% else %}feedback-belum{% endif %}">
+
+                        <div class="fb-header">
+                            <div>
+                                <span class="fb-dosen">
+                                    <i class="bi bi-person-circle"></i>
+                                    {{ catatan.dosen.user.get_full_name }}
+                                </span>
+                                {% if forloop.last %}
+                                    <span class="badge-pertama">Pertama</span>
+                                {% endif %}
+                                {% if catatan.status == proposal.status_cp and status_pernah_ditentukan and forloop.first %}
+                                    <span class="badge bg-primary ms-1">Status Berlaku</span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <span class="fb-status badge 
+                                    {% if catatan.status == 'DITERIMA' %}bg-success
+                                    {% elif catatan.status == 'DITOLAK' %}bg-danger
+                                    {% elif catatan.status == 'REVISI' %}bg-warning text-dark
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ catatan.status }}
+                                </span>
+                                <span class="fb-time ms-2">
+                                    {{ catatan.created_at|date:"d M Y H:i" }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="fb-catatan">
+                            {{ catatan.catatan }}
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <!-- ========================================================= -->
+                    <!-- STATUS YANG SEDANG BERLAKU                              -->
+                    <!-- ========================================================= -->
+                    <div class="alert alert-info mt-3 mb-0">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <strong>Status yang berlaku:</strong> 
+                        {% if proposal.status_cp == "DITERIMA" %}
+                            <span class="badge bg-success">Diterima</span>
+                        {% elif proposal.status_cp == "REVISI" %}
+                            <span class="badge bg-warning text-dark">Revisi</span>
+                        {% elif proposal.status_cp == "DITOLAK" %}
+                            <span class="badge bg-danger">Ditolak</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Belum Review</span>
+                        {% endif %}
+                        <br>
+                        <small class="text-muted">
+                            {% if status_pernah_ditentukan %}
+                                🔒 Status sudah ditentukan dan <strong>TIDAK BISA diubah</strong>. 
+                                Anda hanya bisa menambah catatan.
+                            {% else %}
+                                🔓 Status <strong>BELUM ditentukan</strong>. 
+                                Anda bisa langsung menentukan status (Terima/Revisi/Tolak).
+                            {% endif %}
+                        </small>
+                    </div>
+
+                {% else %}
+                    <p class="text-muted text-center py-3">
+                        <i class="bi bi-inbox"></i>
+                        Belum ada catatan dari dosen CP.
+                        <br>
+                        <small>Anda bisa langsung menentukan status proposal.</small>
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- TIMELINE PROPOSAL                                         -->
+        <!-- ========================================================= -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-light">
                 <h6 class="mb-0">
@@ -381,7 +603,9 @@ textarea:focus{
             </div>
         </div>
 
-        <!-- ANGGOTA TIM -->
+        <!-- ========================================================= -->
+        <!-- ANGGOTA TIM                                               -->
+        <!-- ========================================================= -->
         <div class="card border-0 shadow-sm mb-4">
             <div class="card-header bg-light">
                 <h6 class="mb-0">
@@ -431,7 +655,9 @@ textarea:focus{
             </div>
         </div>
 
-        <!-- FILE PROPOSAL -->
+        <!-- ========================================================= -->
+        <!-- FILE PROPOSAL                                             -->
+        <!-- ========================================================= -->
         {% if proposal.file %}
 
             <div class="mb-3">
@@ -470,41 +696,135 @@ textarea:focus{
 
         {% endif %}
 
-        <!-- FORM -->
-        {% if proposal.status_cp == "DITERIMA" %}
+                <!-- ========================================================= -->
+                <!-- 🔥 FORM REVIEW                                            -->
+                <!-- ========================================================= -->
 
-        <div class="alert alert-success">
-            <i class="bi bi-check-circle-fill"></i>
-            Proposal telah <strong>disetujui</strong>. Status tidak dapat diubah lagi.
-        </div>
+                <!-- INFO BOX: Status & Hak Akses -->
+                <div class="info-box mb-3">
+                    <div class="info-title">
+                        <i class="bi bi-info-circle"></i>
+                        Informasi Review
+                    </div>
+                    <div class="info-desc">
+                        <strong>Status Saat Ini:</strong> 
+                        {% if proposal.status_cp == "DITERIMA" %}
+                            <span class="badge bg-success">Diterima</span>
+                            <span class="text-danger ms-2">🔒 Status terkunci</span>
+                        {% elif proposal.status_cp == "REVISI" %}
+                            <span class="badge bg-warning text-dark">Revisi</span>
+                            <span class="text-danger ms-2">🔒 Status terkunci</span>
+                        {% elif proposal.status_cp == "DITOLAK" %}
+                            <span class="badge bg-danger">Ditolak</span>
+                            <span class="text-danger ms-2">🔒 Status terkunci</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Belum Review</span>
+                            <span class="text-success ms-2">🔓 Bisa menentukan status</span>
+                        {% endif %}
+                        
+                        <br>
+                        <small>
+                            {% if status_pernah_ditentukan %}
+                                🔒 <strong>Status sudah ditentukan dan TIDAK BISA diubah.</strong> 
+                                Anda hanya bisa menambah catatan dengan status yang sama.
+                            {% else %}
+                                ✅ <strong>Status belum ditentukan.</strong> Anda bisa langsung memilih status di bawah.
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
 
-        {% else %}
+                <form method="post">
+                    {% csrf_token %}
 
-        <form method="post">
-            {% csrf_token %}
+                    <!-- ========================================================= -->
+                    <!-- ALERT SESUAI STATUS                                      -->
+                    <!-- ========================================================= -->
+                    {% if proposal.status_cp == "DITERIMA" %}
 
-            <textarea name="keterangan" rows="4"
-                placeholder="Tulis catatan review untuk mahasiswa..."></textarea>
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle-fill"></i>
+                        Proposal telah <strong>DITERIMA</strong>.
+                        <br>
+                        <small>Status tidak bisa diubah. Anda hanya bisa menambah catatan tambahan dengan status DITERIMA.</small>
+                    </div>
 
-            <div class="actions mt-3">
+                    {% elif proposal.status_cp == "DITOLAK" %}
 
-                <button class="btn-action approve" name="action" value="DITERIMA">
-                    ✔ Terima
-                </button>
+                    <div class="alert alert-danger">
+                        <i class="bi bi-x-circle-fill"></i>
+                        Proposal telah <strong>DITOLAK</strong>.
+                        <br>
+                        <small>Status tidak bisa diubah. Anda hanya bisa menambah catatan tambahan dengan status DITOLAK.</small>
+                    </div>
 
-                <button class="btn-action revisi" name="action" value="REVISI">
-                    ✎ Revisi
-                </button>
+                    {% elif proposal.status_cp == "REVISI" %}
 
-                <button class="btn-action reject" name="action" value="DITOLAK">
-                    ✖ Tolak
-                </button>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-pencil-square"></i>
+                        <strong>Proposal dalam status REVISI</strong>
+                        <br>
+                        <small>Status tidak bisa diubah. Anda hanya bisa menambah catatan tambahan dengan status REVISI.</small>
+                    </div>
 
-            </div>
+                    {% else %}
 
-        </form>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle-fill"></i>
+                        <strong>Proposal Belum Direview</strong>
+                        <br>
+                        <small>Anda bisa langsung menentukan status proposal di bawah.</small>
+                    </div>
 
-        {% endif %}
+                    {% endif %}
+
+                    <!-- ========================================================= -->
+                    <!-- TEXTAREA                                                 -->
+                    <!-- ========================================================= -->
+                    <textarea name="keterangan" rows="4"
+                        placeholder="{% if status_pernah_ditentukan %}Tulis catatan tambahan...{% else %}Tulis catatan review untuk menentukan status proposal...{% endif %}"
+                        required></textarea>
+
+                    <!-- ========================================================= -->
+                    <!-- TOMBOL                                                   -->
+                    <!-- ========================================================= -->
+                    <div class="actions mt-3">
+
+                        {% if status_pernah_ditentukan %}
+                            <!-- 🔥 STATUS SUDAH DITENTUKAN: Hanya catatan dengan status yang sama -->
+                            <button class="btn-action approve" disabled>
+                                ✔ Terima
+                            </button>
+                            <button class="btn-action revisi" name="action" value="{{ proposal.status_cp }}">
+                                ✎ Tambah Catatan ({{ proposal.status_cp }})
+                            </button>
+                            <button class="btn-action reject" disabled>
+                                ✖ Tolak
+                            </button>
+                            <input type="hidden" name="action" value="{{ proposal.status_cp }}">
+                            <small class="text-muted col-12 text-center mt-2">
+                                🔒 Status terkunci ({{ proposal.status_cp }}). Semua dosen CP hanya bisa menambah catatan.
+                            </small>
+
+                        {% else %}
+                            <!-- 🔥 BELUM ADA STATUS: Bisa pilih status (SEMUA AKTIF) -->
+                            <button class="btn-action approve" name="action" value="DITERIMA">
+                                ✔ Terima
+                            </button>
+                            <button class="btn-action revisi" name="action" value="REVISI">
+                                ✎ Revisi
+                            </button>
+                            <button class="btn-action reject" name="action" value="DITOLAK">
+                                ✖ Tolak
+                            </button>
+                            <small class="text-muted col-12 text-center mt-2">
+                                🔓 Pilih salah satu status untuk proposal ini. Status hanya bisa ditentukan SEKALI.
+                            </small>
+                        {% endif %}
+
+                    </div>
+
+                </form>
 
     </div>
 

@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.utils import timezone
 from django.contrib.auth import update_session_auth_hash
-import os  # <-- PERUBAHAN: Tambahkan import os
+import os
 
 from ..models import (
     Mahasiswa,
@@ -108,7 +108,7 @@ def mahasiswa_home(request):
 
 
 # =========================================================
-# TRACKING STATUS (FUNGSI BARU)
+# TRACKING STATUS - DENGAN SEMUA CATATAN
 # =========================================================
 @login_required
 def tracking_status(request):
@@ -142,6 +142,16 @@ def tracking_status(request):
     pengajuan = PengajuanDospem.objects.filter(mahasiswa=mahasiswa).first()
 
     # =========================================================
+    # 🔥 AMBIL SEMUA CATATAN DARI RIWAYAT FEEDBACK
+    # =========================================================
+    semua_catatan = []
+    if proposal:
+        semua_catatan = RiwayatFeedbackProposal.objects.filter(
+            proposal=proposal,
+            reviewer='CP'
+        ).order_by('-created_at')
+
+    # =========================================================
     # STATUS PROPOSAL - menggunakan status_cp
     # =========================================================
     status_proposal = {
@@ -155,6 +165,8 @@ def tracking_status(request):
         'is_sedang': proposal.status_cp == 'SEDANG_REVIEW' if proposal else False,
         'catatan': proposal.catatan_cp if proposal else None,
         'tanggal_review': proposal.tanggal_review_cp if proposal else None,
+        'total_revisi': semua_catatan.filter(status='REVISI').count() if proposal else 0,
+        'semua_catatan': semua_catatan,
     }
 
     # =========================================================
@@ -187,7 +199,7 @@ def tracking_status(request):
     }
 
     # =========================================================
-    # RIWAYAT FEEDBACK
+    # RIWAYAT FEEDBACK (5 terakhir)
     # =========================================================
     riwayat_cp = []
     riwayat_pb = []
@@ -217,14 +229,81 @@ def tracking_status(request):
         'riwayat_cp': riwayat_cp,
         'riwayat_pb': riwayat_pb,
         'riwayat_resume': riwayat_resume,
+        'semua_catatan': semua_catatan,
     }
 
     return render(request, 'mahasiswa/tracking_status.html', context)
 
 
 # =========================================================
-# UPLOAD PROPOSAL (DIPERBAIKI - TAMBAH VALIDASI FILE)
+# SUBMIT REVISI PROPOSAL (FUNGSI BARU)
 # =========================================================
+@login_required
+def mahasiswa_submit_revisi(request, proposal_id):
+    """
+    Mahasiswa submit ulang proposal setelah revisi
+    """
+    has_access, response = check_role(request, ['MAHASISWA'])
+    if not has_access:
+        return response
+
+    mahasiswa = get_object_or_404(Mahasiswa, user=request.user)
+    proposal = get_object_or_404(ProposalCapstone, id=proposal_id)
+
+    # Validasi kepemilikan
+    anggota = get_tim_user(mahasiswa)
+    if not anggota or anggota.role != 'ketua':
+        messages.error(request, "Hanya ketua tim yang bisa submit revisi.")
+        return redirect('capstone_system:mahasiswa_home')
+
+    if proposal.tim != anggota.tim:
+        messages.error(request, "Anda tidak memiliki akses ke proposal ini.")
+        return redirect('capstone_system:mahasiswa_home')
+
+    # Cek apakah statusnya REVISI
+    if proposal.status_cp != 'REVISI':
+        messages.warning(request, "Proposal tidak dalam status REVISI.")
+        return redirect('capstone_system:mahasiswa_home')
+
+    # Ambil semua catatan untuk ditampilkan
+    semua_catatan = RiwayatFeedbackProposal.objects.filter(
+        proposal=proposal,
+        reviewer='CP'
+    ).order_by('-created_at')
+
+    if request.method == 'POST':
+        file = request.FILES.get('file')
+
+        if not file:
+            messages.error(request, "File proposal wajib diunggah.")
+            return redirect('capstone_system:mahasiswa_submit_revisi', proposal_id=proposal.id)
+
+        try:
+            validate_pdf_file_size(file)
+        except ValueError as e:
+            messages.error(request, str(e))
+            return redirect('capstone_system:mahasiswa_submit_revisi', proposal_id=proposal.id)
+
+        # 🔥 RESET STATUS UNTUK REVIEW BARU
+        proposal.status_cp = 'BELUM_REVIEW'
+        proposal.catatan_cp = ''
+        proposal.tanggal_review_cp = None
+        proposal.file = file
+        proposal.waktu_update = timezone.now()
+        proposal.save()
+
+        messages.success(request, "✅ Proposal revisi berhasil diunggah. Menunggu review ulang.")
+        return redirect('capstone_system:mahasiswa_home')
+
+    context = {
+        'proposal': proposal,
+        'semua_catatan': semua_catatan,
+        'total_revisi': semua_catatan.filter(status='REVISI').count(),
+    }
+
+    return render(request, 'mahasiswa/submit_revisi.html', context)
+
+
 @login_required
 def upload_proposal(request):
     has_access, response = check_role(request, ['MAHASISWA'])
@@ -257,6 +336,18 @@ def upload_proposal(request):
         proposal.status_cp in ["DITERIMA", "SEDANG_REVIEW"]
     )
 
+    # =========================================================
+    # 🔥 AMBIL SEMUA CATATAN DARI RIWAYAT FEEDBACK
+    # =========================================================
+    semua_catatan = []
+    if proposal:
+        semua_catatan = RiwayatFeedbackProposal.objects.filter(
+            proposal=proposal,
+            reviewer='CP'
+        ).order_by('-created_at')  # Terbaru di atas
+
+    total_revisi = semua_catatan.filter(status='REVISI').count() if proposal else 0
+
     if request.method == "POST":
         if proposal_locked:
             messages.warning(request, "Proposal sedang direview atau telah disetujui sehingga tidak dapat diubah.")
@@ -281,12 +372,23 @@ def upload_proposal(request):
             if proposal and not request.FILES.get("file"):
                 obj.file = proposal.file
 
+            # =========================================================
+            # 🔥 PERBAIKAN: Jika upload file (baru atau revisi)
+            # =========================================================
             if request.FILES.get("file"):
+                # Reset semua status ke BELUM_REVIEW
                 obj.status_cp = "BELUM_REVIEW"
                 obj.catatan_cp = ""
                 obj.waktu_peninjauan = None
                 obj.status_pb = "BELUM_REVIEW"
                 obj.catatan_pb = ""
+                
+                # 🔥 TAMBAHKAN: Update waktu_update sebagai tanda reset
+                obj.waktu_update = timezone.now()
+
+                # Jika proposal baru (belum ada)
+                if not proposal:
+                    obj.total_revisi = 1
 
             obj.save()
             messages.success(request, "Proposal berhasil disimpan.")
@@ -313,6 +415,8 @@ def upload_proposal(request):
         "edit_mode": edit_mode,
         "tim": tim,
         "proposal_locked": proposal_locked,
+        "semua_catatan": semua_catatan,
+        "total_revisi": total_revisi,
     })
 
 

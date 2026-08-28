@@ -11,230 +11,125 @@
 {% block dashboard_content %}
 
 <style>
-
-/* ================= GLOBAL ================= */
-body{
-    background:#f4f6f9;
+body { background: #f4f6f9; }
+.page-header {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    padding: 18px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.15);
 }
-
-/* ================= HEADER ================= */
-.page-header{
-    background:linear-gradient(135deg,#2563eb,#1d4ed8);
-    color:white;
-    padding:18px;
-    border-radius:16px;
-    margin-bottom:20px;
-    box-shadow:0 8px 18px rgba(37,99,235,.15);
+.card-modern {
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background: #fff;
 }
-
-/* ================= CARD ================= */
-.card-modern{
-    border:none;
-    border-radius:16px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.05);
-    background:#fff;
+.form-control, .form-select {
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    padding: 10px 12px;
+    transition: 0.2s;
 }
-
-/* ================= FORM ================= */
-.form-control,
-.form-select{
-    border-radius:10px;
-    border:1px solid #e5e7eb;
-    padding:10px 12px;
-    transition:.2s;
+.form-control:focus, .form-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
 }
-
-.form-control:focus,
-.form-select:focus{
-    border-color:#2563eb;
-    box-shadow:0 0 0 4px rgba(37,99,235,.12);
+.avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    background: #e0f2fe;
+    color: #2563eb;
 }
-
-/* ================= AVATAR ================= */
-.avatar{
-    width:42px;
-    height:42px;
-    border-radius:50%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight:bold;
-    background:#e0f2fe;
-    color:#2563eb;
+.badge-role { font-size: 11px; }
+.badge-status { font-size: 11px; }
+.btn-success {
+    background: #2563eb;
+    border: none;
+    border-radius: 10px;
 }
+.btn-success:hover { background: #1d4ed8; }
+.btn-primary { border-radius: 10px; }
+.btn-secondary { border-radius: 10px; }
+.btn-outline-success { border-radius: 10px; }
 
-/* ================= BADGE ================= */
-.badge-role{
-    font-size:11px;
+.status-card {
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    border-left: 6px solid;
 }
-
-.badge-status{
-    font-size:11px;
+.status-card .status-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
-
-/* ================= BUTTON ================= */
-.btn-success{
-    background:#2563eb;
-    border:none;
-    border-radius:10px;
+.status-card .status-icon { font-size: 28px; }
+.status-card .status-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
 }
-
-.btn-success:hover{
-    background:#1d4ed8;
+.status-card .status-detail {
+    font-size: 13px;
+    opacity: 0.8;
 }
-
-.btn-primary{
-    border-radius:10px;
+.status-belum-review {
+    background: #f8f9fa;
+    border-left-color: #6c757d;
+    color: #6c757d;
 }
-
-.btn-secondary{
-    border-radius:10px;
+.status-sedang-review {
+    background: #fff3cd;
+    border-left-color: #ffc107;
+    color: #856404;
 }
-
-.btn-outline-success{
-    border-radius:10px;
+.status-diterima {
+    background: #d4edda;
+    border-left-color: #28a745;
+    color: #155724;
 }
-
-/* ================= STATUS CARD ================= */
-.status-card{
-    border-radius:16px;
-    padding:20px;
-    margin-bottom:20px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:10px;
-    border-left:6px solid;
+.status-ditolak {
+    background: #f8d7da;
+    border-left-color: #dc3545;
+    color: #721c24;
 }
-
-.status-card .status-left{
-    display:flex;
-    align-items:center;
-    gap:15px;
+.status-revisi {
+    background: #fff3cd;
+    border-left-color: #fd7e14;
+    color: #856404;
 }
-
-.status-card .status-icon{
-    font-size:28px;
+.status-belum-upload {
+    background: #e9ecef;
+    border-left-color: #adb5bd;
+    color: #495057;
 }
-
-.status-card .status-label{
-    font-size:14px;
-    font-weight:600;
-    margin-bottom:4px;
+.badge-status-large {
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
 }
-
-.status-card .status-detail{
-    font-size:13px;
-    opacity:0.8;
-}
-
-/* ===== VARIAN STATUS ===== */
-/* BELUM REVIEW */
-.status-belum-review{
-    background:#f8f9fa;
-    border-left-color:#6c757d;
-    color:#6c757d;
-}
-
-/* SEDANG REVIEW */
-.status-sedang-review{
-    background:#fff3cd;
-    border-left-color:#ffc107;
-    color:#856404;
-}
-
-/* DITERIMA */
-.status-diterima{
-    background:#d4edda;
-    border-left-color:#28a745;
-    color:#155724;
-}
-
-/* DITOLAK */
-.status-ditolak{
-    background:#f8d7da;
-    border-left-color:#dc3545;
-    color:#721c24;
-}
-
-/* REVISI */
-.status-revisi{
-    background:#fff3cd;
-    border-left-color:#fd7e14;
-    color:#856404;
-}
-
-/* BELUM UPLOAD */
-.status-belum-upload{
-    background:#e9ecef;
-    border-left-color:#adb5bd;
-    color:#495057;
-}
-
-/* ================= STATUS BADGE ================= */
-.badge-status-large{
-    padding:8px 20px;
-    border-radius:20px;
-    font-size:14px;
-    font-weight:600;
-}
-
-/* ================= DISABLED FORM ================= */
-.form-disabled{
-    opacity:0.7;
-    pointer-events:none;
-}
-
-.form-disabled .form-control,
-.form-disabled .form-select{
-    background:#e9ecef;
-}
-
-.form-disabled .btn{
-    opacity:0.5;
-}
-
-/* ================= TOOLTIP ================= */
-.status-tooltip{
-    font-size:12px;
-    color:#6c757d;
-    margin-top:5px;
-}
-
-/* ================= DOSEN CP CARD ================= */
-.dosen-cp-card{
-    background:#f8fafc;
-    border-radius:12px;
-    padding:15px;
-    border:1px solid #eef2f7;
-    transition:.2s;
-}
-
-.dosen-cp-card:hover{
-    background:#f1f5f9;
-}
-
-/* ================= VALIDASI FILE ================= */
-.file-input-wrapper {
-    position: relative;
-}
-
+.file-input-wrapper { position: relative; }
 .file-input-wrapper .file-info {
     font-size: 13px;
     color: #6c757d;
     margin-top: 5px;
 }
+.file-input-wrapper .file-info.valid { color: #28a745; }
+.file-input-wrapper .file-info.invalid { color: #dc3545; }
 
-.file-input-wrapper .file-info.valid {
-    color: #28a745;
-}
-
-.file-input-wrapper .file-info.invalid {
-    color: #dc3545;
-}
-
-/* ================= LOADING OVERLAY ================= */
 .loading-overlay {
     display: none;
     position: fixed;
@@ -248,11 +143,7 @@ body{
     align-items: center;
     flex-direction: column;
 }
-
-.loading-overlay.show {
-    display: flex;
-}
-
+.loading-overlay.show { display: flex; }
 .loading-overlay .spinner-box {
     background: white;
     padding: 40px 50px;
@@ -261,7 +152,6 @@ body{
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     max-width: 400px;
 }
-
 .loading-overlay .spinner {
     width: 60px;
     height: 60px;
@@ -271,23 +161,19 @@ body{
     animation: spin 0.8s linear infinite;
     margin: 0 auto 15px;
 }
-
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
-
 .loading-overlay .loading-title {
     font-size: 18px;
     font-weight: 600;
     color: #1f2937;
     margin-bottom: 8px;
 }
-
 .loading-overlay .loading-subtitle {
     font-size: 14px;
     color: #6b7280;
 }
-
 .loading-overlay .progress-bar-container {
     width: 100%;
     height: 6px;
@@ -296,7 +182,6 @@ body{
     margin-top: 15px;
     overflow: hidden;
 }
-
 .loading-overlay .progress-bar {
     height: 100%;
     width: 0%;
@@ -305,9 +190,51 @@ body{
     transition: width 0.3s ease;
 }
 
+.feedback-item {
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border-left: 4px solid;
+}
+.feedback-item.feedback-revisi {
+    background: #fef3c7;
+    border-left-color: #f59e0b;
+}
+.feedback-item.feedback-diterima {
+    background: #d1fae5;
+    border-left-color: #10b981;
+}
+.feedback-item.feedback-ditolak {
+    background: #fee2e2;
+    border-left-color: #ef4444;
+}
+.feedback-item .fb-dosen {
+    font-weight: 600;
+    font-size: 14px;
+}
+.feedback-item .fb-status {
+    font-size: 12px;
+    padding: 2px 10px;
+    border-radius: 50px;
+}
+.feedback-item .fb-catatan {
+    margin-top: 6px;
+    font-size: 14px;
+}
+.feedback-item .fb-time {
+    font-size: 12px;
+    color: #6b7280;
+}
+.badge-pertama {
+    background: #2563eb;
+    color: #fff;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 50px;
+}
 </style>
 
-<!-- ================= LOADING OVERLAY ================= -->
+<!-- LOADING OVERLAY -->
 <div class="loading-overlay" id="loadingOverlay">
     <div class="spinner-box">
         <div class="spinner"></div>
@@ -322,7 +249,7 @@ body{
     </div>
 </div>
 
-<!-- ================= HEADER ================= -->
+<!-- HEADER -->
 <div class="page-header">
     <h5 class="mb-0">
         {% if proposal and not edit_mode %}
@@ -331,167 +258,154 @@ body{
             Upload / Edit Proposal
         {% endif %}
     </h5>
+    {% if proposal %}
+    <small class="d-block opacity-75">Total Revisi: {{ total_revisi|default:0 }}</small>
+    {% endif %}
 </div>
 
-<!-- ================= STATUS PROPOSAL ================= -->
+<!-- STATUS PROPOSAL -->
 {% if proposal %}
 
-    <!-- ===================================================== -->
-    <!-- CARD STATUS PROPOSAL (DI BAGIAN ATAS)                -->
-    <!-- ===================================================== -->
-    <div class="card card-modern mb-3">
-        <div class="card-body p-0">
+<div class="card card-modern mb-3">
+    <div class="card-body p-0">
+        {% with status=proposal.status_final %}
 
-            {% with status=proposal.status_final %}
-
-            <!-- ===== STATUS: BELUM REVIEW ===== -->
-            {% if status == 'BELUM_REVIEW' %}
-            <div class="status-card status-belum-review">
-                <div class="status-left">
-                    <div class="status-icon">⏳</div>
-                    <div>
-                        <div class="status-label">Status Proposal: Belum Review</div>
-                        <div class="status-detail">
-                            Proposal belum direview oleh Dosen CP
-                        </div>
-                    </div>
+        {% if status == 'BELUM_REVIEW' %}
+        <div class="status-card status-belum-review">
+            <div class="status-left">
+                <div class="status-icon">⏳</div>
+                <div>
+                    <div class="status-label">Status Proposal: Belum Review</div>
+                    <div class="status-detail">Proposal belum direview oleh Dosen CP</div>
                 </div>
-                <span class="badge bg-secondary badge-status-large">
-                    <i class="bi bi-clock"></i> Menunggu Review
-                </span>
             </div>
-
-            <!-- ===== STATUS: SEDANG REVIEW ===== -->
-            {% elif status == 'SEDANG_REVIEW' %}
-            <div class="status-card status-sedang-review">
-                <div class="status-left">
-                    <div class="status-icon">🔄</div>
-                    <div>
-                        <div class="status-label">Status Proposal: Sedang Review</div>
-                        <div class="status-detail">
-                            Proposal sedang dalam proses review oleh Dosen CP
-                        </div>
-                    </div>
-                </div>
-                <span class="badge bg-warning text-dark badge-status-large">
-                    <i class="bi bi-arrow-repeat"></i> Proses Review
-                </span>
-            </div>
-
-            <!-- ===== STATUS: DITERIMA ===== -->
-            {% elif status == 'DITERIMA' %}
-            <div class="status-card status-diterima">
-                <div class="status-left">
-                    <div class="status-icon">✅</div>
-                    <div>
-                        <div class="status-label">Status Proposal: Diterima</div>
-                        <div class="status-detail">
-                            Proposal telah disetujui oleh Dosen CP
-                        </div>
-                    </div>
-                </div>
-                <span class="badge bg-success badge-status-large">
-                    <i class="bi bi-check-circle-fill"></i> Diterima
-                </span>
-            </div>
-
-            <!-- ===== STATUS: DITOLAK ===== -->
-            {% elif status == 'DITOLAK' %}
-            <div class="status-card status-ditolak">
-                <div class="status-left">
-                    <div class="status-icon">❌</div>
-                    <div>
-                        <div class="status-label">Status Proposal: Ditolak</div>
-                        <div class="status-detail">
-                            Proposal ditolak oleh Dosen CP, silakan upload ulang proposal baru
-                        </div>
-                    </div>
-                </div>
-                <span class="badge bg-danger badge-status-large">
-                    <i class="bi bi-x-circle-fill"></i> Ditolak
-                </span>
-            </div>
-
-            <!-- ===== STATUS: REVISI ===== -->
-            {% elif status == 'REVISI' %}
-            <div class="status-card status-revisi">
-                <div class="status-left">
-                    <div class="status-icon">✏️</div>
-                    <div>
-                        <div class="status-label">Status Proposal: Perlu Revisi</div>
-                        <div class="status-detail">
-                            Proposal perlu direvisi sesuai catatan Dosen CP
-                        </div>
-                    </div>
-                </div>
-                <span class="badge bg-warning text-dark badge-status-large">
-                    <i class="bi bi-pencil-fill"></i> Perlu Revisi
-                </span>
-            </div>
-
-            <!-- ===== STATUS: BELUM UPLOAD (FALLBACK) ===== -->
-            {% else %}
-            <div class="status-card status-belum-upload">
-                <div class="status-left">
-                    <div class="status-icon">📤</div>
-                    <div>
-                        <div class="status-label">Status: Belum Upload</div>
-                        <div class="status-detail">
-                            Silakan upload proposal Anda
-                        </div>
-                    </div>
-                </div>
-                <span class="badge bg-secondary badge-status-large">
-                    <i class="bi bi-cloud-upload"></i> Upload
-                </span>
-            </div>
-            {% endif %}
-
-            {% endwith %}
-
+            <span class="badge bg-secondary badge-status-large"><i class="bi bi-clock"></i> Menunggu Review</span>
         </div>
+
+        {% elif status == 'SEDANG_REVIEW' %}
+        <div class="status-card status-sedang-review">
+            <div class="status-left">
+                <div class="status-icon">🔄</div>
+                <div>
+                    <div class="status-label">Status Proposal: Sedang Review</div>
+                    <div class="status-detail">Proposal sedang dalam proses review oleh Dosen CP</div>
+                </div>
+            </div>
+            <span class="badge bg-warning text-dark badge-status-large"><i class="bi bi-arrow-repeat"></i> Proses Review</span>
+        </div>
+
+        {% elif status == 'DITERIMA' %}
+        <div class="status-card status-diterima">
+            <div class="status-left">
+                <div class="status-icon">✅</div>
+                <div>
+                    <div class="status-label">Status Proposal: Diterima</div>
+                    <div class="status-detail">Proposal telah disetujui oleh Dosen CP</div>
+                </div>
+            </div>
+            <span class="badge bg-success badge-status-large"><i class="bi bi-check-circle-fill"></i> Diterima</span>
+        </div>
+
+        {% elif status == 'DITOLAK' %}
+        <div class="status-card status-ditolak">
+            <div class="status-left">
+                <div class="status-icon">❌</div>
+                <div>
+                    <div class="status-label">Status Proposal: Ditolak</div>
+                    <div class="status-detail">Proposal ditolak oleh Dosen CP, silakan upload ulang</div>
+                </div>
+            </div>
+            <span class="badge bg-danger badge-status-large"><i class="bi bi-x-circle-fill"></i> Ditolak</span>
+        </div>
+
+        {% elif status == 'REVISI' %}
+        <div class="status-card status-revisi">
+            <div class="status-left">
+                <div class="status-icon">✏️</div>
+                <div>
+                    <div class="status-label">Status Proposal: Perlu Revisi</div>
+                    <div class="status-detail">Proposal perlu direvisi sesuai catatan Dosen CP di bawah</div>
+                </div>
+            </div>
+            <span class="badge bg-warning text-dark badge-status-large"><i class="bi bi-pencil-fill"></i> Perlu Revisi</span>
+        </div>
+
+        {% else %}
+        <div class="status-card status-belum-upload">
+            <div class="status-left">
+                <div class="status-icon">📤</div>
+                <div>
+                    <div class="status-label">Status: Belum Upload</div>
+                    <div class="status-detail">Silakan upload proposal Anda</div>
+                </div>
+            </div>
+            <span class="badge bg-secondary badge-status-large"><i class="bi bi-cloud-upload"></i> Upload</span>
+        </div>
+        {% endif %}
+
+        {% endwith %}
     </div>
+</div>
 
-    <!-- ===================================================== -->
-    <!-- DETAIL REVIEW (CP SAJA)                              -->
-    <!-- ===================================================== -->
-    <div class="card card-modern mb-3">
-        <div class="card-body">
-            <div class="row">
+<!-- SEMUA CATATAN -->
+<div class="card card-modern mb-3">
+    <div class="card-header bg-light">
+        <h6 class="mb-0">
+            <i class="bi bi-chat-left-text text-warning"></i>
+            Semua Catatan Revisi dari Dosen CP
+            <span class="badge bg-secondary ms-2">{{ total_revisi|default:0 }} revisi</span>
+        </h6>
+    </div>
+    <div class="card-body">
+        {% if semua_catatan %}
+            {% for catatan in semua_catatan %}
+            <div class="feedback-item 
+                {% if catatan.status == 'REVISI' %}feedback-revisi
+                {% elif catatan.status == 'DITERIMA' %}feedback-diterima
+                {% elif catatan.status == 'DITOLAK' %}feedback-ditolak
+                {% endif %}">
 
-                <!-- REVIEW CP -->
-                <div class="col-md-12">
-                    <small class="text-muted d-block">Review Dosen CP</small>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge 
-                            {% if proposal.status_cp == 'DITERIMA' %}bg-success
-                            {% elif proposal.status_cp == 'DITOLAK' %}bg-danger
-                            {% elif proposal.status_cp == 'REVISI' %}bg-warning text-dark
-                            {% elif proposal.status_cp == 'SEDANG_REVIEW' %}bg-info text-dark
-                            {% else %}bg-secondary{% endif %}">
-                            {{ proposal.get_status_cp_display }}
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <div>
+                        <span class="fb-dosen">
+                            <i class="bi bi-person-circle"></i>
+                            {{ catatan.dosen.user.get_full_name }}
                         </span>
-                        {% if proposal.catatan_cp %}
-                        <span class="text-muted small" title="{{ proposal.catatan_cp }}">
-                            <i class="bi bi-chat-left-text"></i> Ada catatan
-                        </span>
+                        {% if forloop.last %}
+                            <span class="badge-pertama">Pertama</span>
                         {% endif %}
                     </div>
-                    {% if proposal.catatan_cp %}
-                    <div class="alert alert-secondary mt-2">
-                        <strong><i class="bi bi-chat-left-text"></i> Catatan Dosen CP:</strong>
-                        {{ proposal.catatan_cp }}
+                    <div>
+                        <span class="fb-status badge 
+                            {% if catatan.status == 'DITERIMA' %}bg-success
+                            {% elif catatan.status == 'DITOLAK' %}bg-danger
+                            {% elif catatan.status == 'REVISI' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ catatan.status }}
+                        </span>
+                        <span class="fb-time ms-2">
+                            {{ catatan.created_at|date:"d M Y H:i" }}
+                        </span>
                     </div>
-                    {% endif %}
                 </div>
 
+                <div class="fb-catatan">
+                    {{ catatan.catatan }}
+                </div>
             </div>
-        </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-muted text-center py-3">
+                <i class="bi bi-inbox"></i>
+                Belum ada catatan dari dosen CP.
+            </p>
+        {% endif %}
     </div>
+</div>
 
 {% endif %}
 
-<!-- ================= TIM INFO ================= -->
+<!-- TIM INFO -->
 <div class="card card-modern mb-3">
     <div class="card-body">
         <h6 class="mb-3">Anggota Tim</h6>
@@ -514,7 +428,6 @@ body{
                         <small class="text-muted">{{ a.nim }}</small>
                     </div>
                 </div>
-                <!-- STATUS ANGGOTA -->
                 {% if a.status == 'APPROVED' %}
                     <span class="badge bg-success badge-status">Setuju</span>
                 {% elif a.status == 'REJECTED' %}
@@ -528,23 +441,19 @@ body{
     </div>
 </div>
 
-<!-- ================= VIEW MODE ================= -->
+<!-- VIEW MODE -->
 {% if proposal and not edit_mode %}
 
 <div class="card card-modern">
     <div class="card-body">
-
-        <!-- ===== DISPLAY PROPOSAL ===== -->
         <div class="mb-3">
             <strong>Judul:</strong><br>
             {{ proposal.judul }}
         </div>
-
         <div class="mb-3">
             <strong>Mitra:</strong><br>
             {{ proposal.mitra|default:"-" }}
         </div>
-
         <div class="mb-3">
             <strong>File:</strong><br>
             <a href="{{ proposal.file.url }}" class="btn btn-primary btn-sm" target="_blank">
@@ -554,16 +463,6 @@ body{
                 {{ proposal.file.size|filesizeformat }}
             </small>
         </div>
-
-        <!-- ===== CATATAN REVISI (JIKA ADA) ===== -->
-        {% if proposal.status_final == 'REVISI' and proposal.catatan_cp %}
-        <div class="alert alert-warning">
-            <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Catatan Revisi</h6>
-            <p><strong>Dosen CP:</strong> {{ proposal.catatan_cp }}</p>
-        </div>
-        {% endif %}
-
-        <!-- ===== TOMBOL EDIT ===== -->
         {% if proposal.status_final != 'DITERIMA' %}
         <a href="?edit=1" class="btn btn-outline-primary btn-sm">
             <i class="bi bi-pencil"></i> Edit Proposal
@@ -573,19 +472,16 @@ body{
             <i class="bi bi-check-circle"></i> Proposal sudah diterima, tidak dapat diedit
         </span>
         {% endif %}
-
     </div>
 </div>
 
-<!-- ================= FORM ================= -->
+<!-- FORM -->
 {% else %}
 
 <div class="card card-modern">
     <div class="card-body">
 
-        <!-- ===== CEK APAKAH BISA UPLOAD ===== -->
         {% if proposal and proposal.status_final == 'DITERIMA' %}
-        <!-- PROPOSAL SUDAH DITERIMA - TIDAK BISA EDIT -->
         <div class="alert alert-success">
             <i class="bi bi-check-circle-fill"></i>
             Proposal Anda sudah <strong>DITERIMA</strong>. Tidak dapat melakukan edit.
@@ -597,7 +493,6 @@ body{
         </div>
 
         {% elif proposal and proposal.status_final == 'DITOLAK' %}
-        <!-- PROPOSAL DITOLAK - BISA UPLOAD ULANG -->
         <div class="alert alert-danger">
             <i class="bi bi-exclamation-triangle-fill"></i>
             Proposal Anda <strong>DITOLAK</strong>. Silakan upload ulang proposal baru.
@@ -605,95 +500,85 @@ body{
             <br><small>Catatan: {{ proposal.catatan_cp }}</small>
             {% endif %}
         </div>
-
         <form method="POST" enctype="multipart/form-data" id="proposalForm">
             {% csrf_token %}
-
             <div class="mb-3">
                 <label>Judul Proposal</label>
-                <input type="text" name="judul" class="form-control"
-                       value="{{ proposal.judul|default:'' }}" required>
+                <input type="text" name="judul" class="form-control" value="{{ proposal.judul|default:'' }}" required>
             </div>
-
             <div class="mb-3">
                 <label>Mitra</label>
-                <input type="text" name="mitra" class="form-control"
-                       value="{{ proposal.mitra|default:'' }}">
+                <input type="text" name="mitra" class="form-control" value="{{ proposal.mitra|default:'' }}">
             </div>
-
             <div class="mb-3">
                 <label>File Proposal</label>
                 <div class="file-input-wrapper">
-                    <input type="file" name="file" class="form-control" 
-                           accept=".pdf" required>
+                    <input type="file" name="file" class="form-control" accept=".pdf" required>
                     <div id="fileFeedback" class="file-info"></div>
                 </div>
-                <small class="text-muted">
-                    📄 Format: PDF | Maksimal: 5MB
-                </small>
+                <small class="text-muted">📄 Format: PDF | Maksimal: 5MB</small>
             </div>
-
             <button class="btn btn-success w-100" type="submit" id="submitBtn">
                 <i class="bi bi-cloud-upload"></i> Upload Ulang Proposal
             </button>
+            <a href="{% url 'capstone_system:upload_proposal' %}" class="btn btn-secondary w-100 mt-2">
+                <i class="bi bi-arrow-left"></i> Batal
+            </a>
+        </form>
 
-            <a href="{% url 'capstone_system:upload_proposal' %}"
-               class="btn btn-secondary w-100 mt-2">
+        {% elif proposal and proposal.status_final == 'REVISI' %}
+        <div class="alert alert-warning">
+            <i class="bi bi-pencil-fill"></i>
+            Proposal Anda <strong>REVISI</strong>. Silakan perbaiki proposal sesuai catatan di atas, lalu upload ulang.
+        </div>
+        <form method="POST" enctype="multipart/form-data" id="proposalForm">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label>Judul Proposal</label>
+                <input type="text" name="judul" class="form-control" value="{{ proposal.judul|default:'' }}" required>
+            </div>
+            <div class="mb-3">
+                <label>Mitra</label>
+                <input type="text" name="mitra" class="form-control" value="{{ proposal.mitra|default:'' }}">
+            </div>
+            <div class="mb-3">
+                <label>File Proposal</label>
+                <div class="file-input-wrapper">
+                    <input type="file" name="file" class="form-control" accept=".pdf" required>
+                    <div id="fileFeedback" class="file-info"></div>
+                </div>
+                <small class="text-muted">📄 Format: PDF | Maksimal: 5MB</small>
+            </div>
+            <button class="btn btn-success w-100" type="submit" id="submitBtn">
+                <i class="bi bi-cloud-upload"></i> Upload Ulang Proposal
+            </button>
+            <a href="{% url 'capstone_system:upload_proposal' %}" class="btn btn-secondary w-100 mt-2">
                 <i class="bi bi-arrow-left"></i> Batal
             </a>
         </form>
 
         {% else %}
-        <!-- FORM NORMAL -->
         <form method="POST" enctype="multipart/form-data" id="proposalForm">
             {% csrf_token %}
-
             <div class="mb-3">
                 <label>Judul Proposal</label>
-                <input type="text" name="judul" class="form-control"
-                       value="{{ proposal.judul|default:'' }}" required>
+                <input type="text" name="judul" class="form-control" value="{{ proposal.judul|default:'' }}" required>
             </div>
-
             <div class="mb-3">
                 <label>Mitra</label>
-                <input type="text" name="mitra" class="form-control"
-                       value="{{ proposal.mitra|default:'' }}">
+                <input type="text" name="mitra" class="form-control" value="{{ proposal.mitra|default:'' }}">
             </div>
-
             <div class="mb-3">
                 <label>File Proposal</label>
                 <div class="file-input-wrapper">
-                    <input type="file" name="file" class="form-control" 
-                           accept=".pdf" 
-                           {% if not proposal %}required{% endif %}>
+                    <input type="file" name="file" class="form-control" accept=".pdf" required>
                     <div id="fileFeedback" class="file-info"></div>
                 </div>
-                {% if proposal %}
-                <small class="text-muted">
-                    Kosongkan jika tidak ingin mengganti file | 📄 Format: PDF | Maksimal: 5MB
-                </small>
-                {% else %}
-                <small class="text-muted">
-                    📄 Format: PDF | Maksimal: 5MB
-                </small>
-                {% endif %}
+                <small class="text-muted">📄 Format: PDF | Maksimal: 5MB</small>
             </div>
-
             <button class="btn btn-success w-100" type="submit" id="submitBtn">
-                {% if proposal %}
-                    <i class="bi bi-pencil"></i> Update Proposal
-                {% else %}
-                    <i class="bi bi-cloud-upload"></i> Submit Proposal
-                {% endif %}
+                <i class="bi bi-cloud-upload"></i> Submit Proposal
             </button>
-
-            {% if proposal %}
-            <a href="{% url 'capstone_system:upload_proposal' %}"
-               class="btn btn-secondary w-100 mt-2">
-                <i class="bi bi-arrow-left"></i> Batal
-            </a>
-            {% endif %}
-
         </form>
         {% endif %}
 
@@ -702,9 +587,7 @@ body{
 
 {% endif %}
 
-<!-- ========================================================= -->
-<!-- JAVASCRIPT VALIDASI FILE PDF & MAX 5MB + LOADING STATE -->
-<!-- ========================================================= -->
+<!-- JAVASCRIPT -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('proposalForm');
@@ -715,14 +598,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
 
-    // =========================================================
-    // VALIDASI FILE SAAT DIPILIH
-    // =========================================================
     if (fileInput && fileFeedback) {
         fileInput.addEventListener('change', function() {
             const file = this.files[0];
-            
-            // Reset feedback
             fileFeedback.textContent = '';
             fileFeedback.className = 'file-info';
             this.classList.remove('is-invalid');
@@ -730,21 +608,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (file) {
                 let isValid = true;
                 let errorMessage = '';
-                
-                // 1. Cek ekstensi file
                 const ext = file.name.split('.').pop().toLowerCase();
                 if (ext !== 'pdf') {
                     isValid = false;
                     errorMessage = '⚠️ Hanya file PDF yang diperbolehkan! Ekstensi: .' + ext;
                 }
-                
-                // 2. Cek ukuran file (maks 5MB = 5 * 1024 * 1024 bytes)
                 if (isValid && file.size > 5 * 1024 * 1024) {
                     isValid = false;
                     errorMessage = '⚠️ Ukuran file maksimal 5MB! (File Anda: ' + (file.size / (1024 * 1024)).toFixed(2) + 'MB)';
                 }
-                
-                // 3. Tampilkan feedback
                 if (!isValid) {
                     this.classList.add('is-invalid');
                     fileFeedback.textContent = errorMessage;
@@ -764,14 +636,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // =========================================================
-    // LOADING STATE SAAT SUBMIT
-    // =========================================================
     if (form) {
         form.addEventListener('submit', function(e) {
             const file = fileInput ? fileInput.files[0] : null;
-            
-            // Jika file ada, validasi sebelum submit
             if (file) {
                 const ext = file.name.split('.').pop().toLowerCase();
                 if (ext !== 'pdf') {
@@ -780,7 +647,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     fileInput.focus();
                     return false;
                 }
-                
                 if (file.size > 5 * 1024 * 1024) {
                     e.preventDefault();
                     alert('⚠️ Ukuran file maksimal 5MB! (File Anda: ' + (file.size / (1024 * 1024)).toFixed(2) + 'MB)');
@@ -788,21 +654,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     return false;
                 }
             }
-            
-            // Jika file valid atau tidak ada file (edit tanpa ganti file)
-            // Tampilkan loading overlay
             if (file || !fileInput || !fileInput.files[0]) {
-                e.preventDefault(); // Stop default submit dulu
-                
-                // Tampilkan loading
+                e.preventDefault();
                 loadingOverlay.classList.add('show');
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Mengupload...';
-                
-                // Simulasi progress (0% - 100%)
                 let progress = 0;
                 const interval = setInterval(function() {
-                    // Random progress antara 0-90% (90% untuk simulasi)
                     if (progress < 90) {
                         progress += Math.random() * 10 + 1;
                         if (progress > 90) progress = 90;
@@ -810,15 +668,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         progressText.textContent = Math.round(progress) + '%';
                     }
                 }, 200);
-                
-                // Submit form setelah delay (simulasi upload)
                 setTimeout(function() {
-                    // Progress ke 100%
                     progressBar.style.width = '100%';
                     progressText.textContent = '100%';
-                    
                     setTimeout(function() {
-                        // Submit form
                         form.submit();
                     }, 500);
                 }, 1500);
