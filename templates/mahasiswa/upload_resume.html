@@ -570,10 +570,19 @@ body{
             <div>{{ resume.sub_judul }}</div>
         </div>
 
+        <!-- ========================================================= -->
+        <!-- 🔥 PERBAIKAN: Tampilkan dosen pembimbing dari pengajuan -->
+        <!-- ========================================================= -->
         <div class="info-box">
             <small class="text-muted">Dosen Pembimbing</small>
             <div class="fw-semibold text-primary">
-                {{ resume.mahasiswa.dosen_pembimbing|default:"Belum ditentukan" }}
+                {% if pengajuan_dospem and pengajuan_dospem.dosen_pembimbing %}
+                    {{ pengajuan_dospem.dosen_pembimbing.dosen.user.get_full_name }}
+                {% elif resume.mahasiswa.dosen_pembimbing %}
+                    {{ resume.mahasiswa.dosen_pembimbing.dosen.user.get_full_name }}
+                {% else %}
+                    Belum ditentukan
+                {% endif %}
             </div>
         </div>
 
@@ -670,7 +679,7 @@ body{
                     <option value="">-- Pilih Dosen Pembimbing --</option>
                     {% for dosen in dosen_list %}
                     <option value="{{ dosen.id }}"
-                            {% if resume.mahasiswa.dosen_pembimbing.id == dosen.id %}selected{% endif %}>
+                            {% if pengajuan_dospem and pengajuan_dospem.dosen_pembimbing.id == dosen.id %}selected{% endif %}>
                         {{ dosen.dosen.user.get_full_name }}
                         ({{ dosen.dosen.nip }}) - Kuota: {{ dosen.sisa_kuota }}/{{ dosen.batas_bimbingan }}
                     </option>
@@ -711,7 +720,9 @@ body{
         </form>
 
         {% else %}
-        <!-- FORM NORMAL -->
+        <!-- ========================================================= -->
+        <!-- 🔥 FORM NORMAL (BELUM ADA RESUME ATAU STATUS REVIEW)     -->
+        <!-- ========================================================= -->
         <form method="POST" enctype="multipart/form-data" id="resumeForm">
             {% csrf_token %}
 
@@ -722,6 +733,7 @@ body{
                 {{ form.sub_judul }}
             </div>
 
+            <!-- 🔥 DOSEN PEMBIMBING -->
             <div class="mb-3">
                 <label class="form-label fw-semibold">
                     Dosen Pembimbing
@@ -729,9 +741,7 @@ body{
                 <select name="dosen_pembimbing"
                         class="form-select"
                         required>
-                    <option value="">
-                        -- Pilih Dosen Pembimbing --
-                    </option>
+                    <option value="">-- Pilih Dosen Pembimbing --</option>
                     {% for dosen in dosen_list %}
                     <option value="{{ dosen.id }}">
                         {{ dosen.dosen.user.get_full_name }}
@@ -782,7 +792,6 @@ body{
 
     </div>
 </div>
-
 {% endif %}
 
 <!-- ========================================================= -->

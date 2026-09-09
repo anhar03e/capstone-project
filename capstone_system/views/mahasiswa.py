@@ -421,7 +421,7 @@ def upload_proposal(request):
 
 
 # =========================================================
-# UPLOAD RESUME (DIPERBAIKI - TAMBAH VALIDASI FILE)
+# UPLOAD RESUME (DIPERBAIKI - TAMBAH VALIDASI FILE & SIMPAN DOSEN)
 # =========================================================
 @login_required
 def upload_resume(request):
@@ -443,6 +443,9 @@ def upload_resume(request):
     resume = Resume.objects.filter(mahasiswa=mahasiswa).first()
     edit_mode = request.GET.get('edit')
     dosen_list = DosenPembimbing.objects.filter(status='OPEN').select_related('dosen__user')
+
+    # Ambil pengajuan dosen pembimbing
+    pengajuan_dospem = PengajuanDospem.objects.filter(mahasiswa=mahasiswa).first()
 
     if request.method == 'POST':
         # =========================================================
@@ -481,8 +484,12 @@ def upload_resume(request):
             proposal.catatan_pb = ""
             proposal.save()
 
+            # =========================================================
+            # 🔥 TAMBAHKAN: Simpan dosen pembimbing ke PengajuanDospem dan Mahasiswa
+            # =========================================================
             if dosen_id:
-                PengajuanDospem.objects.update_or_create(
+                # Simpan ke PengajuanDospem
+                pengajuan, created = PengajuanDospem.objects.update_or_create(
                     mahasiswa=mahasiswa,
                     defaults={
                         'resume': res,
@@ -494,6 +501,14 @@ def upload_resume(request):
                         'catatan_dosen': '',
                     }
                 )
+
+                # 🔥 TAMBAHKAN: Simpan dosen pembimbing ke Mahasiswa
+                try:
+                    dosen_pb = DosenPembimbing.objects.get(id=dosen_id)
+                    mahasiswa.dosen_pembimbing = dosen_pb
+                    mahasiswa.save()
+                except DosenPembimbing.DoesNotExist:
+                    pass
 
             messages.success(request, "Resume berhasil disimpan.")
             return redirect('capstone_system:upload_resume')
@@ -508,6 +523,7 @@ def upload_resume(request):
         'proposal': proposal,
         'dosen_list': dosen_list,
         'edit_mode': edit_mode,
+        'pengajuan_dospem': pengajuan_dospem,  # 🔥 TAMBAHKAN UNTUK TEMPLATE
     })
 
 
