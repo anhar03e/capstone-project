@@ -82,7 +82,12 @@ def mahasiswa_home(request):
     if pengajuan and pengajuan.dosen_pembimbing:
         dosen_pembimbing = pengajuan.dosen_pembimbing.dosen.user.get_full_name()
 
-    mahasiswa_list = Mahasiswa.objects.exclude(user=request.user)
+    # 🔥 EXCLUDE mahasiswa yang diarsipkan
+    mahasiswa_list = Mahasiswa.objects.exclude(
+        user=request.user
+    ).exclude(
+        status='ARSIP'
+    )
 
     # =========================================================
     # Update status tim jika semua anggota sudah APPROVED
@@ -344,7 +349,7 @@ def upload_proposal(request):
         semua_catatan = RiwayatFeedbackProposal.objects.filter(
             proposal=proposal,
             reviewer='CP'
-        ).order_by('-created_at')  # Terbaru di atas
+        ).order_by('-created_at')
 
     total_revisi = semua_catatan.filter(status='REVISI').count() if proposal else 0
 
@@ -382,8 +387,6 @@ def upload_proposal(request):
                 obj.waktu_peninjauan = None
                 obj.status_pb = "BELUM_REVIEW"
                 obj.catatan_pb = ""
-                
-                # 🔥 TAMBAHKAN: Update waktu_update sebagai tanda reset
                 obj.waktu_update = timezone.now()
 
                 # Jika proposal baru (belum ada)
@@ -523,12 +526,12 @@ def upload_resume(request):
         'proposal': proposal,
         'dosen_list': dosen_list,
         'edit_mode': edit_mode,
-        'pengajuan_dospem': pengajuan_dospem,  # 🔥 TAMBAHKAN UNTUK TEMPLATE
+        'pengajuan_dospem': pengajuan_dospem,
     })
 
 
 # =========================================================
-# SEARCH MAHASISWA
+# SEARCH MAHASISWA (🔥 DIPERBAIKI: EXCLUDE ARSIP)
 # =========================================================
 @login_required
 def search_mahasiswa(request):
@@ -550,11 +553,18 @@ def search_mahasiswa(request):
         for m_id in anggota_tim_sendiri:
             used_ids.discard(m_id)
 
+    # 🔥 PERBAIKAN: exclude mahasiswa arsip + exclude diri sendiri
     qs = Mahasiswa.objects.select_related('user').filter(
         Q(nim__icontains=query) |
         Q(user__first_name__icontains=query) |
         Q(user__last_name__icontains=query)
-    ).exclude(id__in=used_ids)[:10]
+    ).exclude(
+        id__in=used_ids
+    ).exclude(
+        user=request.user
+    ).exclude(
+        status='ARSIP'
+    )[:10]
 
     data = []
     for m in qs:
@@ -657,7 +667,7 @@ def mahasiswa_profile(request):
 
 
 # =========================================================
-# BUAT / EDIT TIM (DIPERBAIKI - TAMBAH VALIDASI NIM)
+# BUAT / EDIT TIM (🔥 DIPERBAIKI: VALIDASI ARSIP)
 # =========================================================
 @login_required
 def buat_tim(request):
@@ -740,16 +750,28 @@ def buat_tim(request):
             return redirect('capstone_system:mahasiswa_home')
 
         # =========================================================
-        # VALIDASI: Cek duplikasi NIM di antara anggota yang dipilih
+        # 🔥 VALIDASI: Cek duplikasi NIM & status arsip
         # =========================================================
         nim_list = []
         for m_id in anggota_ids:
             try:
                 mhs = Mahasiswa.objects.get(id=int(m_id))
+
+                # 🔥 CEK ARSIP
+                if mhs.status == 'ARSIP':
+                    messages.error(
+                        request,
+                        f"⚠️ Mahasiswa {mhs.user.get_full_name()} ({mhs.nim}) sudah diarsipkan "
+                        f"dan tidak dapat diundang ke dalam tim."
+                    )
+                    return redirect('capstone_system:buat_tim')
+
+                # Cek duplikasi NIM
                 if mhs.nim in nim_list:
                     messages.error(request, f"⚠️ Mahasiswa dengan NIM {mhs.nim} sudah ada di daftar anggota!")
                     return redirect('capstone_system:buat_tim')
                 nim_list.append(mhs.nim)
+
             except Mahasiswa.DoesNotExist:
                 messages.error(request, f"Mahasiswa dengan ID {m_id} tidak ditemukan.")
                 return redirect('capstone_system:buat_tim')
@@ -809,6 +831,16 @@ def buat_tim(request):
             
             if kat not in ['EPD', 'SM']:
                 kat = 'EPD'
+            
+            # 🔥 Validasi arsip saat update
+            try:
+                mhs = Mahasiswa.objects.get(id=m_id)
+                if mhs.status == 'ARSIP':
+                    messages.error(request, f"⚠️ Mahasiswa {mhs.nim} sudah diarsipkan.")
+                    return redirect('capstone_system:buat_tim')
+            except Mahasiswa.DoesNotExist:
+                messages.error(request, f"Mahasiswa ID {m_id} tidak ditemukan.")
+                return redirect('capstone_system:buat_tim')
             
             if m_id in anggota_lama:
                 anggota = anggota_lama[m_id]
